@@ -1,9 +1,12 @@
 {
-  "name": "backend",
+  "name": "@chess-app/backend",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "Backend service for chess app",
+  "main": "dist/index.js",
   "scripts": {
+    "dev": "nodemon src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -13,6 +16,7 @@
   "dependencies": {
     "@types/express": "^5.0.3",
     "express": "^5.1.0",
+    "nodemon": "^3.1.10",
     "typescript": "^5.8.3",
     "winston": "^3.17.0"
   }
