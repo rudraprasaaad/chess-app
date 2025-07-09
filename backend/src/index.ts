@@ -4,6 +4,8 @@ import dotenv from "dotenv";
 import helmet from "helmet";
 import cors from "cors";
 import rateLimit from "express-rate-limit";
+import cookieParser from "cookie-parser";
+import session from "express-session";
 
 import { LoggerService } from "./services/logger";
 
@@ -13,6 +15,7 @@ import { errorHandler } from "./middleware/errorHandler";
 import authRoutes from "./routes/auth";
 
 import { DatabaseService } from "./services/database";
+import { COOKIE_MAX_AGE } from "./lib/consts";
 
 dotenv.config({ path: "../.env" });
 class Application {
@@ -50,6 +53,16 @@ class Application {
       cors({
         origin: process.env.FRONTEND_URL || "http://localhost:5371",
         credentials: true,
+      })
+    );
+
+    this.app.use(cookieParser());
+    this.app.use(
+      session({
+        secret: process.env.COOKIE_SECRET!,
+        resave: false,
+        saveUninitialized: false,
+        cookie: { secure: false, maxAge: COOKIE_MAX_AGE, httpOnly: true },
       })
     );
 

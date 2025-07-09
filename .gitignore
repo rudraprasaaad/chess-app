@@ -189,6 +189,7 @@ package-lock.json
 postgres_data/
 redis_data/
 chroma_data/
+./logs
 
 # SSL certificates
 *.pem
