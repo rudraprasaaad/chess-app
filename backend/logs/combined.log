@@ -44,3 +44,67 @@
 {"level":"info","message":"📊 Environment: development","service":"chess-app-backend","timestamp":"2025-07-04T22:03:10.151Z"}
 {"level":"info","message":"🔗 API URL: http://localhost:4000/api","service":"chess-app-backend","timestamp":"2025-07-04T22:03:10.151Z"}
 {"level":"info","message":"Starting graceful shutdown....","service":"chess-app-backend","timestamp":"2025-07-04T22:08:21.431Z"}
+{"level":"info","message":"🚀 Server running on port 4000","service":"chess-app-backend","timestamp":"2025-07-09T20:00:15.188Z"}
+{"level":"info","message":"📊 Environment: development","service":"chess-app-backend","timestamp":"2025-07-09T20:00:15.190Z"}
+{"level":"info","message":"🔗 API URL: http://localhost:4000/api","service":"chess-app-backend","timestamp":"2025-07-09T20:00:15.190Z"}
+{"level":"info","message":"Connected to PostgresSQL Server","service":"chess-app-backend","timestamp":"2025-07-09T20:00:17.243Z"}
+{"level":"info","message":"Connected to PostgresSQL database","service":"chess-app-backend","timestamp":"2025-07-09T20:00:17.244Z"}
+{"level":"info","message":"Starting graceful shutdown....","service":"chess-app-backend","timestamp":"2025-07-09T20:00:26.527Z"}
+{"level":"info","message":"🚀 Server running on port 4000","service":"chess-app-backend","timestamp":"2025-07-09T20:07:48.807Z"}
+{"level":"info","message":"📊 Environment: development","service":"chess-app-backend","timestamp":"2025-07-09T20:07:48.809Z"}
+{"level":"info","message":"🔗 API URL: http://localhost:4000/api","service":"chess-app-backend","timestamp":"2025-07-09T20:07:48.809Z"}
+{"level":"info","message":"Connected to PostgresSQL Server","service":"chess-app-backend","timestamp":"2025-07-09T20:07:51.002Z"}
+{"level":"info","message":"Connected to PostgresSQL database","service":"chess-app-backend","timestamp":"2025-07-09T20:07:51.002Z"}
+{"level":"info","message":"Guest created successfully: 95c6ded6-3e50-4083-8751-9c6566b8468d","service":"chess-app-backend","timestamp":"2025-07-09T20:09:00.656Z"}
+{"level":"info","message":"Guest created successfully: 79a03f28-b97b-4a3e-ae66-f1e8ab2f6323","service":"chess-app-backend","timestamp":"2025-07-09T20:09:27.506Z"}
+{"level":"info","message":"Guest created successfully: 17dcba89-da1e-4f27-9c0b-cab09ee3701f","service":"chess-app-backend","timestamp":"2025-07-09T20:09:43.039Z"}
+{"level":"info","message":"🚀 Server running on port 4000","service":"chess-app-backend","timestamp":"2025-07-09T20:12:29.751Z"}
+{"level":"info","message":"📊 Environment: development","service":"chess-app-backend","timestamp":"2025-07-09T20:12:29.753Z"}
+{"level":"info","message":"🔗 API URL: http://localhost:4000/api","service":"chess-app-backend","timestamp":"2025-07-09T20:12:29.753Z"}
+{"level":"info","message":"🚀 Server running on port 4000","service":"chess-app-backend","timestamp":"2025-07-09T20:12:33.402Z"}
+{"level":"info","message":"📊 Environment: development","service":"chess-app-backend","timestamp":"2025-07-09T20:12:33.404Z"}
+{"level":"info","message":"🔗 API URL: http://localhost:4000/api","service":"chess-app-backend","timestamp":"2025-07-09T20:12:33.404Z"}
+{"level":"info","message":"🚀 Server running on port 4000","service":"chess-app-backend","timestamp":"2025-07-09T20:12:35.088Z"}
+{"level":"info","message":"📊 Environment: development","service":"chess-app-backend","timestamp":"2025-07-09T20:12:35.089Z"}
+{"level":"info","message":"🔗 API URL: http://localhost:4000/api","service":"chess-app-backend","timestamp":"2025-07-09T20:12:35.089Z"}
+{"level":"info","message":"Connected to PostgresSQL Server","service":"chess-app-backend","timestamp":"2025-07-09T20:12:38.302Z"}
+{"level":"info","message":"Connected to PostgresSQL database","service":"chess-app-backend","timestamp":"2025-07-09T20:12:38.303Z"}
+{"level":"info","message":"🚀 Server running on port 4000","service":"chess-app-backend","timestamp":"2025-07-09T20:13:06.515Z"}
+{"level":"info","message":"📊 Environment: development","service":"chess-app-backend","timestamp":"2025-07-09T20:13:06.517Z"}
+{"level":"info","message":"🔗 API URL: http://localhost:4000/api","service":"chess-app-backend","timestamp":"2025-07-09T20:13:06.517Z"}
+{"level":"info","message":"Connected to PostgresSQL Server","service":"chess-app-backend","timestamp":"2025-07-09T20:13:08.325Z"}
+{"level":"info","message":"Connected to PostgresSQL database","service":"chess-app-backend","timestamp":"2025-07-09T20:13:08.326Z"}
+{"level":"info","message":"Guest created successfully: bc588779-fa41-4c05-a2b3-f996bae5448b","service":"chess-app-backend","timestamp":"2025-07-09T20:13:13.580Z"}
+{"body":{"name":"rudraprasad"},"ip":"::1","level":"info","message":"API Error option maxAge is invalid","method":"POST","params":{},"query":{},"service":"chess-app-backend","stack":"TypeError: option maxAge is invalid\n    at Object.serialize (/home/rudra/Projects/chess-app/backend/node_modules/.pnpm/cookie@0.7.2/node_modules/cookie/index.js:209:13)\n    at ServerResponse.res.cookie (/home/rudra/Projects/chess-app/backend/node_modules/.pnpm/express@5.1.0/node_modules/express/lib/response.js:777:36)\n    at /home/rudra/Projects/chess-app/backend/src/routes/auth.ts:52:7\n    at Generator.next (<anonymous>)\n    at fulfilled (/home/rudra/Projects/chess-app/backend/src/routes/auth.ts:5:58)","timestamp":"2025-07-09T20:13:13.582Z","url":"/api/auth/guest","userAgent":"PostmanRuntime/7.44.0"}
+{"level":"info","message":"🚀 Server running on port 4000","service":"chess-app-backend","timestamp":"2025-07-09T20:14:22.004Z"}
+{"level":"info","message":"📊 Environment: development","service":"chess-app-backend","timestamp":"2025-07-09T20:14:22.006Z"}
+{"level":"info","message":"🔗 API URL: http://localhost:4000/api","service":"chess-app-backend","timestamp":"2025-07-09T20:14:22.006Z"}
+{"level":"info","message":"Connected to PostgresSQL Server","service":"chess-app-backend","timestamp":"2025-07-09T20:14:23.696Z"}
+{"level":"info","message":"Connected to PostgresSQL database","service":"chess-app-backend","timestamp":"2025-07-09T20:14:23.697Z"}
+{"level":"info","message":"🚀 Server running on port 4000","service":"chess-app-backend","timestamp":"2025-07-09T20:14:26.423Z"}
+{"level":"info","message":"📊 Environment: development","service":"chess-app-backend","timestamp":"2025-07-09T20:14:26.424Z"}
+{"level":"info","message":"🔗 API URL: http://localhost:4000/api","service":"chess-app-backend","timestamp":"2025-07-09T20:14:26.425Z"}
+{"level":"info","message":"Connected to PostgresSQL Server","service":"chess-app-backend","timestamp":"2025-07-09T20:14:28.192Z"}
+{"level":"info","message":"Connected to PostgresSQL database","service":"chess-app-backend","timestamp":"2025-07-09T20:14:28.193Z"}
+{"level":"info","message":"🚀 Server running on port 4000","service":"chess-app-backend","timestamp":"2025-07-09T20:14:33.334Z"}
+{"level":"info","message":"📊 Environment: development","service":"chess-app-backend","timestamp":"2025-07-09T20:14:33.335Z"}
+{"level":"info","message":"🔗 API URL: http://localhost:4000/api","service":"chess-app-backend","timestamp":"2025-07-09T20:14:33.336Z"}
+{"level":"info","message":"🚀 Server running on port 4000","service":"chess-app-backend","timestamp":"2025-07-09T20:14:35.094Z"}
+{"level":"info","message":"📊 Environment: development","service":"chess-app-backend","timestamp":"2025-07-09T20:14:35.096Z"}
+{"level":"info","message":"🔗 API URL: http://localhost:4000/api","service":"chess-app-backend","timestamp":"2025-07-09T20:14:35.097Z"}
+{"level":"info","message":"Connected to PostgresSQL Server","service":"chess-app-backend","timestamp":"2025-07-09T20:14:36.799Z"}
+{"level":"info","message":"Connected to PostgresSQL database","service":"chess-app-backend","timestamp":"2025-07-09T20:14:36.799Z"}
+{"body":{"name":"rudraprasad"},"ip":"::1","level":"info","message":"API Error \nInvalid `prisma.user.create()` invocation in\n/home/rudra/Projects/chess-app/backend/src/routes/auth.ts:29:34\n\n  26 const bodyData = req.body;\n  27 let guestUUID = \"guest-\" + uuidv4();\n  28 \n→ 29 const user = await prisma.user.create(\nCan't reach database server at `ep-dawn-voice-adepjq76-pooler.c-2.us-east-1.aws.neon.tech:5432`\n\nPlease make sure your database server is running at `ep-dawn-voice-adepjq76-pooler.c-2.us-east-1.aws.neon.tech:5432`.","method":"POST","params":{},"query":{},"service":"chess-app-backend","stack":"PrismaClientInitializationError: \nInvalid `prisma.user.create()` invocation in\n/home/rudra/Projects/chess-app/backend/src/routes/auth.ts:29:34\n\n  26 const bodyData = req.body;\n  27 let guestUUID = \"guest-\" + uuidv4();\n  28 \n→ 29 const user = await prisma.user.create(\nCan't reach database server at `ep-dawn-voice-adepjq76-pooler.c-2.us-east-1.aws.neon.tech:5432`\n\nPlease make sure your database server is running at `ep-dawn-voice-adepjq76-pooler.c-2.us-east-1.aws.neon.tech:5432`.\n    at Xn.handleRequestError (/home/rudra/Projects/chess-app/backend/src/generated/prisma/runtime/library.js:124:7759)\n    at Xn.handleAndLogRequestError (/home/rudra/Projects/chess-app/backend/src/generated/prisma/runtime/library.js:124:6784)\n    at Xn.request (/home/rudra/Projects/chess-app/backend/src/generated/prisma/runtime/library.js:124:6491)\n    at async l (/home/rudra/Projects/chess-app/backend/src/generated/prisma/runtime/library.js:133:9812)","timestamp":"2025-07-09T20:14:48.593Z","url":"/api/auth/guest","userAgent":"PostmanRuntime/7.44.0"}
+{"level":"info","message":"Starting graceful shutdown....","service":"chess-app-backend","timestamp":"2025-07-09T20:17:49.051Z"}
+{"level":"info","message":"🚀 Server running on port 4000","service":"chess-app-backend","timestamp":"2025-07-09T20:17:57.397Z"}
+{"level":"info","message":"📊 Environment: development","service":"chess-app-backend","timestamp":"2025-07-09T20:17:57.399Z"}
+{"level":"info","message":"🔗 API URL: http://localhost:4000/api","service":"chess-app-backend","timestamp":"2025-07-09T20:17:57.399Z"}
+{"level":"info","message":"Connected to PostgresSQL Server","service":"chess-app-backend","timestamp":"2025-07-09T20:17:59.225Z"}
+{"level":"info","message":"Connected to PostgresSQL database","service":"chess-app-backend","timestamp":"2025-07-09T20:17:59.225Z"}
+{"level":"info","message":"Starting graceful shutdown....","service":"chess-app-backend","timestamp":"2025-07-09T20:18:04.421Z"}
+{"level":"info","message":"🚀 Server running on port 4000","service":"chess-app-backend","timestamp":"2025-07-09T20:18:10.353Z"}
+{"level":"info","message":"📊 Environment: development","service":"chess-app-backend","timestamp":"2025-07-09T20:18:10.354Z"}
+{"level":"info","message":"🔗 API URL: http://localhost:4000/api","service":"chess-app-backend","timestamp":"2025-07-09T20:18:10.355Z"}
+{"level":"info","message":"Connected to PostgresSQL Server","service":"chess-app-backend","timestamp":"2025-07-09T20:18:12.442Z"}
+{"level":"info","message":"Connected to PostgresSQL database","service":"chess-app-backend","timestamp":"2025-07-09T20:18:12.444Z"}
+{"level":"info","message":"Guest created successfully: a25adb76-64a9-4d9c-800e-90026373e9d2","service":"chess-app-backend","timestamp":"2025-07-09T20:19:08.526Z"}

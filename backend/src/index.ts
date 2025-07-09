@@ -9,6 +9,9 @@ import { LoggerService } from "./services/logger";
 
 import { requestLogger } from "./middleware/requestLogger";
 import { errorHandler } from "./middleware/errorHandler";
+
+import authRoutes from "./routes/auth";
+
 import { DatabaseService } from "./services/database";
 
 dotenv.config({ path: "../.env" });
@@ -79,6 +82,8 @@ class Application {
   }
 
   private initializeRoutes(): void {
+    this.app.use("/api/auth", authRoutes);
+
     this.app.use("/{*any}", (req, res) => {
       res.status(404).json({
         error: "Route not found",
