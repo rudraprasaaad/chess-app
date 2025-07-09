@@ -49,7 +49,7 @@ router.post("/guest", async (req: Request, res: Response) => {
     isGuest: true,
   };
 
-  res.cookie("guest", token, { maxAge: COOKIE_MAX_AGE });
+  res.cookie("guest", token, { httpOnly: true, maxAge: COOKIE_MAX_AGE });
   res.status(201).json({
     success: true,
     data: UserDetails,
