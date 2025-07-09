@@ -9,11 +9,13 @@ import { LoggerService } from "./services/logger";
 
 import { requestLogger } from "./middleware/requestLogger";
 import { errorHandler } from "./middleware/errorHandler";
+import { DatabaseService } from "./services/database";
 
 dotenv.config({ path: "../.env" });
 class Application {
   public app: express.Application;
   public server: any;
+  private database!: DatabaseService;
   public logger: LoggerService;
 
   constructor() {
@@ -21,9 +23,21 @@ class Application {
     this.server = createServer(this.app);
     this.logger = new LoggerService();
 
+    this.initializeDatabase();
     this.initializeMiddleware();
     this.initializeRoutes();
     this.initializeErrorHandling();
+  }
+
+  private async initializeDatabase(): Promise<void> {
+    try {
+      this.database = new DatabaseService();
+      await this.database.connect();
+      this.logger.info("Connected to PostgresSQL database");
+    } catch (err) {
+      this.logger.error("Failed to connect to database", err);
+      process.exit(1);
+    }
   }
 
   private initializeMiddleware(): void {

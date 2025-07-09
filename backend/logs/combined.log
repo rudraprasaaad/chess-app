@@ -43,3 +43,4 @@
 {"level":"info","message":"🚀 Server running on port 4000","service":"chess-app-backend","timestamp":"2025-07-04T22:03:10.150Z"}
 {"level":"info","message":"📊 Environment: development","service":"chess-app-backend","timestamp":"2025-07-04T22:03:10.151Z"}
 {"level":"info","message":"🔗 API URL: http://localhost:4000/api","service":"chess-app-backend","timestamp":"2025-07-04T22:03:10.151Z"}
+{"level":"info","message":"Starting graceful shutdown....","service":"chess-app-backend","timestamp":"2025-07-04T22:08:21.431Z"}
