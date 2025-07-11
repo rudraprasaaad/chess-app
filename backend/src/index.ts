@@ -16,6 +16,8 @@ import authRoutes from "./routes/auth";
 
 import { DatabaseService } from "./services/database";
 import { COOKIE_MAX_AGE } from "./lib/consts";
+import { initPassport } from "./middleware/passport";
+import passport from "passport";
 
 dotenv.config({ path: "../.env" });
 class Application {
@@ -31,6 +33,7 @@ class Application {
 
     this.initializeDatabase();
     this.initializeMiddleware();
+    this.initializePassport();
     this.initializeRoutes();
     this.initializeErrorHandling();
   }
@@ -44,6 +47,12 @@ class Application {
       this.logger.error("Failed to connect to database", err);
       process.exit(1);
     }
+  }
+
+  private initializePassport(): void {
+    initPassport();
+    this.app.use(passport.initialize());
+    this.app.use(passport.session());
   }
 
   private initializeMiddleware(): void {
@@ -95,7 +104,7 @@ class Application {
   }
 
   private initializeRoutes(): void {
-    this.app.use("/api/auth", authRoutes);
+    this.app.use("/auth", authRoutes);
 
     this.app.use("/{*any}", (req, res) => {
       res.status(404).json({

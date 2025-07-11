@@ -1,17 +1,10 @@
 import { Request, Response, Router } from "express";
 import { PrismaClient } from "../generated/prisma";
+import passport from "passport";
 import { v4 as uuidv4 } from "uuid";
 import jwt from "jsonwebtoken";
 import { LoggerService } from "../services/logger";
 import { COOKIE_MAX_AGE } from "../lib/consts";
-
-declare global {
-  namespace Express {
-    interface Request {
-      user?: any;
-    }
-  }
-}
 
 const router = Router();
 const prisma = new PrismaClient();
@@ -105,5 +98,31 @@ router.get("/refresh", async (req: Request, res: Response) => {
     res.status(401).json({ success: false, message: "Unauthorized" });
   }
 });
+
+router.get("/logout", (req: Request, res: Response) => {
+  res.clearCookie("guest");
+
+  req.logout((err: Error) => {
+    if (err) {
+      res.status(500).json({ error: "Failed to log out" });
+    } else {
+      res.clearCookie("jwt");
+      res.redirect("http://localhost:5173");
+    }
+  });
+});
+
+router.get(
+  "/google",
+  passport.authenticate("google", { scope: ["profile", "email"] })
+);
+
+router.get(
+  "/google/callback",
+  passport.authenticate("google", {
+    successRedirect: process.env.AUTH_REDIRECT_URL,
+    failureRedirect: "/login/failed",
+  })
+);
 
 export default router;
