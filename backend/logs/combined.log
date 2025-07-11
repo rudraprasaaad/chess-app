@@ -3,3 +3,8 @@
 {"level":"info","message":"🔗 API URL: http://localhost:4000/api","service":"chess-app-backend","timestamp":"2025-07-09T20:54:36.047Z"}
 {"level":"info","message":"Connected to PostgresSQL Server","service":"chess-app-backend","timestamp":"2025-07-09T20:54:38.286Z"}
 {"level":"info","message":"Connected to PostgresSQL database","service":"chess-app-backend","timestamp":"2025-07-09T20:54:38.286Z"}
+{"level":"info","message":"🚀 Server running on port 4000","service":"chess-app-backend","timestamp":"2025-07-09T20:55:48.486Z"}
+{"level":"info","message":"📊 Environment: development","service":"chess-app-backend","timestamp":"2025-07-09T20:55:48.488Z"}
+{"level":"info","message":"🔗 API URL: http://localhost:4000/api","service":"chess-app-backend","timestamp":"2025-07-09T20:55:48.489Z"}
+{"level":"info","message":"Connected to PostgresSQL Server","service":"chess-app-backend","timestamp":"2025-07-09T20:55:50.397Z"}
+{"level":"info","message":"Connected to PostgresSQL database","service":"chess-app-backend","timestamp":"2025-07-09T20:55:50.398Z"}
