@@ -45,7 +45,9 @@ export function initPassport() {
               data: {
                 email: email,
                 name: profile.displayName,
-                username: profile.username || profile.displayName,
+                username:
+                  profile.username?.toLowerCase() ||
+                  profile.displayName.toLowerCase(),
                 provider: "GOOGLE",
                 providerId: profile.id,
               },
