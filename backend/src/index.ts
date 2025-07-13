@@ -8,13 +8,13 @@ import cookieParser from "cookie-parser";
 import session from "express-session";
 
 import { LoggerService } from "./services/logger";
+import { DatabaseService } from "./services/database";
 
 import { requestLogger } from "./middleware/requestLogger";
 import { errorHandler } from "./middleware/errorHandler";
 
 import authRoutes from "./routes/auth";
 
-import { DatabaseService } from "./services/database";
 import { COOKIE_MAX_AGE } from "./lib/consts";
 import { initPassport } from "./middleware/passport";
 import passport from "passport";
