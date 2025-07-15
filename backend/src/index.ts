@@ -6,9 +6,11 @@ import cors from "cors";
 import rateLimit from "express-rate-limit";
 import cookieParser from "cookie-parser";
 import session from "express-session";
+import { WebSocketServer } from "ws";
 
 import { LoggerService } from "./services/logger";
 import { DatabaseService } from "./services/database";
+import { WebSocketService } from "./services/websocket";
 
 import { requestLogger } from "./middleware/requestLogger";
 import { errorHandler } from "./middleware/errorHandler";
@@ -23,7 +25,9 @@ dotenv.config({ path: "../.env" });
 class Application {
   public app: express.Application;
   public server: any;
+  public wss!: WebSocketServer;
   private database!: DatabaseService;
+  private ws!: WebSocketService;
   public logger: LoggerService;
 
   constructor() {
@@ -32,6 +36,7 @@ class Application {
     this.logger = new LoggerService();
 
     this.initializeDatabase();
+    this.initializeWebSocket();
     this.initializeMiddleware();
     this.initializePassport();
     this.initializeRoutes();
@@ -53,6 +58,26 @@ class Application {
     initPassport();
     this.app.use(passport.initialize());
     this.app.use(passport.session());
+  }
+
+  private initializeWebSocket(): void {
+    const allowedOrigin = process.env.FRONTEND_URL || "http://localhost:5173";
+
+    this.wss = new WebSocketServer({
+      server: this.server,
+      verifyClient: (info, done) => {
+        const origin = info.origin;
+
+        if (origin === allowedOrigin) done(true);
+        else {
+          this.logger.warn(`WebsocketServer rejected origin :${origin}`);
+          done(false, 403, "Forbidden");
+        }
+      },
+    });
+    this.ws = new WebSocketService(this.wss);
+    this.app.set("websocket", this.ws);
+    this.logger.info("Websocket server initialized");
   }
 
   private initializeMiddleware(): void {
