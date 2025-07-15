@@ -3,17 +3,24 @@ import jwt from "jsonwebtoken";
 import { LoggerService } from "./logger";
 import { GameService } from "../games/services/game";
 import { AuthProvider } from "../generated/prisma";
-import { AuthenticatedWebSocket } from "../lib/types";
+import {
+  AuthenticatedWebSocket,
+  Game,
+  Room,
+  WebSocketMessage,
+} from "../lib/types";
 
 export class WebSocketService {
   private wss: WebSocketServer;
   private logger: LoggerService;
   private gameService: GameService;
+  private rateLimit: Map<string, { count: number; lastReset: number }>;
 
   constructor(wss: WebSocketServer) {
     this.wss = wss;
     this.logger = new LoggerService();
     this.gameService = new GameService(this);
+    this.rateLimit = new Map();
     this.setupEventHandlers();
   }
 
@@ -52,10 +59,102 @@ export class WebSocketService {
 
         ws.on("message", (data) => this.handleMessage(ws, data));
 
-        ws.on("close", () => this.roomService.handleDisconnect(ws));
+        // ws.on("close", () => this.roomService.handleDisconnect(ws));
       } catch (err) {
         this.logger.error(`Connection error:${(err as Error).message} `);
         ws.close(4000, "Authentication failed");
+      }
+    });
+  }
+
+  private async handleMessage(
+    ws: AuthenticatedWebSocket,
+    data: WebSocket.RawData
+  ): Promise<void> {
+    try {
+      const now = Date.now();
+
+      const limit = this.rateLimit.get(ws.playerId) || {
+        count: 0,
+        lastReset: now,
+      };
+      if (now - limit.lastReset > 60000) {
+        limit.count = 0;
+        limit.lastReset = now;
+      }
+
+      if (limit.count >= 50) {
+        ws.close(4000, "Authentication failed");
+        return;
+      }
+      limit.count++;
+      this.rateLimit.set(ws.playerId, limit);
+
+      const { type, payload }: WebSocketMessage = JSON.parse(data.toString());
+      this.logger.info(`Message from ${ws.playerId}: ${type}`);
+
+      switch (type) {
+        case "CREATE_ROOM":
+          break;
+
+        case "JOIN_ROOM":
+          break;
+
+        case "JOIN_QUEUE":
+          break;
+
+        case "MAKE_MOVE":
+          break;
+
+        case "CHAT_MESSAGE":
+          break;
+
+        case "MAKE_MOVE":
+          break;
+
+        case "CHAT_MESSAGE":
+          break;
+
+        default:
+          throw new Error(`Unknown message type: ${type}`);
+      }
+    } catch (err) {
+      this.logger.error(`Message handling error: ${(err as Error).message}`);
+      this.broadcastToClient(ws.playerId, {
+        type: "ERROR",
+        payload: { message: (err as Error).message },
+      });
+    }
+  }
+
+  public broadCastToRoom(room: Room): void {
+    this.wss.clients.forEach((client) => {
+      if (
+        room.players.some(
+          (p) => p.id === (client as AuthenticatedWebSocket).playerId
+        )
+      ) {
+        client.send(JSON.stringify({ type: "ROOM_UPDATED", payload: room }));
+      }
+    });
+  }
+
+  public broadCastToGame(game: Game): void {
+    this.wss.clients.forEach((client) => {
+      if (
+        game.players.some(
+          (p) => p.userId === (client as AuthenticatedWebSocket).playerId
+        )
+      ) {
+        client.send(JSON.stringify({ type: "GAME_UPDATED", payload: game }));
+      }
+    });
+  }
+
+  public broadcastToClient(playerId: string, message: WebSocketMessage): void {
+    this.wss.clients.forEach((client) => {
+      if ((client as AuthenticatedWebSocket).playerId === playerId) {
+        client.send(JSON.stringify(message));
       }
     });
   }

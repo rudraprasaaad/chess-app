@@ -45,6 +45,10 @@ export interface Room {
   createdAt: Date;
 }
 
+export interface RoomWithGame extends Room {
+  game: Game;
+}
+
 export interface Game {
   id: string;
   roomId: string;
