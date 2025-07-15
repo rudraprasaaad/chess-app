@@ -16,9 +16,87 @@ model User {
   provider   AuthProvider
   providerId String?
   password   String?
+  elo        Int          @default(1500)
+  wins       Int          @default(0)
+  losses     Int          @default(0)
+  draws      Int          @default(0)
+  status     UserStatus   @default(OFFLINE)
+  banned     Boolean      @default(false)
+  games      GamePlayer[]
+  createdAt  DateTime     @default(now())
+
+  @@index([status])
+  @@index([elo])
+}
+
+model Game {
+  id          String       @id @default(uuid())
+  roomId      String
+  fen         String
+  moveHistory Json[]
+  timers      Json
+  status      GameStatus
+  players     GamePlayer[]
+  chat        Json[]
+  winnerId    String?
+  createdAt   DateTime     @default(now())
+  userId      String?
+  Room        Room         @relation(fields: [roomId], references: [id])
+
+  @@index([roomId])
+  @@index([status])
+}
+
+model Room {
+  id         String     @id @default(uuid())
+  type       RoomType
+  status     RoomStatus
+  players    Json[]
+  inviteCode String?    @unique
+  createdAt  DateTime   @default(now())
+  games      Game[]
+
+  @@index([status])
+  @@index([inviteCode])
+}
+
+model GamePlayer {
+  gameId String
+  userId String
+  color  String
+  game   Game   @relation(fields: [gameId], references: [id])
+  user   User   @relation(fields: [userId], references: [id])
+
+  @@id([gameId, userId])
+  @@index([userId])
 }
 
 enum AuthProvider {
   GOOGLE
   GUEST
+}
+
+enum UserStatus {
+  ONLINE
+  OFFLINE
+  WAITING
+  IN_GAME
+  DISCONNECTED
+}
+
+enum GameStatus {
+  ACTIVE
+  COMPLETED
+  ABANDONED
+}
+
+enum RoomStatus {
+  OPEN
+  ACTIVE
+  CLOSED
+}
+
+enum RoomType {
+  PUBLIC
+  PRIVATE
 }
