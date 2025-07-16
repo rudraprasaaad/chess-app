@@ -20,6 +20,7 @@ import { initPassport } from "./middleware/passport";
 import authRoutes from "./routes/auth";
 
 import { COOKIE_MAX_AGE } from "./lib/consts";
+import { RedisService } from "./services/redis";
 
 dotenv.config({ path: "../.env" });
 class Application {
@@ -27,6 +28,7 @@ class Application {
   public server: any;
   public wss!: WebSocketServer;
   private database!: DatabaseService;
+  private redis!: RedisService;
   private ws!: WebSocketService;
   public logger: LoggerService;
 
@@ -36,7 +38,7 @@ class Application {
     this.logger = new LoggerService();
 
     this.initializeDatabase();
-    // this.initializeWebSocket();
+    this.initializeWebSocket();
     this.initializeMiddleware();
     this.initializePassport();
     this.initializeRoutes();

@@ -33,16 +33,23 @@ export class GameService {
       },
     });
 
-    if (!room) this.logger.error("Room not found!!");
+    if (!room) throw new Error("Room not found");
 
     const typedRoom: Room = {
-      id: room?.id!,
-      type: room?.type as RoomType,
-      status: room?.status as RoomStatus,
-      players: (room?.players as { id: string; color: string | null }[]) || [],
-      inviteCode: room?.inviteCode ?? "",
-      createdAt: room?.createdAt ?? new Date(),
+      id: room.id,
+      type: room.type as RoomType,
+      status: room.status as RoomStatus,
+      players: (room.players as { id: string; color: string | null }[]) || [],
+      inviteCode: room.inviteCode || undefined,
+      createdAt: room.createdAt,
     };
+
+    if (
+      typedRoom.players.length !== 2 ||
+      typedRoom.players.some((p) => !p.color)
+    ) {
+      throw new Error("Room must have two players with assigned colors");
+    }
 
     const chess = new Chess();
     const game = await this.prisma.game.create({

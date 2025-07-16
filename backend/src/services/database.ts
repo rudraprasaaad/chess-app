@@ -1,4 +1,3 @@
-import { PrimaryExpression } from "typescript";
 import { PrismaClient } from "../generated/prisma";
 import { LoggerService } from "./logger";
 
