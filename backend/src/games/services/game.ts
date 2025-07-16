@@ -1,4 +1,3 @@
-import { createClient, RedisClientType } from "redis";
 import { PrismaClient } from "../../generated/prisma";
 import { WebSocketService } from "../../services/websocket";
 import {
@@ -12,16 +11,17 @@ import {
 import { LoggerService } from "../../services/logger";
 import { Chess } from "chess.js";
 import { v4 as uuidv4 } from "uuid";
+import { RedisService } from "../../services/redis";
 
 export class GameService {
   private prisma: PrismaClient;
-  private redis: RedisClientType;
+  private redis: RedisService;
   private ws: WebSocketService;
   private logger: LoggerService;
 
   constructor(ws: WebSocketService) {
     this.prisma = new PrismaClient();
-    this.redis = createClient().connect() as any;
+    this.redis = new RedisService();
     this.ws = ws;
     this.logger = new LoggerService();
   }
@@ -79,7 +79,7 @@ export class GameService {
 
     await this.redis.set(`game: ${game.id}`, JSON.stringify(formattedGame));
     typedRoom?.players.forEach((p: any) =>
-      this.redis.set(`player:${p.id}:lastGame`, game.id, { EX: 3600 })
+      this.redis.set(`player:${p.id}:lastGame`, game.id, 3600)
     );
     const roomWithGame: RoomWithGame = { ...typedRoom, game: formattedGame };
 

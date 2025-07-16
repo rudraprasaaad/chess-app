@@ -36,7 +36,7 @@ class Application {
     this.logger = new LoggerService();
 
     this.initializeDatabase();
-    this.initializeWebSocket();
+    // this.initializeWebSocket();
     this.initializeMiddleware();
     this.initializePassport();
     this.initializeRoutes();
