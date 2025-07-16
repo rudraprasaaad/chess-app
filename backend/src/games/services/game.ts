@@ -81,7 +81,7 @@ export class GameService {
     );
     const roomWithGame: RoomWithGame = { ...typedRoom, game: formattedGame };
 
-    this.ws.broadCastToRoom(roomWithGame);
+    this.ws.broadcastToRoom(roomWithGame);
     return formattedGame;
   }
 }

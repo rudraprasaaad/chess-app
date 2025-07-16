@@ -9,15 +9,18 @@ import {
   Room,
   WebSocketMessage,
 } from "../lib/types";
+import { RoomService } from "../games/services/room";
 
 export class WebSocketService {
   private wss: WebSocketServer;
   private gameService: GameService;
+  private roomService: RoomService;
   private rateLimit: Map<string, { count: number; lastReset: number }>;
 
   constructor(wss: WebSocketServer) {
     this.wss = wss;
     this.gameService = new GameService(this);
+    this.roomService = new RoomService(this);
     this.rateLimit = new Map();
     this.setupEventHandlers();
   }
@@ -91,9 +94,18 @@ export class WebSocketService {
 
       switch (type) {
         case "CREATE_ROOM":
-          break;
+          await this.roomService.createRoom(
+            payload.type,
+            payload.playerId,
+            payload.inviteCode
+          );
 
         case "JOIN_ROOM":
+          await this.roomService.joinRoom(
+            payload.roomId,
+            payload.playerId,
+            payload.inviteCode
+          );
           break;
 
         case "JOIN_QUEUE":
@@ -123,7 +135,7 @@ export class WebSocketService {
     }
   }
 
-  public broadCastToRoom(room: Room): void {
+  public broadcastToRoom(room: Room): void {
     this.wss.clients.forEach((client) => {
       if (
         room.players.some(
@@ -135,7 +147,7 @@ export class WebSocketService {
     });
   }
 
-  public broadCastToGame(game: Game): void {
+  public broadcastToGame(game: Game): void {
     this.wss.clients.forEach((client) => {
       if (
         game.players.some(

@@ -22,7 +22,7 @@ export enum GameStatus {
 
 export enum RoomStatus {
   OPEN = "OPEN",
-  ACTIVE = "ACITVE",
+  ACTIVE = "ACTIVE",
   CLOSED = "CLOSED",
 }
 
