@@ -1,6 +1,6 @@
 import WebSocket, { WebSocketServer } from "ws";
 import jwt from "jsonwebtoken";
-import { LoggerService } from "./logger";
+import { logger } from "./logger";
 import { GameService } from "../games/services/game";
 import { AuthProvider } from "../generated/prisma";
 import {
@@ -12,13 +12,11 @@ import {
 
 export class WebSocketService {
   private wss: WebSocketServer;
-  private logger: LoggerService;
   private gameService: GameService;
   private rateLimit: Map<string, { count: number; lastReset: number }>;
 
   constructor(wss: WebSocketServer) {
     this.wss = wss;
-    this.logger = new LoggerService();
     this.gameService = new GameService(this);
     this.rateLimit = new Map();
     this.setupEventHandlers();
@@ -45,23 +43,21 @@ export class WebSocketService {
         const user = await this.verifyToken(token);
 
         ws.playerId = user.id;
-        this.logger.info(`Client Connected: ${user.id}`);
+        logger.info(`Client Connected: ${user.id}`);
 
         // add create roomService
 
         // await this.roomService.handleReconnect(ws);
 
         ws.on("error", (err) => {
-          this.logger.error(
-            `Websocket Error for ${ws.playerId}: ${err.message}`
-          );
+          logger.error(`Websocket Error for ${ws.playerId}: ${err.message}`);
         });
 
         ws.on("message", (data) => this.handleMessage(ws, data));
 
         // ws.on("close", () => this.roomService.handleDisconnect(ws));
       } catch (err) {
-        this.logger.error(`Connection error:${(err as Error).message} `);
+        logger.error(`Connection error:${(err as Error).message} `);
         ws.close(4000, "Authentication failed");
       }
     });
@@ -91,7 +87,7 @@ export class WebSocketService {
       this.rateLimit.set(ws.playerId, limit);
 
       const { type, payload }: WebSocketMessage = JSON.parse(data.toString());
-      this.logger.info(`Message from ${ws.playerId}: ${type}`);
+      logger.info(`Message from ${ws.playerId}: ${type}`);
 
       switch (type) {
         case "CREATE_ROOM":
@@ -119,7 +115,7 @@ export class WebSocketService {
           throw new Error(`Unknown message type: ${type}`);
       }
     } catch (err) {
-      this.logger.error(`Message handling error: ${(err as Error).message}`);
+      logger.error(`Message handling error: ${(err as Error).message}`);
       this.broadcastToClient(ws.playerId, {
         type: "ERROR",
         payload: { message: (err as Error).message },
