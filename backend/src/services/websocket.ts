@@ -99,6 +99,7 @@ export class WebSocketService {
             payload.playerId,
             payload.inviteCode
           );
+          break;
 
         case "JOIN_ROOM":
           await this.roomService.joinRoom(
