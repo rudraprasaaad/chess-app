@@ -499,3 +499,39 @@
 {"level":"info","message":"Connected to PostgresSQL Server","service":"chess-app-backend","timestamp":"2025-07-15T19:23:26.860Z"}
 {"level":"info","message":"Connected to PostgresSQL database","service":"chess-app-backend","timestamp":"2025-07-15T19:23:26.861Z"}
 {"level":"info","message":"Starting graceful shutdown....","service":"chess-app-backend","timestamp":"2025-07-15T19:39:16.033Z"}
+{"level":"info","message":"Passport initialized with GoogleStrategy","service":"chess-app-backend","timestamp":"2025-07-16T18:56:55.878Z"}
+{"level":"info","message":"Websocket server initialized","service":"chess-app-backend","timestamp":"2025-07-16T18:56:55.863Z"}
+{"level":"info","message":"🚀 Server running on port 4000","service":"chess-app-backend","timestamp":"2025-07-16T18:56:55.881Z"}
+{"level":"info","message":"📊 Environment: development","service":"chess-app-backend","timestamp":"2025-07-16T18:56:55.882Z"}
+{"level":"info","message":"🔗 API URL: http://localhost:4000/api","service":"chess-app-backend","timestamp":"2025-07-16T18:56:55.882Z"}
+{"level":"info","message":"Connected to PostgresSQL Server","service":"chess-app-backend","timestamp":"2025-07-16T18:56:58.355Z"}
+{"level":"info","message":"Connected to PostgresSQL database","service":"chess-app-backend","timestamp":"2025-07-16T18:56:58.355Z"}
+{"level":"info","message":"Starting graceful shutdown....","service":"chess-app-backend","timestamp":"2025-07-16T18:57:39.098Z"}
+{"level":"info","message":"HTTP sever closed","service":"chess-app-backend","timestamp":"2025-07-16T18:57:39.099Z"}
+{"level":"info","message":"Disconnected from PostgresSQL database","service":"chess-app-backend","timestamp":"2025-07-16T18:57:39.100Z"}
+{"level":"info","message":"Database connection closed","service":"chess-app-backend","timestamp":"2025-07-16T18:57:39.100Z"}
+{"level":"info","message":"Passport initialized with GoogleStrategy","service":"chess-app-backend","timestamp":"2025-07-16T18:58:37.955Z"}
+{"level":"info","message":"Websocket server initialized","service":"chess-app-backend","timestamp":"2025-07-16T18:58:37.935Z"}
+{"level":"info","message":"🚀 Server running on port 4000","service":"chess-app-backend","timestamp":"2025-07-16T18:58:37.959Z"}
+{"level":"info","message":"📊 Environment: development","service":"chess-app-backend","timestamp":"2025-07-16T18:58:37.960Z"}
+{"level":"info","message":"🔗 API URL: http://localhost:4000/api","service":"chess-app-backend","timestamp":"2025-07-16T18:58:37.960Z"}
+{"level":"info","message":"Connected to Redis","service":"chess-app-backend","timestamp":"2025-07-16T18:58:38.098Z"}
+{"level":"info","message":"Connected to redis","service":"chess-app-backend","timestamp":"2025-07-16T18:58:38.130Z"}
+{"level":"info","message":"Connected to PostgresSQL Server","service":"chess-app-backend","timestamp":"2025-07-16T18:58:40.713Z"}
+{"level":"info","message":"Connected to PostgresSQL database","service":"chess-app-backend","timestamp":"2025-07-16T18:58:40.714Z"}
+{"level":"info","message":"Starting graceful shutdown....","service":"chess-app-backend","timestamp":"2025-07-16T18:58:59.973Z"}
+{"level":"info","message":"HTTP sever closed","service":"chess-app-backend","timestamp":"2025-07-16T18:58:59.974Z"}
+{"level":"info","message":"Disconnected from PostgresSQL database","service":"chess-app-backend","timestamp":"2025-07-16T18:58:59.975Z"}
+{"level":"info","message":"Database connection closed","service":"chess-app-backend","timestamp":"2025-07-16T18:58:59.976Z"}
+{"level":"info","message":"Connected to PostgresSQL Server","service":"chess-app-backend","timestamp":"2025-07-16T20:20:22.957Z"}
+{"level":"info","message":"Connected to PostgresSQL database","service":"chess-app-backend","timestamp":"2025-07-16T20:20:22.961Z"}
+{"level":"info","message":"Connected to Redis","service":"chess-app-backend","timestamp":"2025-07-16T20:20:23.150Z"}
+{"level":"info","message":"Connected to redis","service":"chess-app-backend","timestamp":"2025-07-16T20:20:23.179Z"}
+{"level":"info","message":"Websocket server initialized","service":"chess-app-backend","timestamp":"2025-07-16T20:20:23.181Z"}
+{"level":"info","message":"Passport initialized with GoogleStrategy","service":"chess-app-backend","timestamp":"2025-07-16T20:20:23.188Z"}
+{"level":"info","message":"🚀 Server running on port 4000","service":"chess-app-backend","timestamp":"2025-07-16T20:20:23.189Z"}
+{"level":"info","message":"📊 Environment: development","service":"chess-app-backend","timestamp":"2025-07-16T20:20:23.189Z"}
+{"level":"info","message":"🔗 API URL: http://localhost:4000/api","service":"chess-app-backend","timestamp":"2025-07-16T20:20:23.189Z"}
+{"level":"info","message":"Starting graceful shutdown....","service":"chess-app-backend","timestamp":"2025-07-16T20:20:41.194Z"}
+{"level":"info","message":"HTTP sever closed","service":"chess-app-backend","timestamp":"2025-07-16T20:20:41.195Z"}
+{"level":"info","message":"Disconnected from PostgresSQL database","service":"chess-app-backend","timestamp":"2025-07-16T20:20:41.197Z"}

@@ -9,8 +9,8 @@ import session from "express-session";
 import { WebSocketServer } from "ws";
 import passport from "passport";
 
-import { LoggerService } from "./services/logger";
-import { DatabaseService } from "./services/database";
+import { logger } from "./services/logger";
+import { database } from "./services/database";
 import { WebSocketService } from "./services/websocket";
 
 import { requestLogger } from "./middleware/requestLogger";
@@ -20,24 +20,23 @@ import { initPassport } from "./middleware/passport";
 import authRoutes from "./routes/auth";
 
 import { COOKIE_MAX_AGE } from "./lib/consts";
-import { RedisService } from "./services/redis";
+import { redis } from "./services/redis";
 
 dotenv.config({ path: "../.env" });
 class Application {
   public app: express.Application;
   public server: any;
   public wss!: WebSocketServer;
-  private database!: DatabaseService;
-  private redis!: RedisService;
   private ws!: WebSocketService;
-  public logger: LoggerService;
 
   constructor() {
     this.app = express();
     this.server = createServer(this.app);
-    this.logger = new LoggerService();
+  }
 
-    this.initializeDatabase();
+  public async init(): Promise<void> {
+    await this.initializeDatabase();
+    await this.initializeRedis();
     this.initializeWebSocket();
     this.initializeMiddleware();
     this.initializePassport();
@@ -47,12 +46,20 @@ class Application {
 
   private async initializeDatabase(): Promise<void> {
     try {
-      this.database = new DatabaseService();
-      await this.database.connect();
-      this.logger.info("Connected to PostgresSQL database");
+      await database.connect();
+      logger.info("Connected to PostgresSQL database");
     } catch (err) {
-      this.logger.error("Failed to connect to database", err);
+      logger.error("Failed to connect to database", err);
       process.exit(1);
+    }
+  }
+
+  private async initializeRedis(): Promise<void> {
+    try {
+      await redis.connect();
+      logger.info("Connected to redis");
+    } catch (err) {
+      logger.error("Failed to connect to Redis:", err);
     }
   }
 
@@ -79,7 +86,7 @@ class Application {
     });
     this.ws = new WebSocketService(this.wss);
     this.app.set("websocket", this.ws); // making websocket available to all the routes.
-    this.logger.info("Websocket server initialized");
+    logger.info("Websocket server initialized");
   }
 
   private initializeMiddleware(): void {
@@ -148,9 +155,9 @@ class Application {
   public listen(): void {
     const port = process.env.PORT || 4000;
     this.server.listen(port, () => {
-      this.logger.info(`🚀 Server running on port ${port}`);
-      this.logger.info(`📊 Environment: ${process.env.NODE_ENV}`);
-      this.logger.info(`🔗 API URL: http://localhost:${port}/api`);
+      logger.info(`🚀 Server running on port ${port}`);
+      logger.info(`📊 Environment: ${process.env.NODE_ENV}`);
+      logger.info(`🔗 API URL: http://localhost:${port}/api`);
     });
 
     process.on("SIGTERM", this.gracefulShutdown.bind(this));
@@ -158,17 +165,31 @@ class Application {
   }
 
   private async gracefulShutdown(): Promise<void> {
-    this.logger.info("Starting graceful shutdown....");
+    logger.info("Starting graceful shutdown....");
 
     this.server.close(() => {
-      this.logger.info("HTTP sever closed");
+      logger.info("HTTP sever closed");
     });
+
+    try {
+      await database.disconnect();
+      logger.info("Database connection closed");
+    } catch (err) {
+      logger.error("Error closing database connection:", err);
+    }
+
+    try {
+      await redis.disconnect();
+      logger.info("Redis connection closed");
+    } catch (err) {
+      logger.error("Error closing Redis connection:", err);
+    }
 
     process.exit(0);
   }
 }
 
 const app = new Application();
-app.listen();
+app.init().then(() => app.listen());
 
 export default app;

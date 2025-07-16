@@ -40,7 +40,7 @@ export class LoggerService {
   }
 
   error(message: string, error?: any): void {
-    this.logger.info(message, error);
+    this.logger.error(message, error);
   }
 
   warn(message: string, meta?: any): void {

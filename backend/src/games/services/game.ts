@@ -1,4 +1,3 @@
-import { PrismaClient } from "../../generated/prisma";
 import { WebSocketService } from "../../services/websocket";
 import {
   Game,
@@ -8,26 +7,19 @@ import {
   RoomType,
   RoomWithGame,
 } from "../../lib/types";
-import { LoggerService } from "../../services/logger";
 import { Chess } from "chess.js";
-import { v4 as uuidv4 } from "uuid";
-import { RedisService } from "../../services/redis";
+import { prisma } from "../../lib/prisma";
+import { redis } from "../../services/redis";
 
 export class GameService {
-  private prisma: PrismaClient;
-  private redis: RedisService;
   private ws: WebSocketService;
-  private logger: LoggerService;
 
   constructor(ws: WebSocketService) {
-    this.prisma = new PrismaClient();
-    this.redis = new RedisService();
     this.ws = ws;
-    this.logger = new LoggerService();
   }
 
   async startGame(roomId: string): Promise<Game> {
-    const room = await this.prisma.room.findUnique({
+    const room = await prisma.room.findUnique({
       where: {
         id: roomId,
       },
@@ -52,9 +44,8 @@ export class GameService {
     }
 
     const chess = new Chess();
-    const game = await this.prisma.game.create({
+    const game = await prisma.game.create({
       data: {
-        id: uuidv4(),
         roomId,
         fen: chess.fen(),
         moveHistory: [],
@@ -84,9 +75,9 @@ export class GameService {
       createdAt: game.createdAt,
     };
 
-    await this.redis.set(`game: ${game.id}`, JSON.stringify(formattedGame));
+    await redis.set(`game: ${game.id}`, JSON.stringify(formattedGame));
     typedRoom?.players.forEach((p: any) =>
-      this.redis.set(`player:${p.id}:lastGame`, game.id, 3600)
+      redis.set(`player:${p.id}:lastGame`, game.id, 3600)
     );
     const roomWithGame: RoomWithGame = { ...typedRoom, game: formattedGame };
 
