@@ -118,12 +118,6 @@ export class WebSocketService {
         case "CHAT_MESSAGE":
           break;
 
-        case "MAKE_MOVE":
-          break;
-
-        case "CHAT_MESSAGE":
-          break;
-
         default:
           throw new Error(`Unknown message type: ${type}`);
       }
