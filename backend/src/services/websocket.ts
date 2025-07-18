@@ -2,9 +2,10 @@ import WebSocket, { WebSocketServer } from "ws";
 import jwt from "jsonwebtoken";
 import { logger } from "./logger";
 import { GameService } from "../games/services/game";
-import { AuthProvider } from "../generated/prisma";
+
 import {
   AuthenticatedWebSocket,
+  AuthProvider,
   Game,
   Room,
   WebSocketMessage,
