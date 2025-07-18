@@ -1,4 +1,6 @@
-import { WebSocketService } from "../../services/websocket";
+import { Chess } from "chess.js";
+import { InputJsonValue } from "@prisma/client/runtime/library";
+
 import {
   Game,
   GameStatus,
@@ -7,10 +9,10 @@ import {
   RoomType,
   RoomWithGame,
 } from "../../lib/types";
-import { Chess } from "chess.js";
 import { prisma } from "../../lib/prisma";
+
+import { WebSocketService } from "../../services/websocket";
 import { redis } from "../../services/redis";
-import { InputJsonValue } from "@prisma/client/runtime/library";
 
 export class GameService {
   private ws: WebSocketService;
@@ -28,7 +30,7 @@ export class GameService {
 
     if (!room) throw new Error("Room not found");
 
-    const typedRoom: Room = {
+    const roomData = {
       id: room.id,
       type: room.type as RoomType,
       status: room.status as RoomStatus,
@@ -37,22 +39,24 @@ export class GameService {
       createdAt: room.createdAt,
     };
 
-    if (typedRoom.players.length! == 2) {
-      throw new Error(
-        `Room must have exactly 2 players, found ${typedRoom.players.length}`
-      );
+    if (
+      roomData.players.length !== 2 ||
+      roomData.players.some((p) => !p.color)
+    ) {
+      throw new Error("Room must have two players with assigned colors");
     }
 
-    const colors = typedRoom.players.map((p) => p.color);
+    const colors = roomData.players.map((p) => p.color);
     if (!colors.includes("white") || !colors.includes("black")) {
       throw new Error("Room must have one white and one black player");
     }
 
+    if (colors.filter((c) => c === "white").length !== 1) {
+      throw new Error("Room must have exactly one white player");
+    }
+
     const existingGame = await prisma.game.findFirst({
-      where: {
-        roomId,
-        status: GameStatus.ACTIVE,
-      },
+      where: { roomId, status: GameStatus.ACTIVE },
     });
 
     if (existingGame) {
@@ -60,12 +64,8 @@ export class GameService {
     }
 
     await prisma.room.update({
-      where: {
-        id: roomId,
-      },
-      data: {
-        status: RoomStatus.ACTIVE,
-      },
+      where: { id: roomId },
+      data: { status: RoomStatus.ACTIVE },
     });
 
     const chess = new Chess();
@@ -78,7 +78,7 @@ export class GameService {
         status: GameStatus.ACTIVE,
         chat: [],
         players: {
-          create: room?.players.map((p: any) => ({
+          create: roomData.players.map((p: any) => ({
             userId: p.id,
             color: p.color!,
           })),
@@ -87,7 +87,7 @@ export class GameService {
       include: { players: true },
     });
 
-    const formattedGame: Game = {
+    const gameData: Game = {
       id: game.id,
       roomId: game.roomId,
       fen: game.fen,
@@ -100,16 +100,17 @@ export class GameService {
       createdAt: game.createdAt,
     };
 
-    await redis.set(`game:${game.id}`, JSON.stringify(formattedGame));
+    await redis.setJSON(`game:${game.id}`, gameData);
 
-    typedRoom.players.forEach((p: any) => {
+    roomData.players.forEach((p: any) => {
       redis.del(`invalidMoves:${p.id}`);
-      redis.set(`player:${p.id}:lastGame`, game.id, 3600);
+      redis.set(`player:${p.id}:lastGame`, game.id, { EX: 3600 });
     });
-    const roomWithGame: RoomWithGame = { ...typedRoom, game: formattedGame };
+
+    const roomWithGame: RoomWithGame = { ...roomData, game: gameData };
 
     this.ws.broadcastToRoom(roomWithGame);
-    return formattedGame;
+    return gameData;
   }
 
   async makeMove(
@@ -118,19 +119,15 @@ export class GameService {
     move: { from: string; to: string }
   ): Promise<void> {
     const gameData = await redis.get(`game:${gameId}`);
-
     if (!gameData) throw new Error("Game not found");
 
     const gameRaw = JSON.parse(gameData) as Game;
-
     const moveHistory = gameRaw.moveHistory as {
       from: string;
       to: string;
       san?: string;
     }[];
-
     const chess = new Chess(gameRaw.fen);
-
     const player = gameRaw.players.find((p) => p.userId === playerId);
 
     if (!player || chess.turn() !== player.color[0]) {
@@ -143,12 +140,8 @@ export class GameService {
       const attempts = Number(await redis.get(`invalidMoves:${playerId}`)) || 0;
       if (attempts >= 3) {
         await prisma.user.update({
-          where: {
-            id: playerId,
-          },
-          data: {
-            banned: true,
-          },
+          where: { id: playerId },
+          data: { banned: true },
         });
 
         this.ws.broadcastToClient(playerId, {
@@ -157,7 +150,9 @@ export class GameService {
         });
         return;
       } else {
-        await redis.set(`invalidMoves:${playerId}`, String(attempts + 1), 3600);
+        await redis.set(`invalidMoves:${playerId}`, String(attempts + 1), {
+          EX: 3600,
+        });
         throw new Error("Illegal move.");
       }
     }
@@ -177,12 +172,11 @@ export class GameService {
     }
 
     const updatedGame = await prisma.game.update({
-      where: {
-        id: gameId,
-      },
+      where: { id: gameId },
       data: {
         fen: chess.fen(),
         moveHistory: moveHistory as InputJsonValue[],
+        status: gameStatus,
         winnerId: winnerId,
         timers: {
           ...gameRaw.timers,
@@ -198,17 +192,13 @@ export class GameService {
       moveHistory: updatedGame.moveHistory,
       timers: updatedGame.timers as { white: number; black: number },
       status: updatedGame.status as GameStatus,
-      players: gameRaw.players.map((p) => ({
-        userId: p.userId,
-        color: p.color,
-      })),
+      players: gameRaw.players,
       chat: updatedGame.chat,
       winnerId: updatedGame.winnerId || undefined,
       createdAt: updatedGame.createdAt,
     };
 
-    await redis.set(`game:${gameId}`, JSON.stringify(formattedGame));
-
+    await redis.setJSON(`game:${gameId}`, formattedGame);
     this.ws.broadcastToGame(formattedGame);
   }
 }
