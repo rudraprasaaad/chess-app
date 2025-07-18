@@ -60,6 +60,7 @@ class Application {
       logger.info("Connected to redis");
     } catch (err) {
       logger.error("Failed to connect to Redis:", err);
+      process.exit(1);
     }
   }
 
@@ -70,22 +71,25 @@ class Application {
   }
 
   private initializeWebSocket(): void {
-    // const allowedOrigin = process.env.FRONTEND_URL || "http://localhost:5173";
+    const allowedOrigin = process.env.FRONTEND_URL || "http://localhost:5173";
 
     this.wss = new WebSocketServer({
       server: this.server,
-      // verifyClient: (info, done) => {
-      //   const origin = info.origin;
-
-      //   if (origin === allowedOrigin) done(true);
-      //   else {
-      //     this.logger.warn(`WebsocketServer rejected origin :${origin}`);
-      //     done(false, 403, "Forbidden");
-      //   }
-      // },
+      verifyClient: (info, done) => {
+        if (process.env.NODE_ENV === "production") {
+          const origin = info.origin;
+          if (origin === allowedOrigin) done(true);
+          else {
+            logger.warn(`WebsocketServer rejected origin :${origin}`);
+            done(false, 403, "Forbidden");
+          }
+        } else {
+          done(true);
+        }
+      },
     });
     this.ws = new WebSocketService(this.wss);
-    this.app.set("websocket", this.ws); // making websocket available to all the routes.
+    this.app.set("websocket", this.ws);
     logger.info("Websocket server initialized");
   }
 
@@ -127,13 +131,29 @@ class Application {
 
     this.app.use(requestLogger);
 
-    this.app.get("/api/health", (_req, res) => {
-      res.json({
-        status: "ok",
-        timtestamp: new Date().toISOString(),
-        uptime: process.uptime(),
-        environnment: process.env.NODE_ENV,
-      });
+    this.app.get("/api/health", async (_req, res) => {
+      try {
+        await database.client.$queryRaw`SELECT 1`;
+
+        await redis.ping();
+        res.json({
+          status: "ok",
+          timestamp: new Date().toISOString(),
+          uptime: process.uptime(),
+          environnment: process.env.NODE_ENV,
+          services: {
+            database: "connected",
+            redis: "connected",
+            websocket: "active",
+          },
+        });
+      } catch (err) {
+        res.status(503).json({
+          status: "error",
+          timestamp: new Date().toISOString(),
+          error: "Service unavailable",
+        });
+      }
     });
   }
 
@@ -167,8 +187,12 @@ class Application {
   private async gracefulShutdown(): Promise<void> {
     logger.info("Starting graceful shutdown....");
 
+    this.wss.close(() => {
+      logger.info("WebSocket server closed");
+    });
+
     this.server.close(() => {
-      logger.info("HTTP sever closed");
+      logger.info("HTTP server closed");
     });
 
     try {
