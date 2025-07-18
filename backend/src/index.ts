@@ -12,6 +12,7 @@ import passport from "passport";
 import { logger } from "./services/logger";
 import { database } from "./services/database";
 import { WebSocketService } from "./services/websocket";
+import { redis } from "./services/redis";
 
 import { requestLogger } from "./middleware/requestLogger";
 import { errorHandler } from "./middleware/errorHandler";
@@ -20,7 +21,6 @@ import { initPassport } from "./middleware/passport";
 import authRoutes from "./routes/auth";
 
 import { COOKIE_MAX_AGE } from "./lib/consts";
-import { redis } from "./services/redis";
 
 dotenv.config({ path: "../.env" });
 class Application {

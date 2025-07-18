@@ -1,12 +1,14 @@
 import passport from "passport";
 import { Strategy as GoogleStrategy, Profile } from "passport-google-oauth20";
+
+import { logger } from "../services/logger";
+
+import { prisma } from "../lib/prisma";
 import {
   GOOGLE_CALLBACK_URL,
   GOOGLE_CLIENT_ID,
   GOOGLE_CLIENT_SECRET,
 } from "../lib/consts";
-import { logger } from "../services/logger";
-import { prisma } from "../lib/prisma";
 
 export function initPassport() {
   passport.use(
