@@ -10,12 +10,12 @@ datasource db {
 
 model User {
   id         String       @id @default(uuid())
-  username   String?      @unique
-  name       String?
-  email      String       @unique
+  username   String?      @unique @db.VarChar(50)
+  name       String?      @db.VarChar(100)
+  email      String       @unique @db.VarChar(255)
   provider   AuthProvider
-  providerId String?
-  password   String?
+  providerId String?      @db.VarChar(100)
+  password   String?      @db.VarChar(255)
   elo        Int          @default(1500)
   wins       Int          @default(0)
   losses     Int          @default(0)
@@ -27,6 +27,8 @@ model User {
 
   @@index([status])
   @@index([elo])
+  @@index([provider, providerId])
+  @@index([banned])
 }
 
 model Game {
@@ -40,11 +42,16 @@ model Game {
   chat        Json[]
   winnerId    String?
   createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  endedAt     DateTime?
   userId      String?
-  Room        Room         @relation(fields: [roomId], references: [id])
+  Room        Room         @relation(fields: [roomId], references: [id], onDelete: Cascade)
 
   @@index([roomId])
   @@index([status])
+  @@index([winnerId])
+  @@index([createdAt])
+  @@index([updatedAt])
 }
 
 model Room {
@@ -52,23 +59,26 @@ model Room {
   type       RoomType
   status     RoomStatus
   players    Json[]
-  inviteCode String?    @unique
+  inviteCode String?    @unique @db.VarChar(20)
   createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
   games      Game[]
 
   @@index([status])
   @@index([inviteCode])
+  @@index([type])
 }
 
 model GamePlayer {
   gameId String
   userId String
-  color  String
-  game   Game   @relation(fields: [gameId], references: [id])
-  user   User   @relation(fields: [userId], references: [id])
+  color  String @db.VarChar(10)
+  game   Game   @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@id([gameId, userId])
   @@index([userId])
+  @@index([color])
 }
 
 enum AuthProvider {
