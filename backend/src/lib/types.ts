@@ -56,7 +56,7 @@ export interface Game {
   moveHistory: JsonValue[];
   timers: { white: number; black: number };
   status: GameStatus;
-  players: Player[];
+  players: { userId: string; color: string }[];
   chat: JsonValue[];
   winnerId?: string;
   createdAt: Date;
