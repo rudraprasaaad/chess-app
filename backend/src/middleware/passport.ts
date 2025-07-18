@@ -54,6 +54,7 @@ export function initPassport() {
           } else {
             logger.info(`${profile.displayName} got logged in`);
           }
+          done(null, user);
         } catch (err) {
           logger.error("GoogleStrategy error", err);
           done(err, undefined);

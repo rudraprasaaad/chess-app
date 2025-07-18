@@ -5,6 +5,7 @@ import { v4 as uuidv4 } from "uuid";
 import jwt from "jsonwebtoken";
 import { LoggerService } from "../services/logger";
 import { COOKIE_MAX_AGE } from "../lib/consts";
+import { info } from "winston";
 
 const router = Router();
 const prisma = new PrismaClient();
@@ -92,7 +93,7 @@ router.get("/refresh", async (req: Request, res: Response) => {
       token: token,
       isGuest: true,
     };
-    res.cookie("guest", token, { maxAge: COOKIE_MAX_AGE });
+    res.cookie("guest", token, { httpOnly: true, maxAge: COOKIE_MAX_AGE });
     res.json(User);
   } else {
     res.status(401).json({ success: false, message: "Unauthorized" });
@@ -117,12 +118,24 @@ router.get(
   passport.authenticate("google", { scope: ["profile", "email"] })
 );
 
-router.get(
-  "/google/callback",
-  passport.authenticate("google", {
-    successRedirect: process.env.AUTH_REDIRECT_URL,
-    failureRedirect: "/login/failed",
-  })
-);
+router.get("/google/callback", (req, res, next) => {
+  passport.authenticate("google", async (err: Error, user: UserDetails) => {
+    if (err || !user) {
+      return res.redirect("/login/failed");
+    }
+
+    const token = jwt.sign(
+      { userId: user.id, name: user.name, isGuest: false },
+      process.env.JWT_SECRET!
+    );
+
+    res.cookie("google", token, {
+      httpOnly: true,
+      maxAge: COOKIE_MAX_AGE,
+    });
+
+    res.redirect(process.env.AUTH_REDIRECT_URL!);
+  })(req, res, next);
+});
 
 export default router;

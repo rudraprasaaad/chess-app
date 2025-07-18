@@ -1,7 +1,10 @@
 import WebSocket, { WebSocketServer } from "ws";
 import jwt from "jsonwebtoken";
+
 import { logger } from "./logger";
+
 import { GameService } from "../games/services/game";
+import { RoomService } from "../games/services/room";
 
 import {
   AuthenticatedWebSocket,
@@ -10,7 +13,6 @@ import {
   Room,
   WebSocketMessage,
 } from "../lib/types";
-import { RoomService } from "../games/services/room";
 
 export class WebSocketService {
   private wss: WebSocketServer;
@@ -37,11 +39,23 @@ export class WebSocketService {
     });
   }
 
+  private parseCookies(cookieHeader?: string): Record<string, string> {
+    const cookies: Record<string, string> = {};
+    if (!cookieHeader) return {};
+
+    cookieHeader.split(";").forEach((cookie) => {
+      const [name, value] = cookie.trim().split("=");
+      cookies[name] = value;
+    });
+
+    return cookies;
+  }
+
   private async setupEventHandlers(): Promise<void> {
     this.wss.on("connection", async (ws: AuthenticatedWebSocket, req) => {
       try {
-        const url = new URL(req.url!, "http://localhost");
-        const token = url.searchParams.get("token");
+        const cookies = this.parseCookies(req.headers.cookie);
+        const token = cookies["guest"] || cookies["google"];
 
         if (!token) throw new Error("No token provided");
         const user = await this.verifyToken(token);
