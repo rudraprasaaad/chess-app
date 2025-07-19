@@ -177,7 +177,7 @@ class Application {
     this.server.listen(port, () => {
       logger.info(`🚀 Server running on port ${port}`);
       logger.info(`📊 Environment: ${process.env.NODE_ENV}`);
-      logger.info(`🔗 API URL: http://localhost:${port}/api`);
+      logger.info(`🔗 API URL: http://localhost:${port}/`);
     });
 
     process.on("SIGTERM", this.gracefulShutdown.bind(this));
