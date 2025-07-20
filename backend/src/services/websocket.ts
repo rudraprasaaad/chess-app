@@ -70,12 +70,21 @@ export class WebSocketService {
   private async setupEventHandlers(): Promise<void> {
     this.wss.on("connection", async (ws: AuthenticatedWebSocket, req) => {
       try {
-        const cookies = this.parseCookies(req.headers.cookie);
-        const token = cookies["guest"] || cookies["jwt"];
+        let token: string | undefined;
+
+        const url = new URL(req.url!, `http://${req.headers.host}`);
+        const queryToken = url.searchParams.get("token");
+
+        if (queryToken) {
+          token = queryToken;
+        } else {
+          const cookies = this.parseCookies(req.headers.cookie);
+          token = cookies["guest"] || cookies["google"];
+        }
 
         if (!token) throw new Error("No token provided");
-        const user = await this.verifyToken(token);
 
+        const user = await this.verifyToken(token);
         ws.playerId = user.id;
         this.connections.set(user.id, ws);
 
