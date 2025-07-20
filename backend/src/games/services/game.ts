@@ -4,7 +4,6 @@ import { InputJsonValue } from "@prisma/client/runtime/library";
 import {
   Game,
   GameStatus,
-  Room,
   RoomStatus,
   RoomType,
   RoomWithGame,
