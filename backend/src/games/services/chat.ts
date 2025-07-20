@@ -27,7 +27,7 @@ export class ChatService {
       limit.lastReset = now;
     }
 
-    if (limit.count >= 0) {
+    if (limit.count >= 50) {
       throw new Error(
         "Rate limit exceeded. Please wait before sending more messages."
       );
