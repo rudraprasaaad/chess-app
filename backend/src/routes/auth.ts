@@ -189,18 +189,6 @@ router.get("/google/callback", (req, res, next) => {
       logger.error("Error in Google callback:", err);
       res.redirect(`${process.env.FRONTEND_URL}/login?error=callback_failed`);
     }
-
-    const token = jwt.sign(
-      { userId: user.id, name: user.name, isGuest: false },
-      process.env.JWT_SECRET!
-    );
-
-    res.cookie("google", token, {
-      httpOnly: true,
-      maxAge: COOKIE_MAX_AGE,
-    });
-
-    res.redirect(process.env.AUTH_REDIRECT_URL!);
   })(req, res, next);
 });
 
