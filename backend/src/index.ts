@@ -80,8 +80,8 @@ class Application {
       } else {
         logger.info("📖 Swagger documentation disabled in production");
       }
-    } catch (error) {
-      logger.error("Failed to initialize Swagger documentation:", error);
+    } catch (err) {
+      logger.error("Failed to initialize Swagger documentation:", err);
     }
   }
 
