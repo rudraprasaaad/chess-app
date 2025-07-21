@@ -13,6 +13,7 @@ import { logger } from "./services/logger";
 import { database } from "./services/database";
 import { WebSocketService } from "./services/websocket";
 import { redis } from "./services/redis";
+import { swagger } from "./services/swagger";
 
 import { requestLogger } from "./middleware/requestLogger";
 import { errorHandler } from "./middleware/errorHandler";
@@ -40,6 +41,7 @@ class Application {
     this.initializeWebSocket();
     this.initializeMiddleware();
     this.initializePassport();
+    this.initializeSwagger();
     this.initializeRoutes();
     this.initializeErrorHandling();
   }
@@ -68,6 +70,19 @@ class Application {
     initPassport();
     this.app.use(passport.initialize());
     this.app.use(passport.session());
+  }
+
+  private initializeSwagger(): void {
+    try {
+      if (swagger.isEnabled()) {
+        swagger.setupSwagger(this.app);
+        logger.info("📖 Swagger documentation enabled");
+      } else {
+        logger.info("📖 Swagger documentation disabled in production");
+      }
+    } catch (error) {
+      logger.error("Failed to initialize Swagger documentation:", error);
+    }
   }
 
   private initializeWebSocket(): void {
@@ -179,6 +194,10 @@ class Application {
       logger.info(`📊 Environment: ${process.env.NODE_ENV}`);
       logger.info(`🔗 API URL: http://localhost:${port}/`);
     });
+
+    if (swagger.isEnabled()) {
+      logger.info(`📖 API Documentation: http://localhost:${port}/api-docs`);
+    }
 
     process.on("SIGTERM", this.gracefulShutdown.bind(this));
     process.on("SIGINT", this.gracefulShutdown.bind(this));
