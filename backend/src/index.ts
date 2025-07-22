@@ -24,6 +24,7 @@ import authRoutes from "./routes/auth";
 import { COOKIE_MAX_AGE } from "./lib/consts";
 
 dotenv.config({ path: "../.env" });
+
 class Application {
   public app: express.Application;
   public server: any;
