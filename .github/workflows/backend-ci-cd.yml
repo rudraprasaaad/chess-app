@@ -1,0 +1,101 @@
+name: Chess Backend CI/CD Pipeline
+
+on:
+  push:
+    branches: [master, develop]
+    paths:
+      - "backend/**"
+      - ".github/workflows/backend-ci-cd.yml"
+
+  pull_request:
+    branches: [master]
+    paths:
+      - "backend/**"
+
+env:
+  NODE_VERSION: "18"
+  BACKEND_DIR: "./backend"
+
+jobs:
+  code-quality:
+    name: 🔍 Code Quality & Security
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: 📦 Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
+      - name: 📦 Install Dependencies
+        working-directory: ${{ env.BACKEND_DIR }}
+        run: pnpm install --frozen-lockfile
+
+      - name: 🔍 Run ESLint
+        working-directory: ${{ env.BACKEND_DIR }}
+        run: pnpm run lint:check
+
+      - name: 📝 TypeScript Type Checking
+        working-directory: ${{ env.BACKEND_DIR }}
+        run: pnpm run type-check
+
+  build:
+    name: 🏗️ Build Application
+    runs-on: ubuntu-latest
+    needs: [code-quality]
+
+    steps:
+      - name: 📥 Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: 📦 Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+
+      - name: 📦 Install Dependencies
+        working-directory: ${{ env.BACKEND_DIR }}
+        run: pnpm install --frozen-lockfile
+
+      - name: 🔨 Build Application
+        working-directory: ${{ env.BACKEND_DIR }}
+        run: pnpm run build
+
+  deploy-production:
+    name: 🌟 Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [build]
+    if: github.ref == 'refs/heads/master' && github.event_name == 'push'
+
+    steps:
+      - name: 📥 Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: 🚀 Deploy to Render
+        uses: johnbeynon/render-deploy-action@v0.0.8
+        with:
+          service-id: ${{ secrets.RENDER_SERVICE_ID }}
+          api-key: ${{ secrets.RENDER_API_KEY }}
+
+      - name: 🧪 Run Production Health Checks
+        run: |
+          sleep 90
+          response=$(curl -s -o /dev/null -w "%{http_code}" https://your-render-app.onrender.com/api/health)
+          if [ $response != "200" ]; then
+            echo "❌ Health check failed: $response"
+            exit 1
+          fi
+          echo "✅ Production health check passed!"
