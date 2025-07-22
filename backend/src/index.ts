@@ -50,7 +50,7 @@ class Application {
   private async initializeDatabase(): Promise<void> {
     try {
       await database.connect();
-      logger.info("Connected to PostgresSQL database");
+      logger.info("Connected to PostgreSQL database");
     } catch (err) {
       logger.error("Failed to connect to database", err);
       process.exit(1);
@@ -60,7 +60,7 @@ class Application {
   private async initializeRedis(): Promise<void> {
     try {
       await redis.connect();
-      logger.info("Connected to redis");
+      logger.info("Connected to Redis");
     } catch (err) {
       logger.error("Failed to connect to Redis:", err);
       process.exit(1);
@@ -87,16 +87,18 @@ class Application {
   }
 
   private initializeWebSocket(): void {
+    const isProduction = process.env.NODE_ENV === "production";
     const allowedOrigin = process.env.FRONTEND_URL || "http://localhost:5173";
 
     this.wss = new WebSocketServer({
       server: this.server,
       verifyClient: (info, done) => {
-        if (process.env.NODE_ENV === "production") {
+        if (isProduction) {
           const origin = info.origin;
-          if (origin === allowedOrigin) done(true);
-          else {
-            logger.warn(`WebsocketServer rejected origin :${origin}`);
+          if (origin === allowedOrigin) {
+            done(true);
+          } else {
+            logger.warn(`WebSocket server rejected origin: ${origin}`);
             done(false, 403, "Forbidden");
           }
         } else {
@@ -104,59 +106,70 @@ class Application {
         }
       },
     });
+
     this.ws = new WebSocketService(this.wss);
     this.app.set("websocket", this.ws);
-    logger.info("Websocket server initialized");
+    logger.info("WebSocket server initialized");
   }
 
   private initializeMiddleware(): void {
-    this.app.use(helmet());
+    const isProduction = process.env.NODE_ENV === "production";
+
+    this.app.use(
+      helmet({
+        contentSecurityPolicy: isProduction ? undefined : false,
+      })
+    );
 
     this.app.use(
       cors({
         origin: process.env.FRONTEND_URL || "http://localhost:5173",
         credentials: true,
+        methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        allowedHeaders: ["Content-Type", "Authorization", "Cookie"],
       })
     );
 
     this.app.use(cookieParser());
+
     this.app.use(
       session({
         secret: process.env.COOKIE_SECRET!,
         resave: false,
         saveUninitialized: false,
-        cookie: { secure: false, maxAge: COOKIE_MAX_AGE, httpOnly: true },
+        cookie: {
+          secure: isProduction,
+          maxAge: COOKIE_MAX_AGE,
+          httpOnly: true,
+          sameSite: isProduction ? "none" : "lax",
+        },
       })
     );
 
     const limiter = rateLimit({
-      windowMs: 15 * 60 * 1000,
-      max: 100,
+      windowMs: 15 * 60 * 1000, // 15 minutes
+      max: isProduction ? 200 : 100, // More lenient in production for real usage
       message: "Too many requests from this IP, please try again later.",
+      standardHeaders: true,
+      legacyHeaders: false,
     });
 
     this.app.use(limiter);
 
-    this.app.use(
-      express.json({
-        limit: "10mb",
-      })
-    );
-
+    this.app.use(express.json({ limit: "10mb" }));
     this.app.use(express.urlencoded({ extended: true, limit: "10mb" }));
-
     this.app.use(requestLogger);
 
     this.app.get("/api/health", async (_req, res) => {
       try {
         await database.client.$queryRaw`SELECT 1`;
-
         await redis.ping();
+
         res.json({
           status: "ok",
           timestamp: new Date().toISOString(),
           uptime: process.uptime(),
-          environnment: process.env.NODE_ENV,
+          environment: process.env.NODE_ENV,
           services: {
             database: "connected",
             redis: "connected",
@@ -164,6 +177,7 @@ class Application {
           },
         });
       } catch (err) {
+        logger.error("Health check failed:", err);
         res.status(503).json({
           status: "error",
           timestamp: new Date().toISOString(),
@@ -176,7 +190,7 @@ class Application {
   private initializeRoutes(): void {
     this.app.use("/auth", authRoutes);
 
-    this.app.use("/{*any}", (req, res) => {
+    this.app.use("*", (req, res) => {
       res.status(404).json({
         error: "Route not found",
         message: `The requested route ${req.originalUrl} does not exist`,
@@ -190,50 +204,77 @@ class Application {
 
   public listen(): void {
     const port = process.env.PORT || 4000;
-    this.server.listen(port, () => {
+    const isProduction = process.env.NODE_ENV === "production";
+
+    const host = isProduction ? "0.0.0.0" : "localhost";
+
+    this.server.listen(port, host, () => {
+      const baseUrl = isProduction
+        ? `https://${process.env.RENDER_EXTERNAL_HOSTNAME}`
+        : `http://localhost:${port}`;
+
       logger.info(`🚀 Server running on port ${port}`);
       logger.info(`📊 Environment: ${process.env.NODE_ENV}`);
-      logger.info(`🔗 API URL: http://localhost:${port}/`);
-    });
+      logger.info(`🔗 API URL: ${baseUrl}/`);
+      logger.info(`🏥 Health Check: ${baseUrl}/api/health`);
 
-    if (swagger.isEnabled()) {
-      logger.info(`📖 API Documentation: http://localhost:${port}/api-docs`);
-    }
+      if (swagger.isEnabled()) {
+        logger.info(`📖 API Documentation: ${baseUrl}/api-docs`);
+      }
+
+      if (isProduction) {
+        logger.info(
+          `🌐 WebSocket URL: wss://${
+            process.env.RENDER_EXTERNAL_HOSTNAME || "chess-backend.onrender.com"
+          }`
+        );
+      }
+    });
 
     process.on("SIGTERM", this.gracefulShutdown.bind(this));
     process.on("SIGINT", this.gracefulShutdown.bind(this));
   }
 
   private async gracefulShutdown(): Promise<void> {
-    logger.info("Starting graceful shutdown....");
+    logger.info("🛑 Starting graceful shutdown...");
 
     this.wss.close(() => {
-      logger.info("WebSocket server closed");
+      logger.info("🔌 WebSocket server closed");
     });
 
     this.server.close(() => {
-      logger.info("HTTP server closed");
+      logger.info("🌐 HTTP server closed");
     });
 
     try {
       await database.disconnect();
-      logger.info("Database connection closed");
+      logger.info("🗄️ Database connection closed");
     } catch (err) {
-      logger.error("Error closing database connection:", err);
+      logger.error("❌ Error closing database connection:", err);
     }
 
     try {
       await redis.disconnect();
-      logger.info("Redis connection closed");
+      logger.info("🔴 Redis connection closed");
     } catch (err) {
-      logger.error("Error closing Redis connection:", err);
+      logger.error("❌ Error closing Redis connection:", err);
     }
 
+    logger.info("✅ Graceful shutdown completed");
     process.exit(0);
   }
 }
 
 const app = new Application();
-app.init().then(() => app.listen());
+
+app
+  .init()
+  .then(() => {
+    app.listen();
+  })
+  .catch((error) => {
+    logger.error("❌ Failed to initialize application:", error);
+    process.exit(1);
+  });
 
 export default app;
