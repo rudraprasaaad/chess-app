@@ -43,7 +43,7 @@ export function initPassport() {
           if (!user) {
             user = await prisma.user.create({
               data: {
-                email: email,
+                email,
                 name: profile.displayName,
                 username:
                   profile.username?.toLowerCase() ||

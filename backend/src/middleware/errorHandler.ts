@@ -26,7 +26,7 @@ export const errorHandler = (
 
   let statusCode = error.statusCode || 500;
   let message = error.message || "Internal Server Error";
-  let details = error.details;
+  const details = error.details;
 
   if (error.name === "ValidationError") {
     statusCode = 400;

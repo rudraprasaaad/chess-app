@@ -1,13 +1,18 @@
 {
   "name": "@chess-app/backend",
   "version": "1.0.0",
+  "type" : "module",
   "description": "Backend service for chess app",
   "main": "dist/index.js",
   "scripts": {
     "dev": "nodemon src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "postdeploy": "prisma migrate deploy",
+    "lint": "eslint src/",
+    "lint:check": "eslint src/",
+    "lint:fix": "eslint src/ --fix",
+    "type-check": "tsc --noEmit"
   },
   "keywords": [],
   "author": "",
@@ -38,6 +43,7 @@
     "ws": "^8.18.3"
   },
   "devDependencies": {
+    "@eslint/js": "^9.31.0",
     "@types/cookie-parser": "^1.4.9",
     "@types/cors": "^2.8.19",
     "@types/express-session": "^1.18.2",
@@ -47,6 +53,13 @@
     "@types/swagger-jsdoc": "^6.0.4",
     "@types/swagger-ui-express": "^4.1.8",
     "@types/ws": "^8.18.1",
+    "@typescript-eslint/eslint-plugin": "^8.38.0",
+    "@typescript-eslint/parser": "^8.38.0",
+    "eslint": "^9.31.0",
+    "eslint-import-resolver-typescript": "^4.4.4",
+    "eslint-plugin-import": "^2.32.0",
+    "eslint-plugin-n": "^17.21.0",
+    "eslint-plugin-promise": "^7.2.1",
     "globals": "^16.3.0",
     "prisma": "6.11.1"
   }

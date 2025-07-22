@@ -126,12 +126,12 @@ interface UserDetails {
 router.post("/guest", async (req: Request, res: Response) => {
   try {
     const bodyData = req.body;
-    let guestUUID = "guest-" + uuidv4();
+    const guestUUID = `guest-${  uuidv4()}`;
 
     const user = await prisma.user.create({
       data: {
         username: guestUUID,
-        email: guestUUID + "@chess.com",
+        email: `${guestUUID  }@chess.com`,
         name: bodyData.name || guestUUID,
         provider: "GUEST",
       },
@@ -147,7 +147,7 @@ router.post("/guest", async (req: Request, res: Response) => {
     const UserDetails: UserDetails = {
       id: user.id,
       name: user.name!,
-      token: token,
+      token,
       isGuest: true,
     };
 
@@ -306,7 +306,7 @@ router.get("/refresh", async (req: Request, res: Response) => {
       const userDetails: UserDetails = {
         id: decoded.userId,
         name: decoded.name,
-        token: token,
+        token,
         isGuest: true,
       };
 

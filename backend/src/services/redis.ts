@@ -4,9 +4,9 @@ import { logger } from "./logger";
 class RedisService {
   private static _instance: RedisService;
   private client: RedisClientType;
-  private isConnected: boolean = false;
-  private reconnectAttempts: number = 0;
-  private maxReconnectAttempts: number = 5;
+  private isConnected = false;
+  private reconnectAttempts = 0;
+  private maxReconnectAttempts = 5;
 
   constructor() {
     this.client = createClient({
@@ -304,7 +304,7 @@ class RedisService {
   async setSession(
     sessionId: string,
     data: any,
-    ttl: number = 3600
+    ttl = 3600
   ): Promise<void> {
     await this.setJSON(`session:${sessionId}`, data, ttl);
   }
@@ -317,7 +317,7 @@ class RedisService {
     await this.del(`session:${sessionId}`);
   }
 
-  async cache(key: string, value: any, ttl: number = 300): Promise<void> {
+  async cache(key: string, value: any, ttl = 300): Promise<void> {
     await this.setJSON(`cache:${key}`, value, ttl);
   }
 

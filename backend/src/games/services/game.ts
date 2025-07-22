@@ -176,7 +176,7 @@ export class GameService {
         fen: chess.fen(),
         moveHistory: moveHistory as InputJsonValue[],
         status: gameStatus,
-        winnerId: winnerId,
+        winnerId,
         timers: {
           ...gameRaw.timers,
           [playerWhoMoved]: gameRaw.timers[playerWhoMoved] - 1,
