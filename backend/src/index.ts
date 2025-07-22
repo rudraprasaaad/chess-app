@@ -190,7 +190,7 @@ class Application {
   private initializeRoutes(): void {
     this.app.use("/auth", authRoutes);
 
-    this.app.use("*", (req, res) => {
+    this.app.use("/{*any}", (req, res) => {
       res.status(404).json({
         error: "Route not found",
         message: `The requested route ${req.originalUrl} does not exist`,
