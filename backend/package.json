@@ -1,7 +1,6 @@
 {
   "name": "@chess-app/backend",
   "version": "1.0.0",
-  "type" : "module",
   "description": "Backend service for chess app",
   "main": "dist/index.js",
   "scripts": {
