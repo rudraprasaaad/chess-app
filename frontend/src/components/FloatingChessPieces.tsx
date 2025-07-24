@@ -1,15 +1,18 @@
 import { motion } from "framer-motion";
-
-const chessPieces = [
-  { symbol: "♔", x: "15%", y: "20%", delay: 0, scale: 1.2 },
-  { symbol: "♕", x: "80%", y: "15%", delay: 1.5, scale: 1.5 },
-  { symbol: "♖", x: "20%", y: "70%", delay: 3, scale: 1.1 },
-  { symbol: "♗", x: "75%", y: "65%", delay: 2, scale: 1.3 },
-  { symbol: "♘", x: "10%", y: "50%", delay: 4, scale: 1.4 },
-  { symbol: "♙", x: "85%", y: "80%", delay: 0.5, scale: 0.9 },
-];
+import { useMemo } from "react";
 
 export const FloatingChessPieces = () => {
+  const chessPieces = useMemo(
+    () => [
+      { symbol: "♔", x: "15%", y: "20%", delay: 0, scale: 1.2 },
+      { symbol: "♕", x: "80%", y: "15%", delay: 1.5, scale: 1.5 },
+      { symbol: "♖", x: "20%", y: "70%", delay: 3, scale: 1.1 },
+      { symbol: "♗", x: "75%", y: "65%", delay: 2, scale: 1.3 },
+      { symbol: "♘", x: "10%", y: "50%", delay: 4, scale: 1.4 },
+      { symbol: "♙", x: "85%", y: "80%", delay: 0.5, scale: 0.9 },
+    ],
+    []
+  );
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none">
       {chessPieces.map((piece, index) => (
