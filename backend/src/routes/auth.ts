@@ -9,12 +9,6 @@ import { AuthProvider } from "../lib/types";
 
 const router = Router();
 
-interface userJwtClaims {
-  userId: string;
-  name: string;
-  isGuest?: boolean;
-}
-
 interface UserDetails {
   id: string;
   token?: string;
