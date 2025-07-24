@@ -2,7 +2,7 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { Button } from "../components/ui/button";
 import { FloatingChessPieces } from "./FloatingChessPieces";
-import { LoginModal } from "./LoginModal";
+import { LoginModal } from "./auth/LoginModal";
 
 export const HeroSection = () => {
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
