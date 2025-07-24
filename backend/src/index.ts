@@ -18,6 +18,7 @@ import { swagger } from "./services/swagger";
 import { requestLogger } from "./middleware/requestLogger";
 import { errorHandler } from "./middleware/errorHandler";
 import { initPassport } from "./middleware/passport";
+import { jwtAuth } from "./middleware/jwtAuth";
 
 import authRoutes from "./routes/auth";
 
@@ -159,6 +160,7 @@ class Application {
     this.app.use(express.json({ limit: "10mb" }));
     this.app.use(express.urlencoded({ extended: true, limit: "10mb" }));
     this.app.use(requestLogger);
+    this.app.use(jwtAuth);
 
     this.app.get("/api/health", async (_req, res) => {
       try {
