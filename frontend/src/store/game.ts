@@ -266,6 +266,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     sendMessage({
       type: "TYPING",
       payload: {
+        // Reconnection Logic
         gameId: currentGame.id,
       },
     });

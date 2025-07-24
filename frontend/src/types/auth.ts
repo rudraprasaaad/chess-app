@@ -34,6 +34,7 @@ export interface AuthUserResponse {
     email?: string;
     provider: AuthProvider;
   };
+  message?: string;
 }
 
 export interface GuestUserDetails {
