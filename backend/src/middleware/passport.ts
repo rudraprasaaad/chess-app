@@ -9,6 +9,7 @@ import {
   GOOGLE_CLIENT_ID,
   GOOGLE_CLIENT_SECRET,
 } from "../lib/consts";
+import { AuthProvider } from "../lib/types";
 
 export function initPassport() {
   passport.use(
@@ -48,7 +49,7 @@ export function initPassport() {
                 username:
                   profile.username?.toLowerCase() ||
                   profile.displayName.toLowerCase(),
-                provider: "GOOGLE",
+                provider: AuthProvider.GOOGLE,
                 providerId: profile.id,
               },
             });

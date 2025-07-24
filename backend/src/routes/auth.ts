@@ -5,6 +5,7 @@ import jwt from "jsonwebtoken";
 import { COOKIE_MAX_AGE } from "../lib/consts";
 import { prisma } from "../lib/prisma";
 import { logger } from "../services/logger";
+import { AuthProvider } from "../lib/types";
 
 const router = Router();
 
@@ -20,6 +21,43 @@ interface UserDetails {
   name: string;
   isGuest?: boolean;
 }
+
+interface AuthenticatedUser {
+  id: string;
+  name: string;
+  email?: string;
+  provider: AuthProvider;
+}
+
+router.get("/me", (req: Request, res: Response) => {
+  try {
+    if (!req.user) {
+      console.log(req.user);
+      return res.status(401).json({
+        success: false,
+        message: "Not Authenticated",
+      });
+    }
+
+    const user = req.user as AuthenticatedUser;
+
+    res.json({
+      success: true,
+      data: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        provider: user.provider,
+      },
+    });
+  } catch (err) {
+    logger.error("Error in /auth/me:", err);
+    res.status(401).json({
+      success: false,
+      message: "Unauthenticated",
+    });
+  }
+});
 
 /**
  * @swagger
@@ -126,20 +164,21 @@ interface UserDetails {
 router.post("/guest", async (req: Request, res: Response) => {
   try {
     const bodyData = req.body;
-    const guestUUID = `guest-${  uuidv4()}`;
+    const guestUUID = `guest-${uuidv4()}`;
 
     const user = await prisma.user.create({
       data: {
         username: guestUUID,
-        email: `${guestUUID  }@chess.com`,
+        email: `${guestUUID}@chess.com`,
         name: bodyData.name || guestUUID,
-        provider: "GUEST",
+        provider: AuthProvider.GUEST,
       },
     });
 
     const token = jwt.sign(
       { id: user.id, provider: "GUEST" },
-      process.env.JWT_SECRET!
+      process.env.JWT_SECRET!,
+      { expiresIn: "24h" }
     );
 
     logger.info(`Guest created successfully: ${user.id}`);
@@ -262,71 +301,42 @@ router.post("/guest", async (req: Request, res: Response) => {
  */
 router.get("/refresh", async (req: Request, res: Response) => {
   try {
-    if (req.user) {
-      const user = req.user as UserDetails;
-
-      const userDb = await prisma.user.findFirst({
-        where: {
-          id: user.id,
-        },
-      });
-
-      if (!userDb) {
-        return res.status(404).json({
-          success: false,
-          message: "User not found",
-        });
-      }
-
-      const token = jwt.sign(
-        { id: user.id, provider: "GOOGLE" },
-        process.env.JWT_SECRET!
-      );
-
-      res.json({
-        success: true,
-        data: {
-          token,
-          id: user.id,
-          name: userDb.name,
-          isGuest: false,
-        },
-      });
-    } else if (req.cookies && req.cookies.guest) {
-      const decoded = jwt.verify(
-        req.cookies.guest,
-        process.env.JWT_SECRET!
-      ) as userJwtClaims;
-
-      const token = jwt.sign(
-        { id: decoded.userId, provider: "GUEST" },
-        process.env.JWT_SECRET!
-      );
-
-      const userDetails: UserDetails = {
-        id: decoded.userId,
-        name: decoded.name,
-        token,
-        isGuest: true,
-      };
-
-      res.cookie("guest", token, {
-        httpOnly: true,
-        maxAge: COOKIE_MAX_AGE,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "lax",
-      });
-
-      res.json({
-        success: true,
-        data: userDetails,
-      });
-    } else {
-      res.status(401).json({
+    if (!req.user) {
+      return res.status(401).json({
         success: false,
         message: "Unauthorized",
       });
     }
+
+    const user = req.user;
+
+    // Determine token type based on user provider
+    const isGuest = user.provider === AuthProvider.GUEST;
+    const cookieName = isGuest ? "guest" : "google";
+
+    const token = jwt.sign(
+      { id: user.id, provider: user.provider },
+      process.env.JWT_SECRET!,
+      { expiresIn: "24h" }
+    );
+
+    // Set the appropriate cookie
+    res.cookie(cookieName, token, {
+      httpOnly: true,
+      maxAge: COOKIE_MAX_AGE,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+    });
+
+    res.json({
+      success: true,
+      data: {
+        id: user.id,
+        name: user.name || user.username,
+        token,
+        isGuest,
+      },
+    });
   } catch (error) {
     logger.error("Error refreshing token:", error);
     res.status(500).json({
@@ -385,25 +395,39 @@ router.get("/refresh", async (req: Request, res: Response) => {
  *                   success: false
  *                   error: "Failed to log out"
  */
-router.get("/logout", (req: Request, res: Response) => {
-  res.clearCookie("guest");
-  res.clearCookie("google");
+router.post("/logout", (req: Request, res: Response) => {
+  try {
+    const cookieOptions = {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite:
+        process.env.NODE_ENV === "production"
+          ? ("none" as const)
+          : ("lax" as const),
+    };
 
-  req.logout((err: Error) => {
-    if (err) {
-      logger.error("Logout error:", err);
-      res.status(500).json({
-        success: false,
-        error: "Failed to log out",
+    res.clearCookie("guest", cookieOptions);
+    res.clearCookie("google", cookieOptions);
+
+    if (req.session) {
+      req.session.destroy((err) => {
+        if (err) {
+          logger.error("Session destruction error:", err);
+        }
       });
-    } else {
-      res.json({
-        success: true,
-        message: "Logged out successfully",
-      });
-      res.redirect("http://localhost:5173");
     }
-  });
+
+    res.json({
+      success: true,
+      message: "Logged out successfully",
+    });
+  } catch (error) {
+    logger.error("Logout error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Logout failed",
+    });
+  }
 });
 
 /**
@@ -497,8 +521,9 @@ router.get("/google/callback", (req, res, next) => {
 
     try {
       const token = jwt.sign(
-        { userId: user.id, provider: "GOOGLE" },
-        process.env.JWT_SECRET!
+        { id: user.id, provider: "GOOGLE" },
+        process.env.JWT_SECRET!,
+        { expiresIn: "24h" }
       );
 
       res.cookie("google", token, {
