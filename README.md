@@ -30,7 +30,6 @@ This chess application provides a complete multiplayer chess experience with rea
 - **Real-time**: WebSocket (`ws` library) for live communication  
 - **Authentication**: JWT with Passport.js for Google OAuth  
 - **Validation**: Chess.js for move validation and game logic  
-- **Documentation**: Swagger/OpenAPI for API documentation  
 
 ## 🗄️ Database Design
 
@@ -114,14 +113,6 @@ npx prisma generate
 pnpm run dev
 ```
 
-## 📚 API Documentation
-
-### 🔗 Interactive Documentation
-
-- **Swagger UI**: [http://localhost:4000/api-docs](http://localhost:4000/api-docs)  
-- **WebSocket Docs**: [http://localhost:4000/docs/websocket.md](http://localhost:4000/docs/websocket.md)
-
----
 
 ### 🔐 Authentication Endpoints
 
