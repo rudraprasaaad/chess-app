@@ -13,7 +13,6 @@ import { logger } from "./services/logger";
 import { database } from "./services/database";
 import { WebSocketService } from "./services/websocket";
 import { redis } from "./services/redis";
-import { swagger } from "./services/swagger";
 
 import { requestLogger } from "./middleware/requestLogger";
 import { errorHandler } from "./middleware/errorHandler";
@@ -43,7 +42,6 @@ class Application {
     this.initializeWebSocket();
     this.initializeMiddleware();
     this.initializePassport();
-    this.initializeSwagger();
     this.initializeRoutes();
     this.initializeErrorHandling();
   }
@@ -72,19 +70,6 @@ class Application {
     initPassport();
     this.app.use(passport.initialize());
     this.app.use(passport.session());
-  }
-
-  private initializeSwagger(): void {
-    try {
-      if (swagger.isEnabled()) {
-        swagger.setupSwagger(this.app);
-        logger.info("📖 Swagger documentation enabled");
-      } else {
-        logger.info("📖 Swagger documentation disabled in production");
-      }
-    } catch (err) {
-      logger.error("Failed to initialize Swagger documentation:", err);
-    }
   }
 
   private initializeWebSocket(): void {
