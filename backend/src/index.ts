@@ -205,10 +205,6 @@ class Application {
       logger.info(`🔗 API URL: ${baseUrl}/`);
       logger.info(`🏥 Health Check: ${baseUrl}/api/health`);
 
-      if (swagger.isEnabled()) {
-        logger.info(`📖 API Documentation: ${baseUrl}/api-docs`);
-      }
-
       if (isProduction) {
         logger.info(
           `🌐 WebSocket URL: wss://${
