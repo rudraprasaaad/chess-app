@@ -10,6 +10,8 @@ import {
 } from "../ui/card";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
+import { useGoogleLogin, useGuestLogin } from "../../hooks/api/useAuth";
+import { toast } from "sonner";
 
 interface LoginModalProps {
   isOpen: boolean;
@@ -19,6 +21,46 @@ interface LoginModalProps {
 export const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
   const [guestName, setGuestName] = useState("");
   const [showGuestInput, setShowGuestInput] = useState(false);
+
+  const guestLoginMutation = useGuestLogin();
+  const googleLoginMutation = useGoogleLogin();
+
+  const isLoading =
+    guestLoginMutation.isPending || googleLoginMutation.isPending;
+
+  const handleGuestLogin = () => {
+    if (!guestName.trim()) {
+      toast.error("Please enter a valid name");
+      return;
+    }
+
+    guestLoginMutation.mutate(
+      { name: guestName.trim() },
+      {
+        onSuccess: () => {
+          toast.success(`Welcome, ${guestName.trim()}!`);
+          setGuestName("");
+          setShowGuestInput(false);
+          onClose();
+        },
+      }
+    );
+  };
+
+  const handleGoogleLogin = () => {
+    googleLoginMutation.mutate();
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter" && guestName.trim() && !isLoading) {
+      handleGuestLogin();
+    }
+  };
+
+  const handleBackToOptions = () => {
+    setShowGuestInput(false);
+    setGuestName("");
+  };
 
   return (
     <AnimatePresence>
@@ -159,7 +201,7 @@ export const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
                         value={guestName}
                         onChange={(e) => setGuestName(e.target.value)}
                         className="h-14 rounded-full glass border-border/30 px-6 text-center font-light tracking-wide focus:ring-2 focus:ring-primary/20 focus:border-primary/30"
-                        onKeyPress={handleKeyPress}
+                        onKeyDown={handleKeyPress}
                         disabled={isLoading}
                         autoFocus
                         maxLength={30}
