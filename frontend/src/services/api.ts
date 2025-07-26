@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import axios, { AxiosResponse } from "axios";
+import { toast } from "sonner";
 import type {
   User,
   GuestLoginRequest,
@@ -10,7 +11,7 @@ import { useAuthStore } from "../store/auth";
 import { AuthProvider } from "../types/common";
 
 export const api = axios.create({
-  baseURL: import.meta.env.env.REACT_APP_API_URL,
+  baseURL: import.meta.env.VITE_API_URL_DEV,
   withCredentials: true,
   headers: {
     "Content-Type": "application/json",
@@ -20,7 +21,7 @@ export const api = axios.create({
 
 api.interceptors.request.use(
   (config) => {
-    if (import.meta.env.env.NODE_ENV === "development") {
+    if (import.meta.env.NODE_ENV === "development") {
       console.log(`API Request: ${config.method?.toUpperCase()} ${config.url}`);
     }
     return config;
@@ -33,27 +34,27 @@ api.interceptors.request.use(
 
 api.interceptors.response.use(
   (response: AxiosResponse) => {
-    if (import.meta.env.env.NODE_ENV === "development") {
+    if (import.meta.env.NODE_ENV === "development") {
       console.log(`API Response: ${response.status} ${response.config.url}`);
     }
     return response;
   },
   (error) => {
     if (error.response?.status === 401) {
-      console.log("Authentication failed - clearing auth state");
       useAuthStore.getState().clearAuth();
 
       if (window.location.pathname !== "/") {
         window.location.href = "/";
       }
+      toast.error("Session expired. Please log in again.");
     }
 
     if (!error.response) {
-      console.error("Network Error:", error.message);
+      toast.error("Network error. Please check your connection.");
       error.message = "Network error. Please check your connection.";
     }
 
-    if (import.meta.env.env.NODE_ENV === "development") {
+    if (import.meta.env.NODE_ENV === "development") {
       console.error("API Error:", {
         status: error.response?.status,
         message: error.response?.data?.message || error.message,
@@ -199,13 +200,15 @@ export const gameAPI = {
 
 export const handleAPIError = (error: any): string => {
   if (error.response?.data?.message) {
+    toast.error(error.response.data.message);
     return error.response.data.message;
   }
 
   if (error.message) {
+    toast.error(error.message);
     return error.message;
   }
-
+  toast.error("An unexpected error occurred");
   return "An unexpected error occurred";
 };
 

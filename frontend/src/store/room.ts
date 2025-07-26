@@ -9,6 +9,7 @@ import type {
 import { UserStatus } from "../types/common";
 import { useWebSocketStore } from "./websocket";
 import { useAuthStore } from "./auth";
+import { toast } from "sonner";
 
 interface RoomState {
   currentRoom: Room | null;
@@ -73,6 +74,7 @@ export const useRoomStore = create<RoomState>((set, get) => ({
     });
 
     useAuthStore.getState().setStatus(UserStatus.WAITING);
+    toast.info("Creating room...");
   },
 
   joinRoom: (payload) => {
@@ -95,6 +97,7 @@ export const useRoomStore = create<RoomState>((set, get) => ({
     });
 
     useAuthStore.getState().setStatus(UserStatus.WAITING);
+    toast.info("Joining room...");
   },
 
   leaveRoom: () => {
@@ -115,6 +118,7 @@ export const useRoomStore = create<RoomState>((set, get) => ({
       error: null,
     });
     useAuthStore.getState().setStatus(UserStatus.ONLINE);
+    toast.success("You left the room.");
   },
 
   joinQueue: (isGuest) => {
@@ -143,6 +147,7 @@ export const useRoomStore = create<RoomState>((set, get) => ({
     });
 
     useAuthStore.getState().setStatus(UserStatus.WAITING);
+    toast.info(`Searching for a ${isGuest ? "guest" : "rated"} match...`);
 
     const timer = setInterval(() => {
       const { isInQueue, queueStartTime } = get();
@@ -157,6 +162,7 @@ export const useRoomStore = create<RoomState>((set, get) => ({
       if (elapsed >= 60) {
         clearInterval(timer);
         get().leaveQueue();
+        toast.warning("No opponent found. Please try again.");
       }
     }, 1000);
   },
@@ -178,6 +184,7 @@ export const useRoomStore = create<RoomState>((set, get) => ({
     });
 
     useAuthStore.getState().setStatus(UserStatus.ONLINE);
+    toast.info("Left matchmaking queue.");
   },
 
   setCurrentRoom: (room) => {
@@ -187,6 +194,9 @@ export const useRoomStore = create<RoomState>((set, get) => ({
       isCreatingRoom: false,
       error: null,
     });
+    if (room) {
+      toast.success("Joined room!");
+    }
   },
 
   updateRoom: (roomUpdate) => {
@@ -226,7 +236,10 @@ export const useRoomStore = create<RoomState>((set, get) => ({
     }
   },
 
-  setError: (error) => set({ error }),
+  setError: (error) => {
+    set({ error });
+    if (error) toast.error(error);
+  },
 
   clearRoom: () =>
     set({

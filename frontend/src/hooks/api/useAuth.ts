@@ -1,9 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useMemo, useEffect } from "react";
+import { toast } from "sonner";
 import { authAPI, handleAPIError } from "../../services/api";
 import { useAuthStore } from "../../store/auth";
 import { useWebSocketStore } from "../../store/websocket";
-import { GuestLoginRequest, User } from "../../types/auth";
+import { GuestLoginRequest, GuestUserDetails, User } from "../../types/auth";
 import { AuthProvider, UserStatus } from "../../types/common";
 
 export const authKeys = {
@@ -17,7 +18,7 @@ export function useGuestLogin() {
   const { setAuth, setLoading, setError } = useAuthStore();
   const { connect } = useWebSocketStore();
 
-  return useMutation({
+  return useMutation<GuestUserDetails, Error, GuestLoginRequest>({
     mutationFn: (data: GuestLoginRequest) => authAPI.guestLogin(data),
 
     onMutate: () => {
@@ -40,15 +41,13 @@ export function useGuestLogin() {
       queryClient.setQueryData(authKeys.currentUser(), user);
 
       connect();
-
-      console.log("Guest login successful:", guestData.name);
     },
 
     onError: (error) => {
       const errorMessage = handleAPIError(error);
       setError(errorMessage);
       setLoading(false);
-      console.error("Guest login failed:", errorMessage);
+      toast.error(`Guest login failed: ${errorMessage}`);
     },
   });
 }
@@ -68,6 +67,7 @@ export function useGoogleLogin() {
       const errorMessage = handleAPIError(error);
       setError(errorMessage);
       setLoading(false);
+      toast.error(`Google login failed: ${errorMessage}`);
     },
   });
 }
@@ -103,13 +103,13 @@ export function useCurrentUser() {
       setAuth(query.data);
       setLoading(false);
       connect();
-      console.log("Current user loaded:", query.data.name);
     }
 
     if (query.isError) {
       console.log("No authenticated user found");
       clearAuth();
       setLoading(false);
+      toast.error("Session expired, please log in again");
     }
   }, [
     query.isSuccess,
@@ -136,13 +136,13 @@ export function useRefreshToken() {
 
       queryClient.setQueryData(authKeys.currentUser(), data.user);
 
-      console.log("Token refreshed successfully");
+      toast.success("Session refreshed");
     },
 
     onError: (error) => {
       const errorMessage = handleAPIError(error);
       setError(errorMessage);
-      console.error("Token refresh failed:", errorMessage);
+      toast.error(`Token refresh failed: ${errorMessage}`);
     },
   });
 }
@@ -165,11 +165,11 @@ export function useLogout() {
 
       useAuthStore.getState().setStatus(UserStatus.OFFLINE);
 
-      console.log("Logout successful");
+      toast.success("Logged out successfully");
     },
 
     onError: () => {
-      console.log("Logout completed (API call failed but local state cleared)");
+      toast.error("Logout failed, but you have been logged out locally");
       queryClient.clear();
     },
 

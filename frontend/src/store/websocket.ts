@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { toast } from "sonner";
 import type { ServerMessage, ClientMessage } from "../types/websocket";
 import { WS_CLOSE_CODES, RATE_LIMIT } from "../types/websocket";
 import { useAuthStore } from "./auth";
@@ -79,7 +80,6 @@ export const useWebSocketStore = create<WebSocketState>((set, get) => ({
       const ws = new WebSocket(wsUrl);
 
       ws.onopen = () => {
-        console.log("WebSocket connected");
         set({
           connection: ws,
           status: "connected",
@@ -89,6 +89,7 @@ export const useWebSocketStore = create<WebSocketState>((set, get) => ({
         });
 
         useAuthStore.getState().setStatus(UserStatus.ONLINE);
+        toast.success("Connected to the server!");
       };
 
       ws.onmessage = (event) => {
@@ -102,8 +103,6 @@ export const useWebSocketStore = create<WebSocketState>((set, get) => ({
       };
 
       ws.onclose = (event) => {
-        console.log("WebSocket disconnected:", event.code, event.reason);
-
         set({
           connection: null,
           status: "disconnected",
@@ -113,29 +112,27 @@ export const useWebSocketStore = create<WebSocketState>((set, get) => ({
 
         if (event.code === WS_CLOSE_CODES.AUTH_FAILED) {
           set({ error: "Authentication failed" });
+          toast.error("Authentication failed. Please log in again.");
           useAuthStore.getState().clearAuth();
           return;
-        }
-
-        if (event.code === WS_CLOSE_CODES.RATE_LIMIT_EXCEEDED) {
+        } else if (event.code === WS_CLOSE_CODES.RATE_LIMIT_EXCEEDED) {
           set({ error: "Rate limit exceeded" });
+          toast.warning("Rate limit exceeded. Try again in a minute.");
           return;
-        }
-
-        if (event.code !== 1000 && event.code !== 1001) {
+        } else if (event.code !== 1000 && event.code !== 1001) {
+          toast.info("Disconnected. Attempting to reconnect...");
           get().attemptReconnection();
         }
       };
 
-      ws.onerror = (error) => {
-        console.error("WebSocket error:", error);
+      ws.onerror = () => {
         set({
           status: "error",
           error: "Connection error occurred",
         });
+        toast.error("WebSocket connection error.");
       };
-    } catch (error) {
-      console.error("Failed to create WebSocket connection:", error);
+    } catch {
       set({
         status: "error",
         error: "Failed to establish connection",
@@ -156,13 +153,14 @@ export const useWebSocketStore = create<WebSocketState>((set, get) => ({
       error: null,
       reconnectAttempts: 0,
     });
+    toast.info("Disconnected from the server.");
   },
 
   sendMessage: (message) => {
     const { connection, status } = get();
 
     if (status !== "connected" || !connection) {
-      console.warn("Cannot send message: WebSocket not connected");
+      toast.warning("Cannot send message: WebSocket not connected");
       return;
     }
 
@@ -174,6 +172,9 @@ export const useWebSocketStore = create<WebSocketState>((set, get) => ({
     }
 
     if (messageCount >= RATE_LIMIT.MAX_MESSAGES_PER_MINUTE) {
+      toast.warning(
+        "Rate limit exceeded! Please wait before sending more messages."
+      );
       set({ error: "Rate limit exceeded. Please slow down." });
       return;
     }
@@ -182,9 +183,7 @@ export const useWebSocketStore = create<WebSocketState>((set, get) => ({
       const messageString = JSON.stringify(message);
       connection.send(messageString);
       set({ messageCount: messageCount + 1 });
-      console.log("Sent WebSocket message:", message.type);
-    } catch (error) {
-      console.error("Failed to send WebSocket message:", error);
+    } catch {
       set({ error: "Failed to send message" });
     }
   },
@@ -220,6 +219,7 @@ export const useWebSocketStore = create<WebSocketState>((set, get) => ({
         status: "error",
         error: "Maximum reconnection attempts reached",
       });
+      toast.error("Could not reconnect to server. Please reload the page.");
       return;
     }
 
@@ -230,10 +230,10 @@ export const useWebSocketStore = create<WebSocketState>((set, get) => ({
     });
 
     setTimeout(() => {
-      console.log(
-        `Reconnection attempt ${state.reconnectAttempts + 1}/${
+      toast.info(
+        `Reconnecting (${state.reconnectAttempts + 1}/${
           state.maxReconnectAttempts
-        }`
+        })...`
       );
       get().connect();
     }, state.reconnectDelay);

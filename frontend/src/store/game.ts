@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { create } from "zustand";
+import { toast } from "sonner";
 import type { Game, Move, ChatMessage } from "../types/game";
 import { GameStatus, UserStatus } from "../types/common";
 import { useWebSocketStore } from "./websocket";
@@ -251,6 +252,7 @@ export const useGameStore = create<GameState>((set, get) => ({
         message: message.trim(),
       },
     });
+    toast.success("Message sent!");
   },
 
   startTyping: () => {
@@ -297,7 +299,10 @@ export const useGameStore = create<GameState>((set, get) => ({
 
   setIsPlayerTurn: (isTurn) => set({ isPlayerTurn: isTurn }),
 
-  setError: (error) => set({ error }),
+  setError: (err) => {
+    set({ error: err });
+    if (err) toast.error(err);
+  },
 
   clearGame: () => {
     get().stopTimer();
