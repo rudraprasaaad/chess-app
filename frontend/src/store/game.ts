@@ -178,7 +178,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     get().clearSelection();
   },
 
-  setSelectedSquare: (square) => set({ selectedSquare: square }),
+  setSelectedSquare: (square: string | null) => set({ selectedSquare: square }),
 
   setLegalMoves: (moves) => set({ legalMoves: moves }),
 
@@ -374,6 +374,9 @@ export const useGameActions = () =>
     isMakingMove: state.isMakingMove,
     error: state.error,
     setError: state.setError,
+
+    setSelectedSquare: state.setSelectedSquare,
+    clearSection: state.clearSelection,
   }));
 
 export const handleGameMessage = (message: any) => {

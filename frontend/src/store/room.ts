@@ -5,6 +5,7 @@ import type {
   RoomPlayer,
   CreateRoomPayload,
   JoinRoomPayload,
+  RoomWithGame,
 } from "../types/room";
 import { UserStatus } from "../types/common";
 import { useWebSocketStore } from "./websocket";
@@ -12,7 +13,7 @@ import { useAuthStore } from "./auth";
 import { toast } from "sonner";
 
 interface RoomState {
-  currentRoom: Room | null;
+  currentRoom: Room | RoomWithGame | null;
   availableRooms: Room[];
 
   isInQueue: boolean;

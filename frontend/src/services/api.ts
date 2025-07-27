@@ -198,6 +198,18 @@ export const gameAPI = {
   },
 };
 
+export const roomAPI = {
+  getRoomId: async (inviteCode: string): Promise<any> => {
+    const response = await api.get<{
+      success: boolean;
+      message: string;
+      data: any;
+    }>(`/room/lookup?inviteCode=${inviteCode}`);
+
+    return response.data.data;
+  },
+};
+
 export const handleAPIError = (error: any): string => {
   if (error.response?.data?.message) {
     toast.error(error.response.data.message);
