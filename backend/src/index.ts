@@ -20,6 +20,7 @@ import { initPassport } from "./middleware/passport";
 import { jwtAuth } from "./middleware/jwtAuth";
 
 import authRoutes from "./routes/auth";
+import roomRoutes from "./routes/room";
 
 import { COOKIE_MAX_AGE } from "./lib/consts";
 
@@ -176,6 +177,7 @@ class Application {
 
   private initializeRoutes(): void {
     this.app.use("/auth", authRoutes);
+    this.app.use("/room", roomRoutes);
 
     this.app.use("/{*any}", (req, res) => {
       res.status(404).json({
