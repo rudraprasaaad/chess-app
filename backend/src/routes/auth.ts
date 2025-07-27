@@ -6,6 +6,7 @@ import { COOKIE_MAX_AGE } from "../lib/consts";
 import { prisma } from "../lib/prisma";
 import { logger } from "../services/logger";
 import { AuthProvider } from "../lib/types";
+import "../types/express";
 
 const router = Router();
 

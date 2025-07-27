@@ -1,4 +1,6 @@
-declare global {
+import { AuthProvider } from "../lib/types";
+
+declare module "express-serve-static-core" {
   namespace Express {
     interface User {
       id: string;
