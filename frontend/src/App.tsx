@@ -4,6 +4,7 @@ import { Toaster } from "./components/ui/sonner";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
+import Lobby from "./pages/Lobby";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -36,6 +37,7 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Index />} />
+          <Route path="/lobby" element={<Lobby />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

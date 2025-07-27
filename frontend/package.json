@@ -42,6 +42,7 @@
     "axios": "^1.11.0",
     "chess.js": "^1.4.0",
     "class-variance-authority": "^0.7.1",
+    "classnames": "^2.5.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.0.0",
     "date-fns": "^3.6.0",
