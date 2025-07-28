@@ -85,7 +85,8 @@ router.post("/guest", async (req: Request, res: Response) => {
 
     res.cookie("guest", token, {
       httpOnly: true,
-      secure: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
       maxAge: COOKIE_MAX_AGE,
     });
     res.status(201).json({
@@ -204,8 +205,8 @@ router.get("/google/callback", (req, res, next) => {
       );
 
       res.cookie("google", token, {
-        httpOnly: true,
-        secure: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
         maxAge: COOKIE_MAX_AGE,
       });
 
