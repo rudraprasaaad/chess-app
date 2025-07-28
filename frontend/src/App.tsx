@@ -5,6 +5,8 @@ import { BrowserRouter, Route, Routes } from "react-router-dom";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import Lobby from "./pages/Lobby";
+import ProtectedRoute from "./components/ProtectedRoute";
+import AuthCallbackHandler from "./components/auth/AuthCallbackHandler";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -37,7 +39,18 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Index />} />
-          <Route path="/lobby" element={<Lobby />} />
+          <Route
+            path="/auth/google/callback"
+            element={<AuthCallbackHandler />}
+          />
+          <Route
+            path="/lobby"
+            element={
+              <ProtectedRoute>
+                <Lobby />
+              </ProtectedRoute>
+            }
+          />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

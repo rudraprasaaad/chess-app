@@ -12,6 +12,7 @@ import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { useGoogleLogin, useGuestLogin } from "../../hooks/api/useAuth";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 
 interface LoginModalProps {
   isOpen: boolean;
@@ -19,6 +20,7 @@ interface LoginModalProps {
 }
 
 export const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
+  const navigate = useNavigate();
   const [guestName, setGuestName] = useState("");
   const [showGuestInput, setShowGuestInput] = useState(false);
 
@@ -39,6 +41,7 @@ export const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
       {
         onSuccess: () => {
           toast.success(`Welcome, ${guestName.trim()}!`);
+          navigate("/lobby");
           setGuestName("");
           setShowGuestInput(false);
           onClose();
