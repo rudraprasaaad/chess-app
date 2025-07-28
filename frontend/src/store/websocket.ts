@@ -73,9 +73,9 @@ export const useWebSocketStore = create<WebSocketState>((set, get) => ({
     try {
       const wsProtocol = window.location.protocol === "https:" ? "wss:" : "ws:";
       const wsHost =
-        import.meta.env.REACT_APP_WS_URL ||
+        import.meta.env.VITE_WS_URL_DEV ||
         `${wsProtocol}//${window.location.host}`;
-      const wsUrl = `${wsHost}/ws`;
+      const wsUrl = `${wsHost}`;
 
       const ws = new WebSocket(wsUrl);
 

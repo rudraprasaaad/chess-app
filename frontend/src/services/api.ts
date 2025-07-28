@@ -94,8 +94,6 @@ export const authAPI = {
       name: response.data.data.name,
       email: response.data.data.email,
       provider: response.data.data.provider,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
     };
   },
 
@@ -125,8 +123,6 @@ export const authAPI = {
         id: userData.id,
         name: userData.name,
         provider: userData.isGuest ? AuthProvider.GUEST : AuthProvider.GOOGLE,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
       },
       token: userData.token,
       isGuest: userData.isGuest,

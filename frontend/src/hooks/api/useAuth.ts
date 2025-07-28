@@ -31,8 +31,6 @@ export function useGuestLogin() {
         id: guestData.id,
         name: guestData.name,
         provider: AuthProvider.GUEST,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
       };
 
       setAuth(user);
@@ -91,8 +89,6 @@ export function useCurrentUser() {
         name: data.name,
         email: data.email,
         provider: data.provider,
-        createdAt: data.createdAt,
-        updatedAt: data.updatedAt,
       }),
       []
     ),

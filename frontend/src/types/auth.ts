@@ -6,8 +6,7 @@ export interface User {
   email?: string;
   avatarUrl?: string;
   provider: AuthProvider;
-  createdAt: string;
-  updatedAt: string;
+  token?: string;
 }
 
 export interface AuthResponse {
