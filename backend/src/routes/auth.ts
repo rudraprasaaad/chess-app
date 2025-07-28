@@ -205,6 +205,7 @@ router.get("/google/callback", (req, res, next) => {
       );
 
       res.cookie("google", token, {
+        httpOnly: true,
         secure: process.env.NODE_ENV === "production",
         sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
         maxAge: COOKIE_MAX_AGE,
