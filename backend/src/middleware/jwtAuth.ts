@@ -12,14 +12,44 @@ interface JWTPayload {
   exp?: string;
 }
 
+const parseCookieHeader = (cookieHeader: string): Record<string, string> => {
+  const cookies: Record<string, string> = {};
+
+  cookieHeader.split(";").forEach((cookie) => {
+    const [name, ...rest] = cookie.trim().split("=");
+    if (name && rest.length > 0) {
+      cookies[name] = decodeURIComponent(rest.join("="));
+    }
+  });
+
+  return cookies;
+};
+
+const getCookieValue = (
+  req: Request,
+  cookieName: string
+): string | undefined => {
+  if (req.cookies && req.cookies[cookieName]) {
+    return req.cookies[cookieName];
+  }
+
+  const cookieHeader = req.headers.cookie;
+  if (cookieHeader) {
+    const parsedCookies = parseCookieHeader(cookieHeader);
+    return parsedCookies[cookieName];
+  }
+
+  return undefined;
+};
+
 export const jwtAuth = async (
   req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
   try {
-    const guestToken = req.cookies.guest;
-    const googleToken = req.cookies.google;
+    const guestToken = getCookieValue(req, "guest");
+    const googleToken = getCookieValue(req, "google");
 
     const token = guestToken || googleToken;
 

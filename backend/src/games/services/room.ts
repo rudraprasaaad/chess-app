@@ -368,15 +368,6 @@ export class RoomService {
       const room = await prisma.room.findUnique({ where: { id: game.roomId } });
       if (!room) return;
 
-      const roomData = {
-        id: room.id,
-        type: room.type as RoomType,
-        status: room.status as RoomStatus,
-        players: room.players as { id: string; color: string | null }[],
-        inviteCode: room.inviteCode || undefined,
-        createdAt: room.createdAt,
-      };
-
       const gameData: Game = {
         id: game.id,
         roomId: game.roomId,
