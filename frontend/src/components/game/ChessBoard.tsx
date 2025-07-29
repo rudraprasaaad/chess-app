@@ -1,3 +1,4 @@
+import { motion } from "framer-motion";
 import { useCallback, useMemo } from "react";
 import { useGameActions, useGameStore } from "../../store/game";
 import { useWebSocketSender } from "../../store/websocket";
@@ -37,51 +38,77 @@ const isLightSquare = (file: string, rank: number) =>
 
 const ChessBoard = () => {
   const fen = useGameStore((state) => state.currentGame?.fen || "");
-  const selecetedSquare = useGameStore((state) => state.selectedSquare);
+  const selectedSquare = useGameStore((state) => state.selectedSquare);
   const legalMoves = useGameStore((state) => state.legalMoves);
+  const lastMove = useGameStore((state) => state.lastMove);
   const currentGame = useGameStore((state) => state.currentGame);
+  const isPlayerTurn = useGameStore((state) => state.isPlayerTurn);
+  const playerColor = useGameStore((state) => state.playerColor);
+  const isMakingMove = useGameStore((state) => state.isMakingMove);
   const setSelectedSquare = useGameActions().setSelectedSquare;
-  const clearSection = useGameActions().clearSection;
-
+  const clearSelection = useGameActions().clearSelection;
   const sendMessage = useWebSocketSender().sendMessage;
 
   const board = useMemo(() => fenToBoard(fen), [fen]);
 
+  const isOwnedPiece = useCallback(
+    (piece: string | null) => {
+      if (!piece || !playerColor) return false;
+
+      const isWhitePiece = piece === piece.toUpperCase();
+      return (
+        (playerColor === "white" && isWhitePiece) ||
+        (playerColor === "black" && !isWhitePiece)
+      );
+    },
+    [playerColor]
+  );
+
   const onSquareClick = useCallback(
     (square: string) => {
-      if (!currentGame) return;
+      if (!currentGame || !isPlayerTurn || isMakingMove) return;
 
-      if (selecetedSquare === square) {
-        clearSection();
+      const piece = board[square];
+
+      if (piece && !isOwnedPiece(piece)) {
+        clearSelection();
         return;
       }
 
-      if (selecetedSquare && legalMoves.includes(square)) {
+      if (selectedSquare === square) {
+        clearSelection();
+        return;
+      }
+
+      if (selectedSquare && legalMoves.includes(square)) {
         sendMessage({
           type: "MAKE_MOVE",
           payload: {
             gameId: currentGame.id,
-            move: { from: selecetedSquare, to: square },
+            move: { from: selectedSquare, to: square },
           },
         });
-        clearSection();
+        clearSelection();
         return;
       }
 
-      if (board[square]) {
+      if (piece && isOwnedPiece(piece)) {
         setSelectedSquare(square);
       } else {
-        clearSection();
+        clearSelection();
       }
     },
     [
-      selecetedSquare,
-      legalMoves,
-      board,
-      setSelectedSquare,
-      clearSection,
-      sendMessage,
       currentGame,
+      isPlayerTurn,
+      isMakingMove,
+      board,
+      selectedSquare,
+      legalMoves,
+      isOwnedPiece,
+      setSelectedSquare,
+      clearSelection,
+      sendMessage,
     ]
   );
 
@@ -96,18 +123,23 @@ const ChessBoard = () => {
           const square = file + rank;
           const piece = board[square];
           const isLight = isLightSquare(file, rank);
-          const isSelected = selecetedSquare === square;
+          const isSelected = selectedSquare === square;
           const isLegal = legalMoves.includes(square);
+          const isLastMoveSquare =
+            lastMove && (lastMove.from === square || lastMove.to === square);
 
           const squareClass = classNames(
             "w-12 h-12 flex items-center justify-center cursor-pointer",
             isLight ? "bg-yellow-100" : "bg-green-700",
             isSelected && "ring-4 ring-yellow-400",
-            isLegal && "bg-green-400/70"
+            isLegal && "bg-green-400/70",
+            isLastMoveSquare && "bg-yellow=300/40",
+            !isPlayerTurn && "cursor-not-allowed opacity-60",
+            isMakingMove && "pointer-events-none"
           );
 
           return (
-            <div
+            <motion.div
               key={square}
               className={squareClass}
               onClick={() => onSquareClick(square)}
@@ -122,9 +154,27 @@ const ChessBoard = () => {
                   onSquareClick(square);
                 }
               }}
+              whileHover={isPlayerTurn ? { scale: 1.05 } : undefined}
+              whileTap={isPlayerTurn ? { scale: 0.95 } : undefined}
             >
-              {piece && <PieceIcon notation={piece} size={40} />}
-            </div>
+              {piece && (
+                <motion.div
+                  initial={{ scale: 0.8 }}
+                  animate={{ scale: 1 }}
+                  transition={{ type: "spring", stiffness: 300 }}
+                >
+                  <PieceIcon notation={piece} size={40} />
+                </motion.div>
+              )}
+
+              {isLegal && !piece && (
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  className="absolute inset-0 border-4 border-green-500 rounded-sm opacity-60 pointer-events-none"
+                />
+              )}
+            </motion.div>
           );
         })
       )}
