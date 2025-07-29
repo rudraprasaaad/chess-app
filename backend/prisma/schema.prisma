@@ -98,6 +98,7 @@ enum GameStatus {
   ACTIVE
   COMPLETED
   ABANDONED
+  DRAW
 }
 
 enum RoomStatus {

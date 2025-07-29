@@ -183,6 +183,22 @@ export class WebSocketService {
           );
           break;
 
+        case "RESIGN_GAME":
+          await this.gameService.resignGame(payload.gameId, ws.playerId);
+          break;
+
+        case "OFFER_DRAW":
+          await this.gameService.offerDraw(payload.gameId, ws.playerId);
+          break;
+
+        case "ACCEPT_DRAW":
+          await this.gameService.acceptDraw(payload.gameId, ws.playerId);
+          break;
+
+        case "DECLINE_DRAW":
+          await this.gameService.declineDraw(payload.gameId, ws.playerId);
+          break;
+
         case "CHAT_MESSAGE":
           await this.chatService.sendChatMessage(
             payload.gameId,

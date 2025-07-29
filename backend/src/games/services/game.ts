@@ -12,12 +12,60 @@ import { prisma } from "../../lib/prisma";
 
 import { WebSocketService } from "../../services/websocket";
 import { redis } from "../../services/redis";
+import { UserStatus } from "@prisma/client";
+import { logger } from "../../services/logger";
 
 export class GameService {
   private ws: WebSocketService;
 
   constructor(ws: WebSocketService) {
     this.ws = ws;
+  }
+
+  private gameTimers: Map<string, NodeJS.Timeout> = new Map();
+
+  private clearGameTimer(gameId: string): void {
+    const timer = this.gameTimers.get(gameId);
+    if (timer) {
+      clearInterval(timer);
+      this.gameTimers.delete(gameId);
+    }
+    redis.del(`gameTimerActive:${gameId}`);
+  }
+
+  private async startGameTimer(gameId: string): Promise<void> {
+    const timerId = setInterval(async () => {
+      try {
+        const gameData = await redis.get(`game:${gameId}`);
+        if (!gameData) {
+          this.clearGameTimer(gameId);
+          return;
+        }
+
+        const game = JSON.parse(gameData) as Game;
+
+        if (game.status !== GameStatus.ACTIVE) {
+          this.clearGameTimer(gameId);
+          return;
+        }
+
+        const currentTurn = game.fen.split(" ")[1] as "w" | "b";
+        const colorMap = { w: "white", b: "black" } as const;
+        const currentColor = colorMap[currentTurn];
+
+        if (game.timers[currentColor] <= 0) {
+          this.clearGameTimer(gameId);
+          await this.handleTimeout(gameId, currentColor);
+        }
+      } catch (err) {
+        logger.error("Error in game timer:", err);
+        clearInterval(timerId);
+      }
+    }, 1000);
+
+    this.gameTimers.set(gameId, timerId);
+
+    await redis.set(`gameTimerActive:${gameId}`, "true", { EX: 7200 });
   }
 
   async startGame(roomId: string): Promise<Game> {
@@ -109,6 +157,8 @@ export class GameService {
     const roomWithGame: RoomWithGame = { ...roomData, game: gameData };
 
     this.ws.broadcastToRoom(roomWithGame);
+
+    await this.startGameTimer(game.id);
     return gameData;
   }
 
@@ -152,7 +202,17 @@ export class GameService {
         await redis.set(`invalidMoves:${playerId}`, String(attempts + 1), {
           EX: 3600,
         });
-        throw new Error("Illegal move.");
+
+        this.ws.broadcastToClient(playerId, {
+          type: "ILLEGAL_MOVE",
+          payload: {
+            gameId,
+            move,
+            attempts: attempts + 1,
+            maxAttempts: 3,
+          },
+        });
+        return;
       }
     }
 
@@ -199,5 +259,262 @@ export class GameService {
 
     await redis.setJSON(`game:${gameId}`, formattedGame);
     this.ws.broadcastToGame(formattedGame);
+  }
+
+  async resignGame(gameId: string, playerId: string): Promise<void> {
+    try {
+      const gameData = await redis.get(`game:${gameId}`);
+      if (!gameData) throw new Error("Game not found");
+
+      const game = JSON.parse(gameData) as Game;
+      const player = game.players.find((p) => p.userId === playerId);
+
+      if (!player) throw new Error("Player not in this game");
+      if (game.status !== GameStatus.ACTIVE)
+        throw new Error("Game is not active");
+
+      const opponent = game.players.find((p) => p.userId !== playerId);
+      if (!opponent) throw new Error("Opponent not found");
+
+      await prisma.game.update({
+        where: {
+          id: gameId,
+        },
+        data: {
+          status: GameStatus.COMPLETED,
+          winnerId: opponent.userId,
+        },
+      });
+
+      const formattedGame: Game = {
+        ...game,
+        status: GameStatus.COMPLETED,
+        winnerId: opponent.userId,
+      };
+
+      await redis.setJSON(`game:${gameId}`, formattedGame);
+
+      await prisma.user.updateMany({
+        where: { id: { in: [playerId, opponent.userId] } },
+        data: { status: UserStatus.ONLINE },
+      });
+
+      const resignedPlayer = await prisma.user.findUnique({
+        where: {
+          id: playerId,
+        },
+      });
+
+      game.players.forEach((gamePlayer) => {
+        this.ws.broadcastToClient(gamePlayer.userId, {
+          type: "PLAYER_RESIGNED",
+          payload: {
+            game: formattedGame,
+            playerName: resignedPlayer?.name || "Player Resigned",
+            winnerId: opponent.userId,
+          },
+        });
+      });
+
+      logger.info(`Player ${playerId} resgined from game ${gameId}`);
+    } catch (err) {
+      logger.error("Error in resignGame:", err);
+      this.ws.broadcastToClient(playerId, {
+        type: "ERROR",
+        payload: { message: (err as Error).message },
+      });
+      throw err;
+    }
+  }
+
+  async offerDraw(gameId: string, playerId: string): Promise<void> {
+    try {
+      const gameData = await redis.get(`game:${gameId}`);
+      if (!gameData) throw new Error("Game not found");
+
+      const game = JSON.parse(gameData) as Game;
+      const player = game.players.find((p) => p.userId === playerId);
+
+      if (!player) throw new Error("Player not in this game.");
+
+      if (game.status !== GameStatus.ACTIVE)
+        throw new Error("Game is not active");
+
+      const opponent = game.players.find((p) => p.userId !== playerId);
+      if (!opponent) throw new Error("Opponent not found.");
+
+      await redis.set(`drawOffer:${gameId}:${playerId}`, "true", { EX: 300 });
+
+      const offerPlayer = await prisma.user.findUnique({
+        where: { id: playerId },
+      });
+
+      this.ws.broadcastToClient(opponent.userId, {
+        type: "DRAW_OFFERED",
+        payload: {
+          gameId,
+          playerName: offerPlayer?.name || "Player",
+          playerId,
+        },
+      });
+
+      this.ws.broadcastToClient(playerId, {
+        type: "DRAW_OFFER_SENT",
+        payload: { gameId },
+      });
+
+      logger.info(`Player ${playerId} offered draw in game ${gameId}`);
+    } catch (err) {
+      logger.error("Error in offerDraw:", err);
+      this.ws.broadcastToClient(playerId, {
+        type: "ERROR",
+        payload: { message: (err as Error).message },
+      });
+      throw err;
+    }
+  }
+
+  async acceptDraw(gameId: string, playerId: string): Promise<void> {
+    try {
+      const gameData = await redis.get(`game:${gameId}}`);
+      if (!gameData) throw new Error("Game not found");
+
+      const game = JSON.parse(gameData) as Game;
+      const player = game.players.find((p) => p.userId === playerId);
+
+      if (!player) throw new Error("Player not in this game");
+      if (game.status !== GameStatus.ACTIVE)
+        throw new Error("Game is not active");
+
+      const opponent = game.players.find((p) => p.userId !== playerId);
+      if (!opponent) throw new Error("Opponent not found");
+
+      const drawOffer = await redis.get(
+        `drawOffer:${gameId}:${opponent.userId}`
+      );
+      if (!drawOffer) throw new Error("No draw offer to accept");
+
+      await prisma.game.update({
+        where: {
+          id: gameId,
+        },
+        data: {
+          status: GameStatus.DRAW,
+        },
+      });
+
+      const formattedGame: Game = {
+        ...game,
+        status: GameStatus.DRAW,
+      };
+
+      await redis.setJSON(`game:${gameId}`, formattedGame);
+
+      await redis.del(`drawOffer:${gameId}:${opponent.userId}`);
+
+      await prisma.user.updateMany({
+        where: { id: { in: [playerId, opponent.userId] } },
+        data: { status: UserStatus.ONLINE },
+      });
+
+      game.players.forEach((gamePlayer) => {
+        this.ws.broadcastToClient(gamePlayer.userId, {
+          type: "DRAW_ACCEPTED",
+          payload: {
+            game: formattedGame,
+            gameId,
+          },
+        });
+      });
+
+      logger.info(`Draw accepted in game ${gameId}`);
+    } catch (err) {
+      logger.error("Error in acceptDraw:", err);
+      this.ws.broadcastToClient(playerId, {
+        type: "ERROR",
+        payload: { message: (err as Error).message },
+      });
+      throw err;
+    }
+  }
+
+  async declineDraw(gameId: string, playerId: string): Promise<void> {
+    try {
+      const gameData = await redis.get(`game:${gameId}`);
+      if (!gameData) throw new Error("Game not found");
+
+      const game = JSON.parse(gameData) as Game;
+      const opponent = game.players.find((p) => p.userId !== playerId);
+
+      if (!opponent) throw new Error("Opponent not found");
+
+      await redis.del(`drawOffer:${gameId}:${opponent.userId}`);
+
+      this.ws.broadcastToClient(opponent.userId, {
+        type: "DRAW_DECLINED",
+        payload: { gameId },
+      });
+
+      logger.info(`Draw declined in game ${gameId}`);
+    } catch (err) {
+      logger.error("Error in declineDraw:", err);
+      throw err;
+    }
+  }
+
+  async handleTimeout(
+    gameId: string,
+    playerColor: "white" | "black"
+  ): Promise<void> {
+    try {
+      const gameData = await redis.get(`game:${gameId}`);
+      if (!gameData) throw new Error("Game not found");
+
+      const game = JSON.parse(gameData) as Game;
+      if (game.status !== GameStatus.ACTIVE) return;
+
+      const timedOutPlayer = game.players.find((p) => p.color === playerColor);
+      const winner = game.players.find((p) => p.color !== playerColor);
+
+      if (!timedOutPlayer || !winner) throw new Error("Player not found");
+
+      await prisma.game.update({
+        where: {
+          id: gameId,
+        },
+        data: {
+          status: GameStatus.COMPLETED,
+          winnerId: winner.userId,
+        },
+      });
+
+      const formattedGame: Game = {
+        ...game,
+        status: GameStatus.COMPLETED,
+        winnerId: winner.userId,
+      };
+
+      await redis.setJSON(`game:${gameId}`, formattedGame);
+
+      await prisma.user.updateMany({
+        where: { id: { in: [timedOutPlayer.userId, winner.userId] } },
+        data: { status: UserStatus.ONLINE },
+      });
+
+      game.players.forEach((gamePlayer) => {
+        this.ws.broadcastToClient(gamePlayer.userId, {
+          type: "TIME_OUT",
+          payload: {
+            game: formattedGame,
+            winnerId: winner.userId,
+            timedOutPlayer: playerColor,
+          },
+        });
+      });
+      logger.info(`Time out in game ${gameId}, ${playerColor} lost`);
+    } catch (err) {
+      logger.error("Error in handleTimeout:", err);
+      throw err;
+    }
   }
 }

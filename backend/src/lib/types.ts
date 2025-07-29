@@ -18,6 +18,7 @@ export enum GameStatus {
   ACTIVE = "ACTIVE",
   COMPLETED = "COMPLETED",
   ABANDONED = "ABANDONED",
+  DRAW = "DRAW",
 }
 
 export enum RoomStatus {
