@@ -313,15 +313,22 @@ export const handleRoomMessage = (message: any) => {
     case "ROOM_UPDATED":
       setCurrentRoom(message.payload);
       setJoiningRoom(false);
-
-      // Check if game started
       if (message.payload.game) {
         useAuthStore.getState().setStatus(UserStatus.IN_GAME);
       }
       break;
 
+    case "REJOIN_GAME":
+      setCurrentRoom(message.payload);
+      setJoiningRoom(false);
+      setCreatingRoom(false);
+      useAuthStore.getState().setStatus(UserStatus.IN_GAME);
+      toast.success("Reconnected to your game.");
+      break;
+
     case "QUEUE_TIMEOUT":
       useRoomStore.getState().leaveQueue();
+      useAuthStore.getState().setStatus(UserStatus.ONLINE);
       setError("No match found. Please try again.");
       break;
 
@@ -332,6 +339,7 @@ export const handleRoomMessage = (message: any) => {
         queueStartTime: null,
         queueTimeElapsed: 0,
       });
+      useAuthStore.getState().setStatus(UserStatus.ONLINE);
       break;
 
     case "ERROR":

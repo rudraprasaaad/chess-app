@@ -4,6 +4,8 @@ import type { ServerMessage, ClientMessage } from "../types/websocket";
 import { WS_CLOSE_CODES, RATE_LIMIT } from "../types/websocket";
 import { useAuthStore } from "./auth";
 import { UserStatus } from "../types/common";
+import { handleRoomMessage } from "./room";
+import { handleGameMessage } from "./game";
 
 export type ConnectionStatus =
   | "disconnected"
@@ -13,25 +15,20 @@ export type ConnectionStatus =
   | "error";
 
 interface WebSocketState {
-  // Connection Management
   connection: WebSocket | null;
   status: ConnectionStatus;
   error: string | null;
 
-  // Message Handling
   lastMessage: ServerMessage | null;
   messageHistory: ServerMessage[];
 
-  // Reconnection Logic
   reconnectAttempts: number;
   maxReconnectAttempts: number;
   reconnectDelay: number;
 
-  // Rate Limiting
   messageCount: number;
   lastReset: number;
 
-  // Actions
   connect: () => void;
   disconnect: () => void;
   sendMessage: <T extends ClientMessage>(message: T) => void;
@@ -241,32 +238,41 @@ export const useWebSocketStore = create<WebSocketState>((set, get) => ({
 }));
 
 const handleServerMessage = (message: ServerMessage) => {
-  switch (message.type) {
-    case "ROOM_CREATED":
-    case "ROOM_UPDATED":
-      break;
+  const roomMessages = [
+    "ROOM_CREATED",
+    "ROOM_UPDATED",
+    "QUEUE_TIMEOUT",
+    "QUEUE_LEFT",
+    "REJOIN_GAME",
+  ];
 
-    case "GAME_UPDATED":
-    case "REJOIN_GAME":
-      break;
+  const gameMessages = [
+    "GAME_UPDATED",
+    "MOVE_MADE",
+    "GAME_ENDED",
+    "PLAYER_RESIGNED",
+    "DRAW_OFFERED",
+    "DRAW_ACCEPTED",
+    "DRAW_DECLINED",
+    "DRAW_OFFER_SENT",
+    "TIME_OUT",
+    "ILLEGA_MOVE",
+    "CHAT_MESSAGE",
+    "TYPING",
+  ];
 
-    case "QUEUE_TIMEOUT":
-      useAuthStore.getState().setStatus(UserStatus.ONLINE);
-      break;
+  if (roomMessages.includes(message.type)) handleRoomMessage(message);
+  else if (gameMessages.includes(message.type)) handleGameMessage(message);
+  else {
+    switch (message.type) {
+      case "ERROR":
+        handleGameMessage(message);
+        handleRoomMessage(message);
+        break;
 
-    case "QUEUE_LEFT":
-      useAuthStore.getState().setStatus(UserStatus.ONLINE);
-      break;
-
-    case "ERROR":
-      console.error("Server error:", message.payload.message);
-      break;
-
-    case "TYPING":
-      break;
-
-    default:
-      console.error("Unrecognized message", (message as ServerMessage).type);
+      default:
+        console.warn("Unhandled message type", message.type);
+    }
   }
 };
 

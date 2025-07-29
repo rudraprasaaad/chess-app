@@ -5,6 +5,7 @@ import type { Game, Move, ChatMessage } from "../types/game";
 import { GameStatus, UserStatus } from "../types/common";
 import { useWebSocketStore } from "./websocket";
 import { useAuthStore } from "./auth";
+import { useEffect } from "react";
 
 interface GameState {
   currentGame: Game | null;
@@ -24,6 +25,12 @@ interface GameState {
   chatMessages: ChatMessage[];
   isTyping: boolean;
   typingUsers: string[];
+
+  drawOffer: {
+    isOpen: boolean;
+    playerName: string;
+    playerId: string;
+  } | null;
 
   isMakingMove: boolean;
   isGameLoading: boolean;
@@ -45,6 +52,12 @@ interface GameState {
   startTyping: () => void;
   stopTyping: () => void;
   addChatMessage: (message: ChatMessage) => void;
+
+  setDrawOffer: (
+    offer: { playerName: string; playerId: string; isOpen: boolean } | null
+  ) => void;
+  acceptDraw: () => void;
+  declineDraw: () => void;
 
   addToHistory: (game: Game) => void;
   setPlayerColor: (color: "white" | "black" | null) => void;
@@ -70,6 +83,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   chatMessages: [],
   isTyping: false,
   typingUsers: [],
+  drawOffer: null,
   isMakingMove: false,
   isGameLoading: false,
   error: null,
@@ -95,6 +109,7 @@ export const useGameStore = create<GameState>((set, get) => ({
         legalMoves: [],
         error: null,
         isGameLoading: false,
+        drawOffer: null,
       });
 
       // Start timer if game is active
@@ -109,6 +124,7 @@ export const useGameStore = create<GameState>((set, get) => ({
         selectedSquare: null,
         legalMoves: [],
         error: null,
+        drawOffer: null,
       });
 
       get().stopTimer();
@@ -146,9 +162,7 @@ export const useGameStore = create<GameState>((set, get) => ({
 
       if (gameUpdate.status && gameUpdate.status !== GameStatus.ACTIVE) {
         get().stopTimer();
-
         get().addToHistory(updatedGame);
-
         useAuthStore.getState().setStatus(UserStatus.ONLINE);
       }
     }
@@ -206,16 +220,21 @@ export const useGameStore = create<GameState>((set, get) => ({
       const currentTurn = currentGame.fen.split(" ")[1];
 
       if (currentTurn === "w" && whiteTimeLeft > 0) {
-        set({ whiteTimeLeft: whiteTimeLeft - 1 });
-      } else if (currentTurn === "b" && blackTimeLeft > 0) {
-        set({ blackTimeLeft: blackTimeLeft - 1 });
-      }
+        const newTime = whiteTimeLeft - 1;
+        set({ whiteTimeLeft: Math.max(0, newTime) });
 
-      if (
-        (currentTurn === "w" && whiteTimeLeft <= 1) ||
-        (currentTurn === "b" && blackTimeLeft <= 1)
-      ) {
-        get().stopTimer();
+        if (newTime === 0) {
+          get().stopTimer();
+          toast.error("White's time has run out!");
+        }
+      } else if (currentTurn === "b" && blackTimeLeft > 0) {
+        const newTime = blackTimeLeft - 1;
+        set({ blackTimeLeft: Math.max(0, newTime) });
+
+        if (newTime === 0) {
+          get().stopTimer();
+          toast.error("Black's time has run out");
+        }
       }
     }, 1000);
 
@@ -268,7 +287,6 @@ export const useGameStore = create<GameState>((set, get) => ({
     sendMessage({
       type: "TYPING",
       payload: {
-        // Reconnection Logic
         gameId: currentGame.id,
       },
     });
@@ -287,6 +305,35 @@ export const useGameStore = create<GameState>((set, get) => ({
     set({
       chatMessages: [...chatMessages, message],
     });
+  },
+
+  setDrawOffer: (offer) => set({ drawOffer: offer }),
+
+  acceptDraw: () => {
+    const { currentGame, drawOffer } = get();
+    const { sendMessage } = useWebSocketStore.getState();
+
+    if (currentGame && drawOffer) {
+      sendMessage({
+        type: "ACCEPT_DRAW",
+        payload: { gameId: currentGame.id },
+      });
+      set({ drawOffer: null });
+    }
+  },
+
+  declineDraw: () => {
+    const { currentGame, drawOffer } = get();
+    const { sendMessage } = useWebSocketStore.getState();
+
+    if (currentGame && drawOffer) {
+      sendMessage({
+        type: "ACCEPT_DRAW",
+        payload: { gameId: currentGame.id },
+      });
+      set({ drawOffer: null });
+      toast.info("Draw offer declined");
+    }
   },
 
   addToHistory: (game) => {
@@ -313,9 +360,12 @@ export const useGameStore = create<GameState>((set, get) => ({
       lastMove: null,
       isPlayerTurn: false,
       playerColor: null,
+      whiteTimeLeft: 600,
+      blackTimeLeft: 600,
       chatMessages: [],
       isTyping: false,
       typingUsers: [],
+      drawOffer: null,
       isMakingMove: false,
       isGameLoading: false,
       error: null,
@@ -368,15 +418,30 @@ export const useGameChat = () =>
     stopTyping: state.stopTyping,
   }));
 
+export const useDrawOffer = () =>
+  useGameStore((state) => ({
+    drawOffer: state.drawOffer,
+    acceptDraw: state.acceptDraw,
+    declineDraw: state.declineDraw,
+  }));
+
+export const useGameCleanup = () => {
+  useEffect(() => {
+    return () => {
+      const { stopTimer } = useGameStore.getState();
+      stopTimer();
+    };
+  }, []);
+};
+
 export const useGameActions = () =>
   useGameStore((state) => ({
     makeMove: state.makeMove,
     isMakingMove: state.isMakingMove,
     error: state.error,
     setError: state.setError,
-
     setSelectedSquare: state.setSelectedSquare,
-    clearSection: state.clearSelection,
+    clearSelection: state.clearSelection,
   }));
 
 export const handleGameMessage = (message: any) => {
@@ -386,6 +451,8 @@ export const handleGameMessage = (message: any) => {
     addChatMessage,
     setMakingMove,
     setError,
+    stopTimer,
+    setDrawOffer,
   } = useGameStore.getState();
 
   switch (message.type) {
@@ -405,6 +472,53 @@ export const handleGameMessage = (message: any) => {
         status: GameStatus.COMPLETED,
         winnerId: message.payload.winnerId,
       });
+      stopTimer();
+      break;
+
+    case "PLAYER_RESIGNED":
+      updateGame({
+        status: GameStatus.COMPLETED,
+        winnerId: message.payload.winnerId,
+      });
+      toast.info(`${message.payload.playerName} resigned`);
+      stopTimer();
+      break;
+
+    case "DRAW_OFFERED":
+      setDrawOffer({
+        isOpen: true,
+        playerName: message.payload.playerName,
+        playerId: message.payload.playerId,
+      });
+      toast.info(`${message.payload.playerName} offered a draw`);
+      break;
+
+    case "DRAW_ACCEPTED":
+      updateGame({ status: GameStatus.DRAW });
+      toast.success("Draw Accepted!");
+      stopTimer();
+      break;
+
+    case "DRAW_DECLINED":
+      toast.info("Your draw offer was declined");
+      break;
+
+    case "DRAW_OFFER_SENT":
+      toast.success("Draw offer sent to opponent");
+      break;
+
+    case "TIME_OUT":
+      updateGame({
+        status: GameStatus.COMPLETED,
+        winnerId: message.payload.winnerId,
+      });
+      toast.error("Time's up!");
+      stopTimer();
+      break;
+
+    case "ILLEGAL_MOVE":
+      setError("Illegal move attempted");
+      setMakingMove(false);
       break;
 
     case "CHAT_MESSAGE":

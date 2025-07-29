@@ -68,6 +68,13 @@ export interface TypingMessage {
   };
 }
 
+export interface AcceptDrawMessage {
+  type: "ACCEPT_DRAW";
+  payload: {
+    gameId: string;
+  };
+}
+
 export type ClientMessage =
   | CreateRoomMessage
   | JoinRoomMessage
@@ -76,7 +83,8 @@ export type ClientMessage =
   | LeaveQueueMessage
   | MakeMoveMessage
   | ChatMessage
-  | TypingMessage;
+  | TypingMessage
+  | AcceptDrawMessage;
 
 export interface RoomCreatedMessage {
   type: "ROOM_CREATED";
