@@ -58,6 +58,13 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        chess: {
+          light: "hsl(var(--chess-light))",
+          dark: "hsl(var(--chess-dark))",
+          gold: "hsl(var(--chess-gold))",
+          silver: "hsl(var(--chess-silver))",
+          glow: "hsl(var(--chess-glow))",
+        },
       },
       animation: {
         float: "float 6s ease-in-out infinite",
