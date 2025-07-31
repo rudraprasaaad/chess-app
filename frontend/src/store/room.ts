@@ -11,6 +11,8 @@ import { UserStatus } from "../types/common";
 import { useWebSocketStore } from "./websocket";
 import { useAuthStore } from "./auth";
 import { toast } from "sonner";
+import { useMemo } from "react";
+import { useGameStore } from "./game";
 
 interface RoomState {
   currentRoom: Room | RoomWithGame | null;
@@ -276,14 +278,24 @@ export const useQueueStatus = () =>
     formattedTime: formatQueueTime(state.queueTimeElapsed),
   }));
 
-export const useRoomActions = () =>
-  useRoomStore((state) => ({
-    createRoom: state.createRoom,
-    joinRoom: state.joinRoom,
-    leaveRoom: state.leaveRoom,
-    joinQueue: state.joinQueue,
-    leaveQueue: state.leaveQueue,
-  }));
+export const useRoomActions = () => {
+  const createRoom = useRoomStore((state) => state.createRoom);
+  const joinRoom = useRoomStore((state) => state.joinRoom);
+  const leaveRoom = useRoomStore((state) => state.leaveRoom);
+  const joinQueue = useRoomStore((state) => state.joinQueue);
+  const leaveQueue = useRoomStore((state) => state.leaveQueue);
+
+  return useMemo(
+    () => ({
+      createRoom,
+      joinRoom,
+      leaveRoom,
+      joinQueue,
+      leaveQueue,
+    }),
+    [createRoom, joinRoom, leaveRoom, joinQueue, leaveQueue]
+  );
+};
 
 export const useRoomUI = () =>
   useRoomStore((state) => ({
@@ -302,6 +314,7 @@ const formatQueueTime = (seconds: number): string => {
 export const handleRoomMessage = (message: any) => {
   const { setCurrentRoom, setError, setJoiningRoom, setCreatingRoom } =
     useRoomStore.getState();
+  const { setCurrentGame } = useGameStore.getState();
 
   switch (message.type) {
     case "ROOM_CREATED":
@@ -312,6 +325,7 @@ export const handleRoomMessage = (message: any) => {
 
     case "ROOM_UPDATED":
       setCurrentRoom(message.payload);
+      setCurrentGame(message.payload.game);
       setJoiningRoom(false);
       if (message.payload.game) {
         useAuthStore.getState().setStatus(UserStatus.IN_GAME);

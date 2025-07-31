@@ -5,7 +5,7 @@ import type { Game, Move, ChatMessage } from "../types/game";
 import { GameStatus, UserStatus } from "../types/common";
 import { useWebSocketStore } from "./websocket";
 import { useAuthStore } from "./auth";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 
 interface GameState {
   currentGame: Game | null;
@@ -67,6 +67,12 @@ interface GameState {
 
   setMakingMove: (making: boolean) => void;
   setGameLoading: (loading: boolean) => void;
+
+  pendingPromotionMove: { from: string; to: string } | null;
+  isPromotionModalOpen: boolean;
+  requestPromotion: (move: { from: string; to: string }) => void;
+  submitPromotion: (promotion: "q" | "r" | "b" | "n") => void;
+  cancelPromotion: () => void;
 }
 
 export const useGameStore = create<GameState>((set, get) => ({
@@ -87,9 +93,13 @@ export const useGameStore = create<GameState>((set, get) => ({
   isMakingMove: false,
   isGameLoading: false,
   error: null,
+  pendingPromotionMove: null,
+  isPromotionModalOpen: false,
 
   setCurrentGame: (game) => {
     const { user } = useAuthStore.getState();
+
+    console.log(game?.fen);
 
     if (game && user) {
       const player = game.players.find((p) => p.userId === user.id);
@@ -195,6 +205,42 @@ export const useGameStore = create<GameState>((set, get) => ({
   setSelectedSquare: (square: string | null) => set({ selectedSquare: square }),
 
   setLegalMoves: (moves) => set({ legalMoves: moves }),
+
+  requestPromotion: (move) => {
+    set({
+      pendingPromotionMove: move,
+      isPromotionModalOpen: true,
+    });
+  },
+
+  submitPromotion: (promotion) => {
+    const { pendingPromotionMove, currentGame } = get();
+    const { sendMessage } = useWebSocketStore.getState();
+
+    if (pendingPromotionMove && currentGame) {
+      sendMessage({
+        type: "MAKE_MOVE",
+        payload: {
+          gameId: currentGame.id,
+          move: {
+            from: pendingPromotionMove?.from,
+            to: pendingPromotionMove?.to,
+            promotion,
+          },
+        },
+      });
+    }
+    set({
+      pendingPromotionMove: null,
+      isPromotionModalOpen: false,
+      selectedSquare: null,
+      legalMoves: [],
+    });
+  },
+
+  cancelPromotion: () => {
+    set({ pendingPromotionMove: null, isPromotionModalOpen: false });
+  },
 
   clearSelection: () =>
     set({
@@ -376,54 +422,114 @@ export const useGameStore = create<GameState>((set, get) => ({
   setGameLoading: (loading) => set({ isGameLoading: loading }),
 }));
 
-export const useCurrentGame = () =>
-  useGameStore((state) => ({
-    game: state.currentGame,
-    isInGame: state.currentGame !== null,
-    gameStatus: state.currentGame?.status || null,
-    playerColor: state.playerColor,
-    isPlayerTurn: state.isPlayerTurn,
-    fen: state.currentGame?.fen || "",
-    moveHistory: state.currentGame?.moveHistory || [],
-  }));
+export const useCurrentGame = () => {
+  const game = useGameStore((state) => state.currentGame);
+  const isInGame = useGameStore((state) => state.currentGame !== null);
+  const gameStatus = useGameStore((state) => state.currentGame?.status || null);
+  const playerColor = useGameStore((state) => state.playerColor);
+  const isPlayerTurn = useGameStore((state) => state.isPlayerTurn);
+  const fen = useGameStore((state) => state.currentGame?.fen || "");
+  const moveHistory = useGameStore(
+    (state) => state.currentGame?.moveHistory || []
+  );
 
-export const useBoardState = () =>
-  useGameStore((state) => ({
-    selectedSquare: state.selectedSquare,
-    legalMoves: state.legalMoves,
-    lastMove: state.lastMove,
-    setSelectedSquare: state.setSelectedSquare,
-    setLegalMoves: state.setLegalMoves,
-    clearSelection: state.clearSelection,
-  }));
+  return useMemo(
+    () => ({
+      game,
+      isInGame,
+      gameStatus,
+      playerColor,
+      isPlayerTurn,
+      fen,
+      moveHistory,
+    }),
+    [game, isInGame, gameStatus, playerColor, isPlayerTurn, fen, moveHistory]
+  );
+};
 
-export const useGameTimer = () =>
-  useGameStore((state) => ({
-    whiteTimeLeft: state.whiteTimeLeft,
-    blackTimeLeft: state.blackTimeLeft,
-    formatTime: (seconds: number) => {
-      const mins = Math.floor(seconds / 60);
-      const secs = seconds % 60;
-      return `${mins}:${secs.toString().padStart(2, "0")}`;
-    },
-  }));
+export const useBoardState = () => {
+  const selectedSquare = useGameStore((state) => state.selectedSquare);
+  const legalMoves = useGameStore((state) => state.legalMoves);
+  const lastMove = useGameStore((state) => state.lastMove);
+  const setSelectedSquare = useGameStore((state) => state.setSelectedSquare);
+  const setLegalMoves = useGameStore((state) => state.setLegalMoves);
+  const clearSelection = useGameStore((state) => state.clearSelection);
 
-export const useGameChat = () =>
-  useGameStore((state) => ({
-    messages: state.chatMessages,
-    isTyping: state.isTyping,
-    typingUsers: state.typingUsers,
-    sendMessage: state.sendChatMessage,
-    startTyping: state.startTyping,
-    stopTyping: state.stopTyping,
-  }));
+  return useMemo(
+    () => ({
+      selectedSquare,
+      legalMoves,
+      lastMove,
+      setSelectedSquare,
+      setLegalMoves,
+      clearSelection,
+    }),
+    [
+      selectedSquare,
+      legalMoves,
+      lastMove,
+      setSelectedSquare,
+      setLegalMoves,
+      clearSelection,
+    ]
+  );
+};
 
-export const useDrawOffer = () =>
-  useGameStore((state) => ({
-    drawOffer: state.drawOffer,
-    acceptDraw: state.acceptDraw,
-    declineDraw: state.declineDraw,
-  }));
+export const useGameTimer = () => {
+  const whiteTimeLeft = useGameStore((state) => state.whiteTimeLeft);
+  const blackTimeLeft = useGameStore((state) => state.blackTimeLeft);
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, "0")}`;
+  };
+
+  return useMemo(
+    () => ({
+      whiteTimeLeft,
+      blackTimeLeft,
+      formatTime,
+    }),
+    [whiteTimeLeft, blackTimeLeft]
+  );
+};
+
+export const useGameChat = () => {
+  const messages = useGameStore((state) => state.chatMessages);
+  const isTyping = useGameStore((state) => state.isTyping);
+  const typingUsers = useGameStore((state) => state.typingUsers);
+  const sendMessage = useGameStore((state) => state.sendChatMessage);
+  const startTyping = useGameStore((state) => state.startTyping);
+  const stopTyping = useGameStore((state) => state.stopTyping);
+
+  return useMemo(
+    () => ({
+      messages,
+      isTyping,
+      typingUsers,
+      sendMessage,
+      startTyping,
+      stopTyping,
+    }),
+    [messages, isTyping, typingUsers, sendMessage, startTyping, stopTyping]
+  );
+};
+
+export const useDrawOffer = () => {
+  const drawOffer = useGameStore((state) => state.drawOffer);
+  const acceptDraw = useGameStore((state) => state.acceptDraw);
+  const declineDraw = useGameStore((state) => state.declineDraw);
+
+  return useMemo(
+    () => ({
+      drawOffer,
+      acceptDraw,
+      declineDraw,
+    }),
+    [drawOffer, acceptDraw, declineDraw]
+  );
+};
 
 export const useGameCleanup = () => {
   useEffect(() => {
@@ -434,15 +540,26 @@ export const useGameCleanup = () => {
   }, []);
 };
 
-export const useGameActions = () =>
-  useGameStore((state) => ({
-    makeMove: state.makeMove,
-    isMakingMove: state.isMakingMove,
-    error: state.error,
-    setError: state.setError,
-    setSelectedSquare: state.setSelectedSquare,
-    clearSelection: state.clearSelection,
-  }));
+export const useGameActions = () => {
+  const makeMove = useGameStore((state) => state.makeMove);
+  const isMakingMove = useGameStore((state) => state.isMakingMove);
+  const error = useGameStore((state) => state.error);
+  const setError = useGameStore((state) => state.setError);
+  const setSelectedSquare = useGameStore((state) => state.setSelectedSquare);
+  const clearSelection = useGameStore((state) => state.clearSelection);
+
+  return useMemo(
+    () => ({
+      makeMove,
+      isMakingMove,
+      error,
+      setError,
+      setSelectedSquare,
+      clearSelection,
+    }),
+    [makeMove, isMakingMove, error, setError, setSelectedSquare, clearSelection]
+  );
+};
 
 export const handleGameMessage = (message: any) => {
   const {
@@ -458,7 +575,7 @@ export const handleGameMessage = (message: any) => {
   switch (message.type) {
     case "GAME_UPDATED":
     case "REJOIN_GAME":
-      setCurrentGame(message.payload);
+      setCurrentGame(message.payload.fen);
       setMakingMove(false);
       break;
 

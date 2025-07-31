@@ -1,9 +1,9 @@
 import { motion } from "framer-motion";
 import { useNavigate, useParams } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
 import { useRoomStore } from "../store/room";
 import { Room, RoomWithGame } from "../types/room";
 import { useAuthStore } from "../store/auth";
-import { useEffect } from "react";
 import { toast } from "sonner";
 import PlayerTime from "../components/game/PlayerTimer";
 import MoveHistory from "../components/game/MoveHistory";
@@ -16,6 +16,11 @@ import {
   CardTitle,
 } from "../components/ui/card";
 import { Crown } from "lucide-react";
+import { useGameStore } from "../store/game";
+import PromotionModal from "../components/game/PromotionModal";
+import { GameStatus } from "../types/common";
+import GameEndModal from "../components/game/GameEndModal";
+import GameChat from "../components/game/GameChat";
 
 function isRoomWithGame(
   room: Room | RoomWithGame | null
@@ -24,22 +29,77 @@ function isRoomWithGame(
 }
 
 const GameRoom = () => {
-  const { gameId } = useParams<{ gameId: string }>();
   const navigate = useNavigate();
 
+  const isPromotionOpen = useGameStore((state) => state.isPromotionModalOpen);
+  const submitPromotion = useGameStore((state) => state.submitPromotion);
+  const cancelPromotion = useGameStore((state) => state.cancelPromotion);
   const currentRoom = useRoomStore((state) => state.currentRoom);
-  // const { leaveRoom } = useRoomActions();
+  const joinQueue = useRoomStore((state) => state.joinQueue);
 
   const { user } = useAuthStore();
 
   const game = isRoomWithGame(currentRoom) ? currentRoom.game : null;
+  const { gameId } = useParams<{ gameId: string }>();
+
+  const [endModalOpen, setModalOpen] = useState(false);
+  const [endResult, setEndResult] = useState<
+    "win" | "loss" | "draw" | "timeout" | "resign" | null
+  >(null);
+  const [endReasonMessage, setEndReasonMessage] = useState<string | undefined>(
+    undefined
+  );
+  const hasRedirected = useRef(false);
 
   useEffect(() => {
     if (!game || game.id !== gameId) {
+      hasRedirected.current = true;
       toast.error("Game not found or not active. Redirecting to lobby.");
       navigate("/lobby");
+      return;
     }
-  }, [game, gameId, navigate]);
+
+    if (
+      game?.status === GameStatus.COMPLETED ||
+      game?.status === GameStatus.DRAW ||
+      game?.status === GameStatus.ABANDONED
+    ) {
+      setModalOpen(true);
+      const userId = user?.id;
+      let res: typeof endResult = "draw";
+
+      if (game.status === GameStatus.DRAW) {
+        res = "draw";
+        setEndReasonMessage("Game ended in Draw.");
+      } else if (game.status === GameStatus.COMPLETED) {
+        if (game.winnerId === userId) res = "win";
+        else if (game.winnerId) res = "loss";
+        else res = "loss";
+
+        setEndReasonMessage(
+          res === "win" ? "You won the game!" : "You lost the game."
+        );
+      } else if (game.status === GameStatus.ABANDONED) {
+        res = "resign";
+        setEndReasonMessage("Game abandoned due to disconnection.");
+      }
+      setEndResult(res);
+    } else {
+      setModalOpen(false);
+      setEndResult(null);
+      setEndReasonMessage(undefined);
+    }
+  }, [game, gameId, navigate, user]);
+
+  const handleEndModalClose = () => {
+    setModalOpen(false);
+    navigate("/lobby");
+  };
+
+  const handlePlayAgain = () => {
+    joinQueue(true);
+    setModalOpen(false);
+  };
 
   if (!game || game.id !== gameId) {
     return (
@@ -68,6 +128,20 @@ const GameRoom = () => {
   return (
     <div className="min-h-screen bg-background relative overflow-hidden">
       {/* Animated background elements */}
+      <PromotionModal
+        isOpen={isPromotionOpen}
+        onSelectPromotion={submitPromotion}
+        onCancel={cancelPromotion}
+      />
+
+      <GameEndModal
+        isOpen={endModalOpen}
+        result={endResult}
+        reasonMessage={endReasonMessage}
+        onClose={handleEndModalClose}
+        onPlayAgain={handlePlayAgain}
+      />
+
       <div className="absolute inset-0 overflow-hidden">
         <motion.div
           className="absolute -top-40 -right-40 w-80 h-80 bg-primary/5 rounded-full blur-3xl"
@@ -212,6 +286,7 @@ const GameRoom = () => {
               className="lg:col-span-1"
             >
               <MoveHistory moves={game.moveHistory} />
+              <GameChat />
             </motion.div>
           </motion.div>
         </div>
