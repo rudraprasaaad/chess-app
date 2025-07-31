@@ -535,4 +535,73 @@ export class RoomService {
       logger.error("Error leaving queue:", err);
     }
   }
+
+  async leaveRoom(playerId: string, roomId: string): Promise<void> {
+    try {
+      const room = await prisma.room.findUnique({
+        where: {
+          id: roomId,
+        },
+      });
+
+      if (!room) throw new Error("Room not found");
+
+      const players = room.players as { id: string; color: string | null }[];
+      if (!players.some((p) => p.id === playerId))
+        throw new Error("Player not found");
+
+      const updatedPlayers = players.filter((p) => p.id !== playerId);
+
+      const status =
+        updatedPlayers.length === 0 ? RoomStatus.CLOSED : room.status;
+
+      const updatedRoom = await prisma.room.update({
+        where: {
+          id: roomId,
+        },
+        data: {
+          players: updatedPlayers,
+          status,
+        },
+      });
+
+      await prisma.user.update({
+        where: { id: playerId },
+        data: { status: UserStatus.ONLINE },
+      });
+
+      await redis.set(`player:${playerId}:status`, UserStatus.ONLINE);
+
+      const roomData = {
+        id: updatedRoom.id,
+        type: updatedRoom.type as RoomType,
+        status: updatedRoom.status as RoomStatus,
+        players: updatedPlayers,
+        inviteCode: updatedRoom.inviteCode ?? undefined,
+        createdAt: updatedRoom.createdAt,
+      };
+
+      if (status === RoomStatus.CLOSED) {
+        await redis.del(`room:${roomId}`);
+      } else {
+        await redis.setJSON(`room:${roomId}`, roomData);
+      }
+
+      this.ws.broadcastToRoom(roomData as Room);
+
+      this.ws.broadcastToClient(playerId, {
+        type: "LEAVE_ROOM",
+        payload: {},
+      });
+
+      logger.info(`Player ${playerId} left room ${roomId}`);
+    } catch (err) {
+      logger.error("Error leaving room:", err);
+      this.ws.broadcastToClient(playerId, {
+        type: "ERROR",
+        payload: { message: (err as Error).message },
+      });
+      throw err;
+    }
+  }
 }

@@ -167,6 +167,10 @@ export class WebSocketService {
           );
           break;
 
+        case "LEAVE_ROOM":
+          await this.roomService.leaveRoom(ws.playerId, payload.roomId);
+          break;
+
         case "JOIN_QUEUE":
           await this.roomService.joinQueue(ws.playerId, payload.isGuest);
           break;
