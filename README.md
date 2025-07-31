@@ -1,4 +1,3 @@
-
 # Chess Game - Real-time Multiplayer Chess Application
 
 A modern, real-time multiplayer chess application built with Node.js, Express, PostgreSQL, Redis, and WebSocket technology. Features comprehensive authentication, intelligent matchmaking, and seamless gameplay experience.
@@ -33,128 +32,59 @@ This chess application provides a complete multiplayer chess experience with rea
 
 ## 🗄️ Database Design
 
-## 🚀 Quick Start
+### 📘 Entity Relationship Diagram
 
-### 📦 Prerequisites
+```mermaid
+erDiagram
+    User ||--o{ GamePlayer : has
+    Game ||--o{ GamePlayer : includes
+    Game ||--o{ Room : belongs_to
+    Room ||--o{ Game : contains
 
-Ensure you have the following installed:
+    User {
+        string id PK
+        string username
+        string name
+        string email
+        enum provider
+        string providerId
+        string password
+        int elo
+        int wins
+        int losses
+        int draws
+        enum status
+        boolean banned
+        datetime createdAt
+    }
 
-- **Node.js** ≥ 18.0  
-- **PostgreSQL** ≥ 14.0  
-- **Redis** ≥ 6.0  
-- **pnpm** or **npm** package manager
+    Game {
+        string id PK
+        string roomId FK
+        string fen
+        json[] moveHistory
+        json timers
+        enum status
+        json[] chat
+        string winnerId
+        datetime createdAt
+        datetime updatedAt
+        datetime endedAt
+        string userId
+    }
 
-## 🛠️ Installation
+    Room {
+        string id PK
+        enum type
+        enum status
+        json[] players
+        string inviteCode
+        datetime createdAt
+        datetime updatedAt
+    }
 
-### 📥 Clone the repository
-
-```bash
-git clone https://github.com/rudraprasaaad/chess-app.git
-cd chess-app
-```
-
-
-### 📁 Navigate to backend directory
-
-```bash
-cd backend
-```
-
-### 📦 Install dependencies
-
-```bash
-pnpm install
-```
-
-### ⚙️ Environment setup
-
-```bash
-cp .env.example .env
-```
-
-### 🧩 Configure environment variables
-
-```env
-# Database Configuration
-DATABASE_URL=postgresql://username:password@localhost:5432/chess_db
-REDIS_URL=redis://localhost:6379
-
-# Authentication Secrets
-JWT_SECRET=your-super-secret-jwt-key-minimum-32-characters
-COOKIE_SECRET=your-cookie-secret-key-minimum-32-characters
-
-# Google OAuth (Optional)
-GOOGLE_CLIENT_ID=your-google-oauth-client-id
-GOOGLE_CLIENT_SECRET=your-google-oauth-client-secret
-
-# Server Configuration
-PORT=4000
-NODE_ENV=development
-FRONTEND_URL=http://localhost:5173
-AUTH_REDIRECT_URL=http://localhost:5173/game
-
-# Session Configuration
-COOKIE_MAX_AGE=604800000
-```
-
-### 🧱 Database setup
-
-```bash
-# Run database migrations
-npx prisma migrate dev --name init
-
-# Generate Prisma client
-npx prisma generate
-```
-
-### 🚀 Start development server
-
-```bash
-pnpm run dev
-```
-
-
-### 🔐 Authentication Endpoints
-
-| Method | Endpoint                    | Description           | Authentication |
-|--------|-----------------------------|-----------------------|----------------|
-| POST   | `/auth/guest`               | Create guest account  | None           |
-| GET    | `/auth/refresh`             | Refresh auth token    | Cookie         |
-| GET    | `/auth/logout`              | Logout user           | Cookie         |
-| GET    | `/auth/google`              | Google OAuth login    | None           |
-| GET    | `/auth/google/callback`     | OAuth callback        | None           |
-
----
-
-### 🧪 System Endpoints
-
-| Method | Endpoint       | Description        | Response      |
-|--------|----------------|--------------------|---------------|
-| GET    | `/api/health`  | Server health check| Health status |
-
----
-
-### 🔄 WebSocket Events
-
-#### 📤 Client → Server
-
-| Event Type    | Description           | Payload |
-|---------------|-----------------------|---------|
-| `CREATE_ROOM` | Create new game room  | `{ type: "PUBLIC" \| "PRIVATE", inviteCode?: string }` |
-| `JOIN_ROOM`   | Join existing room    | `{ roomId: string, inviteCode?: string }` |
-| `JOIN_QUEUE`  | Enter matchmaking     | `{ isGuest: boolean }` |
-| `LEAVE_QUEUE` | Exit matchmaking      | `{}` |
-| `MAKE_MOVE`   | Execute chess move    | `{ gameId: string, move: { from: string, to: string } }` |
-| `CHAT_MESSAGE`| Send chat message     | `{ gameId: string, message: string }` |
-| `TYPING`      | Typing indicator      | `{ gameId: string }` |
-
-#### 📥 Server → Client
-
-| Event Type    | Description            | When Triggered                |
-|---------------|------------------------|-------------------------------|
-| `ROOM_CREATED`| Room creation success  | After `CREATE_ROOM`           |
-| `ROOM_UPDATED`| Room state changed     | Player joins/leaves           |
-| `GAME_UPDATED`| Game state changed     | Move made, game ends          |
-| `CHAT_MESSAGE`| New chat message       | Message sent                  |
-| `TYPING`      | Typing indicator       | Player typing                 |
-| `ERROR`       | Error occurred         | Invalid action                |
+    GamePlayer {
+        string gameId FK
+        string userId FK
+        string color
+    }
