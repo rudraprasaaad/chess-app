@@ -6,6 +6,7 @@ import { useAuthStore } from "./auth";
 import { UserStatus } from "../types/common";
 import { handleRoomMessage } from "./room";
 import { handleGameMessage } from "./game";
+import { useMemo } from "react";
 
 export type ConnectionStatus =
   | "disconnected"
@@ -38,6 +39,7 @@ interface WebSocketState {
   clearHistory: () => void;
   resetReconnection: () => void;
   attemptReconnection: () => void;
+  handleAuthStateChange: (isAuthenticated: boolean) => void;
 }
 
 export const useWebSocketStore = create<WebSocketState>((set, get) => ({
@@ -59,8 +61,8 @@ export const useWebSocketStore = create<WebSocketState>((set, get) => ({
       return;
     }
 
-    const { isAuthenticated } = useAuthStore.getState();
-    if (!isAuthenticated) {
+    const authState = useAuthStore.getState();
+    if (!authState.isAuthenticated || authState.isLoading) {
       set({ error: "Cannot connect: User not authenticated" });
       return;
     }
@@ -118,7 +120,9 @@ export const useWebSocketStore = create<WebSocketState>((set, get) => ({
           return;
         } else if (event.code !== 1000 && event.code !== 1001) {
           toast.info("Disconnected. Attempting to reconnect...");
-          get().attemptReconnection();
+          if (authState.isAuthenticated) {
+            get().attemptReconnection();
+          }
         }
       };
 
@@ -227,13 +231,26 @@ export const useWebSocketStore = create<WebSocketState>((set, get) => ({
     });
 
     setTimeout(() => {
-      toast.info(
-        `Reconnecting (${state.reconnectAttempts + 1}/${
-          state.maxReconnectAttempts
-        })...`
-      );
-      get().connect();
+      const currentAuthState = useAuthStore.getState();
+      if (currentAuthState.isAuthenticated) {
+        toast.info(
+          `Reconnecting (${state.reconnectAttempts + 1}/${
+            state.maxReconnectAttempts
+          })...`
+        );
+        get().connect();
+      }
     }, state.reconnectDelay);
+  },
+
+  handleAuthStateChange: (isAuthenticated: boolean) => {
+    const { connection, status } = get();
+
+    if (isAuthenticated && status === "disconnected") {
+      setTimeout(() => get().connect(), 100);
+    } else if (!isAuthenticated && connection) {
+      get().disconnect();
+    }
   },
 }));
 
@@ -256,7 +273,7 @@ const handleServerMessage = (message: ServerMessage) => {
     "DRAW_DECLINED",
     "DRAW_OFFER_SENT",
     "TIME_OUT",
-    "ILLEGA_MOVE",
+    "ILLEGAL_MOVE",
     "CHAT_MESSAGE",
     "TYPING",
   ];
@@ -276,24 +293,51 @@ const handleServerMessage = (message: ServerMessage) => {
   }
 };
 
-export const useWebSocketConnection = () =>
-  useWebSocketStore((state) => ({
-    status: state.status,
-    error: state.error,
-    connect: state.connect,
-    disconnect: state.disconnect,
-    isConnected: state.status === "connected",
-  }));
+export const useWebSocketConnection = () => {
+  const status = useWebSocketStore((state) => state.status);
+  const error = useWebSocketStore((state) => state.error);
+  const connect = useWebSocketStore((state) => state.connect);
+  const disconnect = useWebSocketStore((state) => state.disconnect);
+  const isConnected = useWebSocketStore(
+    (state) => state.status === "connected"
+  );
 
-export const useWebSocketSender = () =>
-  useWebSocketStore((state) => ({
-    sendMessage: state.sendMessage,
-    canSend: state.status === "connected",
-  }));
+  return useMemo(
+    () => ({
+      status,
+      error,
+      connect,
+      disconnect,
+      isConnected,
+    }),
+    [status, error, connect, disconnect, isConnected]
+  );
+};
 
-export const useWebSocketMessages = () =>
-  useWebSocketStore((state) => ({
-    lastMessage: state.lastMessage,
-    messageHistory: state.messageHistory,
-    clearHistory: state.clearHistory,
-  }));
+export const useWebSocketSender = () => {
+  const sendMessage = useWebSocketStore((state) => state.sendMessage);
+  const canSend = useWebSocketStore((state) => state.status === "connected");
+
+  return useMemo(
+    () => ({
+      sendMessage,
+      canSend,
+    }),
+    [sendMessage, canSend]
+  );
+};
+
+export const useWebSocketMessages = () => {
+  const lastMessage = useWebSocketStore((state) => state.lastMessage);
+  const messageHistory = useWebSocketStore((state) => state.messageHistory);
+  const clearHistory = useWebSocketStore((state) => state.clearHistory);
+
+  return useMemo(
+    () => ({
+      lastMessage,
+      messageHistory,
+      clearHistory,
+    }),
+    [lastMessage, messageHistory, clearHistory]
+  );
+};
