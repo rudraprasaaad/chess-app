@@ -165,7 +165,7 @@ export class GameService {
   async makeMove(
     gameId: string,
     playerId: string,
-    move: { from: string; to: string }
+    move: { from: string; to: string; promotion?: string }
   ): Promise<void> {
     const gameData = await redis.get(`game:${gameId}`);
     if (!gameData) throw new Error("Game not found");
@@ -183,7 +183,11 @@ export class GameService {
       throw new Error("Not your turn");
     }
 
-    const result = chess.move(move);
+    const result = chess.move({
+      from: move.from,
+      to: move.to,
+      promotion: move.promotion,
+    });
 
     if (!result) {
       const attempts = Number(await redis.get(`invalidMoves:${playerId}`)) || 0;
