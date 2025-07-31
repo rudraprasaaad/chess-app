@@ -72,7 +72,7 @@ export function useGoogleLogin() {
 
 export function useCurrentUser() {
   const { setAuth, clearAuth, setLoading } = useAuthStore();
-  const { connect } = useWebSocketStore();
+  const { handleAuthStateChange } = useWebSocketStore();
 
   const query = useQuery({
     queryKey: authKeys.currentUser(),
@@ -98,23 +98,26 @@ export function useCurrentUser() {
     if (query.isSuccess && query.data) {
       setAuth(query.data);
       setLoading(false);
-      connect();
+      handleAuthStateChange(true);
     }
 
     if (query.isError) {
       console.log("No authenticated user found");
       clearAuth();
       setLoading(false);
-      toast.error("Session expired, please log in again");
+      if (query.failureCount > 1) {
+        toast.error("Session expired, please log in again");
+      }
     }
   }, [
     query.isSuccess,
     query.isError,
     query.data,
+    query.failureCount,
     setAuth,
     clearAuth,
     setLoading,
-    connect,
+    handleAuthStateChange,
   ]);
 
   return query;

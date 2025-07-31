@@ -7,6 +7,8 @@ import NotFound from "./pages/NotFound";
 import Lobby from "./pages/Lobby";
 import ProtectedRoute from "./components/ProtectedRoute";
 import AuthCallbackHandler from "./components/auth/AuthCallbackHandler";
+import GameRoom from "./pages/GameRoom";
+import { WebSocketManager } from "./components/websocket/WebSocketManager";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -36,6 +38,7 @@ const App = () => (
         expand={true}
         richColors={true}
       />
+      <WebSocketManager />
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Index />} />
@@ -43,6 +46,7 @@ const App = () => (
             path="/auth/google/callback"
             element={<AuthCallbackHandler />}
           />
+          <Route path="/game/:gameId" element={<GameRoom />} />
           <Route
             path="/lobby"
             element={
