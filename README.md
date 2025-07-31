@@ -30,7 +30,7 @@ This chess application provides a complete multiplayer chess experience with rea
 - **Authentication**: JWT with Passport.js for Google OAuth  
 - **Validation**: Chess.js for move validation and game logic  
 
-## 🗄️ Database Design
+## UML DIAGRAMS
 
 ### 📘 Entity Relationship Diagram
 
@@ -88,3 +88,62 @@ erDiagram
         string userId FK
         string color
     }
+```
+
+### 🧭 Class Diagram (OOP Perspective)
+
+```mermaid
+classDiagram
+    class User {
+        +String id
+        +String username
+        +String name
+        +String email
+        +AuthProvider provider
+        +String providerId
+        +String password
+        +Int elo
+        +Int wins
+        +Int losses
+        +Int draws
+        +UserStatus status
+        +Boolean banned
+        +DateTime createdAt
+    }
+
+    class Game {
+        +String id
+        +String roomId
+        +String fen
+        +Json[] moveHistory
+        +Json timers
+        +GameStatus status
+        +Json[] chat
+        +String winnerId
+        +DateTime createdAt
+        +DateTime updatedAt
+        +DateTime endedAt
+        +String userId
+    }
+
+    class Room {
+        +String id
+        +RoomType type
+        +RoomStatus status
+        +Json[] players
+        +String inviteCode
+        +DateTime createdAt
+        +DateTime updatedAt
+    }
+
+    class GamePlayer {
+        +String gameId
+        +String userId
+        +String color
+    }
+
+    User "1" --> "*" GamePlayer : plays
+    Game "1" --> "*" GamePlayer : includes
+    Room "1" --> "*" Game : contains
+    Game "1" --> "1" Room : uses
+```
