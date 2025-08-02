@@ -25,7 +25,7 @@ const App = () => (
     <TooltipProvider>
       <Toaster
         theme="dark"
-        position="top-center"
+        position="bottom-right"
         toastOptions={{
           className: "glass border-border/30",
           style: {

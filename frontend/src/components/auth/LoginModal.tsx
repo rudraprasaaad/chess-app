@@ -13,6 +13,7 @@ import { Input } from "../ui/input";
 import { useGoogleLogin, useGuestLogin } from "../../hooks/api/useAuth";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
+import { ChessLoader } from "../shared/ChessLoader";
 
 interface LoginModalProps {
   isOpen: boolean;
@@ -91,11 +92,7 @@ export const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
               <div className="grain absolute inset-0" />
 
               {/* Loading Overlay */}
-              {isLoading && (
-                <div className="absolute inset-0 bg-background/50 backdrop-blur-sm flex items-center justify-center z-20 rounded-3xl">
-                  <Loader2 className="w-8 h-8 animate-spin text-foreground" />
-                </div>
-              )}
+              {isLoading && <ChessLoader />}
 
               {/* Close button */}
               <Button
