@@ -18,6 +18,7 @@ import {
   Key,
   Sparkles,
 } from "lucide-react";
+import { Navbar } from "../components/shared/Navbar";
 
 // Animation properties
 const floatingAnimation = {
@@ -179,9 +180,8 @@ const Lobby = () => {
 
   return (
     <div className="min-h-screen bg-background grain relative overflow-hidden">
-      {/* Animated Background Elements */}
+      <Navbar />
       <div className="absolute inset-0 pointer-events-none">
-        {/* Floating Chess Pieces */}
         <FloatingChessPiece
           piece="king"
           className="absolute top-1/4 left-1/4 w-8 h-8 text-muted-foreground/30"
@@ -213,7 +213,6 @@ const Lobby = () => {
           delay={5}
         />
 
-        {/* Subtle Grid Pattern */}
         <motion.div
           className="absolute inset-0 opacity-[0.02]"
           animate={{
@@ -241,7 +240,6 @@ const Lobby = () => {
           </div>
         </motion.div>
 
-        {/* Floating Sparkles */}
         {Array.from({ length: 8 }).map((_, i) => (
           <motion.div
             key={i}
@@ -261,7 +259,6 @@ const Lobby = () => {
           </motion.div>
         ))}
 
-        {/* Gradient Orbs */}
         <motion.div
           className="absolute top-1/4 right-1/4 w-32 h-32 rounded-full bg-gradient-to-br from-primary/5 to-transparent blur-xl"
           animate={{
@@ -295,7 +292,6 @@ const Lobby = () => {
           transition={{ duration: 0.6 }}
           className="w-full max-w-md space-y-8"
         >
-          {/* Header */}
           <div className="text-center space-y-4">
             <motion.div
               initial={{ scale: 0.8 }}
@@ -315,9 +311,7 @@ const Lobby = () => {
             </div>
           </div>
 
-          {/* Main Actions */}
           <div className="space-y-4">
-            {/* Create Room */}
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -335,7 +329,6 @@ const Lobby = () => {
               </Button>
             </motion.div>
 
-            {/* Join Room */}
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -365,7 +358,6 @@ const Lobby = () => {
               </Button>
             </motion.div>
 
-            {/* Divider */}
             <div className="flex items-center justify-center py-4">
               <div className="h-px bg-border flex-1" />
               <span className="px-4 text-xs text-muted-foreground font-medium">
@@ -374,7 +366,6 @@ const Lobby = () => {
               <div className="h-px bg-border flex-1" />
             </div>
 
-            {/* Quick Match */}
             {!isGuestQueue ? (
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
@@ -435,7 +426,6 @@ const Lobby = () => {
         </motion.div>
       </div>
 
-      {/* Create Room Modal */}
       <AnimatePresence>
         {showCreateModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">

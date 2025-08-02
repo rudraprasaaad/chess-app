@@ -21,6 +21,7 @@ import PromotionModal from "../components/game/PromotionModal";
 import { GameStatus } from "../types/common";
 import GameEndModal from "../components/game/GameEndModal";
 import GameChat from "../components/game/GameChat";
+import { Navbar } from "../components/shared/Navbar";
 
 function isRoomWithGame(
   room: Room | RoomWithGame | null
@@ -127,7 +128,8 @@ const GameRoom = () => {
 
   return (
     <div className="min-h-screen bg-background relative overflow-hidden">
-      {/* Animated background elements */}
+      <Navbar />
+
       <PromotionModal
         isOpen={isPromotionOpen}
         onSelectPromotion={submitPromotion}
@@ -182,7 +184,6 @@ const GameRoom = () => {
         />
       </div>
 
-      {/* Subtle background pattern */}
       <div className="absolute inset-0 chess-pattern opacity-[0.03]" />
 
       <div className="relative z-10 p-4 md:p-6">
@@ -193,7 +194,6 @@ const GameRoom = () => {
             transition={{ duration: 0.6, ease: "easeOut" }}
             className="grid grid-cols-1 lg:grid-cols-4 gap-6"
           >
-            {/* Left Sidebar - Game Info & Controls */}
             <motion.div
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
@@ -245,7 +245,6 @@ const GameRoom = () => {
               <GameControls />
             </motion.div>
 
-            {/* Center - Chess Board & Player Timers */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -253,7 +252,6 @@ const GameRoom = () => {
               className="lg:col-span-2"
             >
               <div className="flex flex-col items-center space-y-4">
-                {/* Black Player Timer */}
                 <div className="w-full max-w-md">
                   <PlayerTime
                     color="black"
@@ -262,12 +260,10 @@ const GameRoom = () => {
                   />
                 </div>
 
-                {/* Chess Board */}
                 <div className="flex justify-center">
                   <ChessBoard />
                 </div>
 
-                {/* White Player Timer */}
                 <div className="w-full max-w-md">
                   <PlayerTime
                     color="white"
@@ -278,7 +274,6 @@ const GameRoom = () => {
               </div>
             </motion.div>
 
-            {/* Right Sidebar - Move History */}
             <motion.div
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
