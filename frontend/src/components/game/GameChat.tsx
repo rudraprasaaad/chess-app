@@ -1,4 +1,10 @@
-import React, { ChangeEvent, useEffect, useRef, useState } from "react";
+import React, {
+  ChangeEvent,
+  useEffect,
+  useRef,
+  useState,
+  useCallback,
+} from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useGameChat } from "../../store/game";
 import { Input } from "../ui/input";
@@ -12,21 +18,45 @@ const GameChat = () => {
 
   const [input, setInput] = useState("");
   const messageRef = useRef<HTMLDivElement | null>(null);
+  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     messageRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  const debouncedStopTyping = useCallback(() => {
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+
+    typingTimeoutRef.current = setTimeout(() => {
+      stopTyping();
+    }, 1000);
+  }, [stopTyping]);
+
   const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
-    setInput(e.target.value);
-    if (e.target.value.length > 0) startTyping();
-    else stopTyping();
+    const value = e.target.value;
+    setInput(value);
+
+    if (value.length > 0) {
+      startTyping();
+      debouncedStopTyping();
+    } else {
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+      stopTyping();
+    }
   };
 
   const handleSend = () => {
     if (input.trim() === "") return;
     sendMessage(input);
     setInput("");
+
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
     stopTyping();
   };
 
@@ -36,6 +66,14 @@ const GameChat = () => {
       handleSend();
     }
   };
+
+  useEffect(() => {
+    return () => {
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const typingUsersDisplay =
     typingUsers.length > 0
@@ -59,7 +97,6 @@ const GameChat = () => {
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0 px-6 pb-6 h-48 flex flex-col">
-          {/* Messages Area */}
           <div className="flex-1 overflow-y-auto space-y-2 mb-3 pr-2">
             <AnimatePresence>
               {messages.map((msg, idx) => (
@@ -78,7 +115,6 @@ const GameChat = () => {
             <div ref={messageRef} />
           </div>
 
-          {/* Typing Indicator */}
           <AnimatePresence>
             {typingUsersDisplay && (
               <motion.div
@@ -97,7 +133,6 @@ const GameChat = () => {
             )}
           </AnimatePresence>
 
-          {/* Input Area */}
           <div className="flex gap-2 items-center">
             <Input
               type="text"
