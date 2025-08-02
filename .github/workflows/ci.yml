@@ -1,0 +1,97 @@
+name: Continuous Integration - Backend & Frontend
+
+on:
+  push:
+    branches:
+      - master
+    paths:
+      - "backend/**"
+      - "frontend/**"
+
+  pull_request:
+    branches:
+      - master
+    paths:
+      - "backend/**"
+      - "frontend/**"
+
+jobs:
+  detect-changes:
+    name: Detect Changes
+    runs-on: ubuntu-latest
+    outputs:
+      backend_changed: ${{ steps.backend-changes.outputs.any_changed }}
+      frontend_changed: ${{ steps.frontend-changes.outputs.any_changed }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Check backend changes
+        id: backend-changes
+        uses: tj-actions/changed-files@v45
+        with:
+          files: |
+            backend/**
+
+      - name: Check frontend changes
+        id: frontend-changes
+        uses: tj-actions/changed-files@v45
+        with:
+          files: |
+            frontend/**
+
+  backend:
+    name: Backend CI
+    needs: detect-changes
+    if: needs.detect-changes.outputs.backend_changed == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "20"
+
+      - name: Install dependencies
+        run: pnpm install
+        working-directory: backend
+
+      - name: Lint backend
+        run: pnpm lint
+        working-directory: backend
+
+      - name: Generate Prisma client
+        run: npx prisma generate
+        working-directory: backend
+
+      - name: Build backend
+        run: pnpm run build
+        working-directory: backend
+
+  frontend:
+    name: Frontend CI
+    needs: detect-changes
+    if: needs.detect-changes.outputs.frontend_changed == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "20"
+
+      - name: Install Dependencies
+        run: pnpm install
+        working-directory: frontend
+
+      - name: Lint frontend
+        run: pnpm lint
+        working-directory: frontend
+
+      - name: Build frontend
+        run: pnpm run build
+        working-directory: frontend
