@@ -1,11 +1,15 @@
-import { Footer } from "../components/Footer";
+import { Navigate } from "react-router-dom";
 import { HeroSection } from "../components/HeroSection";
+import { useAuthStore } from "../store/auth";
 
 const Index = () => {
+  const { isAuthenticated } = useAuthStore();
+
+  if (isAuthenticated) return <Navigate to="/lobby" />;
+
   return (
-    <div className="min-h-screen bg-background">
+    <div className="h-screen bg-background">
       <HeroSection />
-      <Footer />
     </div>
   );
 };

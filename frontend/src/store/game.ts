@@ -51,7 +51,7 @@ interface GameState {
   sendChatMessage: (message: string) => void;
   startTyping: () => void;
   stopTyping: () => void;
-  addChatMessage: (message: ChatMessage) => void;
+  addChatMessage: (message: ChatMessage[]) => void;
 
   setDrawOffer: (
     offer: { playerName: string; playerId: string; isOpen: boolean } | null
@@ -98,8 +98,6 @@ export const useGameStore = create<GameState>((set, get) => ({
 
   setCurrentGame: (game) => {
     const { user } = useAuthStore.getState();
-
-    console.log(game?.fen);
 
     if (game && user) {
       const player = game.players.find((p) => p.userId === user.id);
@@ -346,10 +344,9 @@ export const useGameStore = create<GameState>((set, get) => ({
     set({ isTyping: false });
   },
 
-  addChatMessage: (message) => {
-    const { chatMessages } = get();
+  addChatMessage: (message: ChatMessage[]) => {
     set({
-      chatMessages: [...chatMessages, message],
+      chatMessages: message,
     });
   },
 
@@ -575,7 +572,7 @@ export const handleGameMessage = (message: any) => {
   switch (message.type) {
     case "GAME_UPDATED":
     case "REJOIN_GAME":
-      setCurrentGame(message.payload.fen);
+      setCurrentGame(message.payload);
       setMakingMove(false);
       break;
 
@@ -639,7 +636,8 @@ export const handleGameMessage = (message: any) => {
       break;
 
     case "CHAT_MESSAGE":
-      addChatMessage(message.payload);
+      addChatMessage(message.payload.chat);
+      console.log(message.payload.chat);
       break;
 
     case "TYPING":

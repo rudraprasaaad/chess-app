@@ -179,8 +179,10 @@ const Lobby = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background grain relative overflow-hidden">
+    <div className="h-screen bg-background grain relative overflow-hidden flex flex-col">
       <Navbar />
+
+      {/* Background decorations */}
       <div className="absolute inset-0 pointer-events-none">
         <FloatingChessPiece
           piece="king"
@@ -285,33 +287,37 @@ const Lobby = () => {
           }}
         />
       </div>
-      <div className="min-h-screen flex flex-col items-center justify-center p-6">
+
+      {/* Main content */}
+      <div className="flex-1 flex items-center justify-center p-6">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
-          className="w-full max-w-md space-y-8"
+          className="w-full max-w-md space-y-6"
         >
-          <div className="text-center space-y-4">
+          {/* Header */}
+          <div className="text-center space-y-3">
             <motion.div
               initial={{ scale: 0.8 }}
               animate={{ scale: 1 }}
               transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
-              className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-card border"
+              className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-card border"
             >
-              <Crown className="w-8 h-8 text-foreground" />
+              <Crown className="w-7 h-7 text-foreground" />
             </motion.div>
             <div>
-              <h1 className="text-3xl font-heading font-semibold text-foreground mb-2">
+              <h1 className="text-2xl font-heading font-semibold text-foreground mb-1">
                 Chess Lobby
               </h1>
-              <p className="text-muted-foreground">
+              <p className="text-sm text-muted-foreground">
                 Choose your game mode and start playing
               </p>
             </div>
           </div>
 
-          <div className="space-y-4">
+          {/* Controls */}
+          <div className="space-y-3">
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -319,7 +325,7 @@ const Lobby = () => {
             >
               <Button
                 onClick={() => setShowCreateModal(true)}
-                className="w-full h-12 justify-between"
+                className="w-full h-11 justify-between"
                 disabled={isCreatingRoom || isJoiningRoom || isLookinUp}
               >
                 <div className="flex items-center">
@@ -333,19 +339,19 @@ const Lobby = () => {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4 }}
-              className="space-y-3"
+              className="space-y-2"
             >
               <Input
                 placeholder="Enter invite code"
                 value={joinInviteCode}
                 onChange={(e) => setJoinInviteCode(e.target.value)}
                 disabled={isJoiningRoom || isCreatingRoom || isLookinUp}
-                className="h-12"
+                className="h-11"
               />
               <Button
                 onClick={handleJoinRoom}
                 variant="outline"
-                className="w-full h-12 justify-between"
+                className="w-full h-11 justify-between"
                 disabled={isJoiningRoom || isCreatingRoom || isLookinUp}
               >
                 <div className="flex items-center">
@@ -358,9 +364,9 @@ const Lobby = () => {
               </Button>
             </motion.div>
 
-            <div className="flex items-center justify-center py-4">
+            <div className="flex items-center justify-center py-3">
               <div className="h-px bg-border flex-1" />
-              <span className="px-4 text-xs text-muted-foreground font-medium">
+              <span className="px-3 text-xs text-muted-foreground font-medium">
                 QUICK MATCH
               </span>
               <div className="h-px bg-border flex-1" />
@@ -371,12 +377,12 @@ const Lobby = () => {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.5 }}
-                className="grid gap-3"
+                className="grid gap-2"
               >
                 <Button
                   onClick={() => handleQueue(true)}
                   variant="outline"
-                  className="w-full h-12 justify-between"
+                  className="w-full h-11 justify-between"
                   disabled={isJoiningRoom || isCreatingRoom || isLookinUp}
                 >
                   <div className="flex items-center">
@@ -388,7 +394,7 @@ const Lobby = () => {
                 <Button
                   onClick={() => handleQueue(false)}
                   variant="secondary"
-                  className="w-full h-12 justify-between"
+                  className="w-full h-11 justify-between"
                   disabled={isJoiningRoom || isCreatingRoom || isLookinUp}
                 >
                   <div className="flex items-center">
@@ -404,7 +410,7 @@ const Lobby = () => {
               <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
-                className="text-center py-8 space-y-4"
+                className="text-center py-6 space-y-3"
               >
                 <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-primary text-primary-foreground">
                   <Zap className="w-6 h-6" />
@@ -426,6 +432,7 @@ const Lobby = () => {
         </motion.div>
       </div>
 
+      {/* Create Room Modal */}
       <AnimatePresence>
         {showCreateModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">

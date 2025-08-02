@@ -127,24 +127,9 @@ const GameRoom = () => {
   )?.color;
 
   return (
-    <div className="min-h-screen bg-background relative overflow-hidden">
-      <Navbar />
-
-      <PromotionModal
-        isOpen={isPromotionOpen}
-        onSelectPromotion={submitPromotion}
-        onCancel={cancelPromotion}
-      />
-
-      <GameEndModal
-        isOpen={endModalOpen}
-        result={endResult}
-        reasonMessage={endReasonMessage}
-        onClose={handleEndModalClose}
-        onPlayAgain={handlePlayAgain}
-      />
-
-      <div className="absolute inset-0 overflow-hidden">
+    <div className="h-screen bg-background overflow-hidden">
+      {/* Background Effects */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none -z-10">
         <motion.div
           className="absolute -top-40 -right-40 w-80 h-80 bg-primary/5 rounded-full blur-3xl"
           animate={{
@@ -170,89 +155,143 @@ const GameRoom = () => {
             delay: 2,
           }}
         />
-        <motion.div
-          className="absolute top-1/2 left-1/2 w-96 h-96 bg-accent/3 rounded-full blur-3xl"
-          animate={{
-            rotate: [0, 360],
-            scale: [1, 1.1, 1],
-          }}
-          transition={{
-            duration: 15,
-            repeat: Infinity,
-            ease: "linear",
-          }}
-        />
+        <div className="absolute inset-0 chess-pattern opacity-[0.02]" />
       </div>
 
-      <div className="absolute inset-0 chess-pattern opacity-[0.03]" />
+      {/* Navigation */}
+      <Navbar />
 
-      <div className="relative z-10 p-4 md:p-6">
-        <div className="max-w-7xl mx-auto">
+      {/* Main Game Layout - Reduced navbar height and moved up */}
+      <div className="relative z-10 h-[calc(100vh-64px)] overflow-hidden flex justify-center">
+        <div className="w-[90%] max-w-7xl h-full px-3 py-2">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, ease: "easeOut" }}
-            className="grid grid-cols-1 lg:grid-cols-4 gap-6"
+            className="h-full"
           >
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.2, duration: 0.6 }}
-              className="lg:col-span-1 space-y-4"
-            >
-              <Card className="glass border-white/10">
-                <CardHeader className="pb-3">
-                  <CardTitle className="flex items-center text-lg">
-                    <Crown className="w-5 h-5 mr-2 text-chess-gold" />
-                    Game Info
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                    <span className="text-sm text-muted-foreground">
-                      Status
-                    </span>
-                    <span className="text-sm font-medium capitalize text-chess-gold">
-                      {game.status}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
-                    <span className="text-sm text-muted-foreground">Turn</span>
-                    <span className="text-sm font-medium flex items-center">
-                      <div
-                        className={`w-3 h-3 rounded-full mr-2 ${
-                          game.fen.split(" ")[1] === "w"
-                            ? "bg-white border border-gray-300"
-                            : "bg-gray-800"
-                        }`}
+            {/* Desktop Layout (1200px+) */}
+            <div className="hidden xl:block h-full">
+              <div className="grid grid-cols-12 gap-6 h-full">
+                {/* Left Sidebar - Game Info & Controls */}
+                <motion.div
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.2, duration: 0.6 }}
+                  className="col-span-3 space-y-4 overflow-y-auto"
+                >
+                  {/* Game Info Card - Compact */}
+                  <Card className="glass border-white/10">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="flex items-center text-base">
+                        <Crown className="w-4 h-4 mr-2 text-chess-gold" />
+                        Game Info
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-2">
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between p-2 bg-muted/50 rounded-lg border border-white/5">
+                          <span className="text-xs font-medium text-muted-foreground">
+                            Status
+                          </span>
+                          <span className="text-xs font-bold capitalize text-chess-gold px-2 py-1 bg-chess-gold/10 rounded">
+                            {game.status}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center justify-between p-2 bg-muted/50 rounded-lg border border-white/5">
+                          <span className="text-xs font-medium text-muted-foreground">
+                            Turn
+                          </span>
+                          <span className="text-xs font-semibold flex items-center">
+                            <div
+                              className={`w-3 h-3 rounded-full mr-1.5 border ${
+                                game.fen.split(" ")[1] === "w"
+                                  ? "bg-white border-gray-400"
+                                  : "bg-gray-900 border-gray-600"
+                              }`}
+                            />
+                            {game.fen.split(" ")[1] === "w" ? "White" : "Black"}
+                          </span>
+                        </div>
+
+                        {currentPlayerColor && (
+                          <div className="p-2 bg-primary/15 rounded-lg border border-primary/30">
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-medium text-muted-foreground">
+                                You are
+                              </span>
+                              <span className="text-xs font-bold text-primary capitalize px-2 py-1 bg-primary/20 rounded">
+                                {currentPlayerColor}
+                              </span>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Game Controls */}
+                  <GameControls />
+                </motion.div>
+
+                {/* Center - Game Board Area with Proper Layout */}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.3, duration: 0.6 }}
+                  className="col-span-6 flex flex-col h-full py-4"
+                >
+                  <div className="flex flex-col h-full max-w-[500px] mx-auto w-full">
+                    {/* Black Player Timer - Slightly Reduced Height */}
+                    <div className="mb-3 flex-shrink-0 scale-90 origin-center">
+                      <PlayerTime
+                        color="black"
+                        playerName={blackPlayer?.userId || "Black Player"}
+                        isCurrentPlayer={game.fen.split(" ")[1] === "b"}
                       />
-                      {game.fen.split(" ")[1] === "w" ? "White" : "Black"}
-                    </span>
-                  </div>
-                  {currentPlayerColor && (
-                    <div className="flex items-center justify-between p-3 bg-primary/10 rounded-lg border border-primary/20">
-                      <span className="text-sm text-muted-foreground">
-                        You are
-                      </span>
-                      <span className="text-sm font-medium text-primary capitalize">
-                        {currentPlayerColor}
-                      </span>
                     </div>
-                  )}
-                </CardContent>
-              </Card>
 
-              <GameControls />
-            </motion.div>
+                    {/* Chess Board Container - Centered and Properly Sized */}
+                    <div className="flex-1 flex items-center justify-center min-h-0">
+                      <div className="aspect-square w-full max-w-[450px] max-h-[450px]">
+                        <ChessBoard />
+                      </div>
+                    </div>
 
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3, duration: 0.6 }}
-              className="lg:col-span-2"
-            >
-              <div className="flex flex-col items-center space-y-4">
-                <div className="w-full max-w-md">
+                    {/* White Player Timer - Slightly Reduced Height */}
+                    <div className="mt-3 flex-shrink-0 scale-90 origin-center">
+                      <PlayerTime
+                        color="white"
+                        playerName={whitePlayer?.userId || "White Player"}
+                        isCurrentPlayer={game.fen.split(" ")[1] === "w"}
+                      />
+                    </div>
+                  </div>
+                </motion.div>
+
+                {/* Right Sidebar - Move History & Chat */}
+                <motion.div
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.4, duration: 0.6 }}
+                  className="col-span-3 flex flex-col space-y-4 h-full"
+                >
+                  <div className="flex-1 min-h-0">
+                    <MoveHistory moves={game.moveHistory} />
+                  </div>
+                  <div className="flex-1 min-h-0">
+                    <GameChat />
+                  </div>
+                </motion.div>
+              </div>
+            </div>
+
+            {/* Tablet Layout (768px - 1199px) */}
+            <div className="hidden md:block xl:hidden h-full">
+              <div className="space-y-4 h-full flex flex-col">
+                {/* Top Section - Black Player Timer - Slightly Reduced */}
+                <div className="flex-shrink-0 scale-90 origin-center">
                   <PlayerTime
                     color="black"
                     playerName={blackPlayer?.userId || "Black Player"}
@@ -260,32 +299,162 @@ const GameRoom = () => {
                   />
                 </div>
 
-                <div className="flex justify-center">
-                  <ChessBoard />
+                {/* Middle Section - Board and Side Info */}
+                <div className="flex-1 grid grid-cols-5 gap-6 min-h-0">
+                  {/* Left - Game Info */}
+                  <div className="col-span-2 space-y-4">
+                    <Card className="glass border-white/10">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="flex items-center text-sm">
+                          <Crown className="w-4 h-4 mr-2 text-chess-gold" />
+                          Game Info
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-2">
+                        <div className="grid grid-cols-1 gap-2">
+                          <div className="p-2 bg-muted/50 rounded-lg">
+                            <div className="text-xs text-muted-foreground mb-1">
+                              Status
+                            </div>
+                            <div className="text-xs font-medium text-chess-gold capitalize">
+                              {game.status}
+                            </div>
+                          </div>
+                          <div className="p-2 bg-muted/50 rounded-lg">
+                            <div className="text-xs text-muted-foreground mb-1">
+                              Turn
+                            </div>
+                            <div className="text-xs font-medium flex items-center">
+                              <div
+                                className={`w-2 h-2 rounded-full mr-1 ${
+                                  game.fen.split(" ")[1] === "w"
+                                    ? "bg-white border border-gray-300"
+                                    : "bg-gray-800"
+                                }`}
+                              />
+                              {game.fen.split(" ")[1] === "w"
+                                ? "White"
+                                : "Black"}
+                            </div>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                    <GameControls />
+                  </div>
+
+                  {/* Center - Chess Board - Better Positioning */}
+                  <div className="col-span-3 flex items-center justify-center p-2">
+                    <div className="aspect-square w-full max-w-[400px] max-h-[400px]">
+                      <ChessBoard />
+                    </div>
+                  </div>
                 </div>
 
-                <div className="w-full max-w-md">
-                  <PlayerTime
-                    color="white"
-                    playerName={whitePlayer?.userId || "White Player"}
-                    isCurrentPlayer={game.fen.split(" ")[1] === "w"}
-                  />
+                {/* Bottom Sections */}
+                <div className="space-y-4 flex-shrink-0">
+                  {/* White Player Timer - Slightly Reduced */}
+                  <div className="scale-90 origin-center">
+                    <PlayerTime
+                      color="white"
+                      playerName={whitePlayer?.userId || "White Player"}
+                      isCurrentPlayer={game.fen.split(" ")[1] === "w"}
+                    />
+                  </div>
+
+                  {/* Bottom Grid - Move History & Chat */}
+                  <div className="grid grid-cols-2 gap-4 h-64">
+                    <MoveHistory moves={game.moveHistory} />
+                    <GameChat />
+                  </div>
                 </div>
               </div>
-            </motion.div>
+            </div>
 
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.4, duration: 0.6 }}
-              className="lg:col-span-1"
-            >
-              <MoveHistory moves={game.moveHistory} />
-              <GameChat />
-            </motion.div>
+            {/* Mobile Layout */}
+            <div className="md:hidden h-full flex flex-col space-y-3 overflow-y-auto">
+              {/* Black Player Timer - Slightly Reduced */}
+              <div className="flex-shrink-0 scale-90 origin-center">
+                <PlayerTime
+                  color="black"
+                  playerName={blackPlayer?.userId || "Black Player"}
+                  isCurrentPlayer={game.fen.split(" ")[1] === "b"}
+                />
+              </div>
+
+              {/* Chess Board - Better Mobile Sizing */}
+              <div className="flex-shrink-0 px-2">
+                <div className="aspect-square w-full max-w-[350px] mx-auto">
+                  <ChessBoard />
+                </div>
+              </div>
+
+              {/* White Player Timer - Slightly Reduced */}
+              <div className="flex-shrink-0 scale-90 origin-center">
+                <PlayerTime
+                  color="white"
+                  playerName={whitePlayer?.userId || "White Player"}
+                  isCurrentPlayer={game.fen.split(" ")[1] === "w"}
+                />
+              </div>
+
+              {/* Game Info Compact */}
+              <Card className="glass border-white/10 mx-4 flex-shrink-0">
+                <CardContent className="p-3">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="text-center p-2 bg-muted/50 rounded-lg">
+                      <div className="text-xs text-muted-foreground mb-1">
+                        Status
+                      </div>
+                      <div className="text-xs font-bold text-chess-gold capitalize">
+                        {game.status}
+                      </div>
+                    </div>
+                    <div className="text-center p-2 bg-muted/50 rounded-lg">
+                      <div className="text-xs text-muted-foreground mb-1">
+                        Turn
+                      </div>
+                      <div className="text-xs font-semibold">
+                        {game.fen.split(" ")[1] === "w" ? "White" : "Black"}
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Controls */}
+              <div className="px-4 flex-shrink-0">
+                <GameControls />
+              </div>
+
+              {/* Move History & Chat */}
+              <div className="space-y-4 px-4 flex-1 min-h-0">
+                <div className="h-48">
+                  <MoveHistory moves={game.moveHistory} />
+                </div>
+                <div className="h-48">
+                  <GameChat />
+                </div>
+              </div>
+            </div>
           </motion.div>
         </div>
       </div>
+
+      {/* Modals */}
+      <PromotionModal
+        isOpen={isPromotionOpen}
+        onSelectPromotion={submitPromotion}
+        onCancel={cancelPromotion}
+      />
+
+      <GameEndModal
+        isOpen={endModalOpen}
+        result={endResult}
+        reasonMessage={endReasonMessage}
+        onClose={handleEndModalClose}
+        onPlayAgain={handlePlayAgain}
+      />
     </div>
   );
 };

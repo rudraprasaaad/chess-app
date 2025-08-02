@@ -1,15 +1,7 @@
 import { useState } from "react";
 import { useRoomActions } from "../../store/room";
 import { toast } from "sonner";
-import {
-  AlertTriangle,
-  Flag,
-  Handshake,
-  LogOut,
-  MessageSquare,
-  RotateCcw,
-  Settings,
-} from "lucide-react";
+import { AlertTriangle, Flag, Handshake, LogOut, Settings } from "lucide-react";
 import { Button } from "../ui/button";
 import { AnimatePresence, motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
@@ -169,34 +161,6 @@ const GameControls = () => {
             </motion.div>
           )}
         </AnimatePresence>
-
-        {/* Additional Controls */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="space-y-2"
-        >
-          <Button
-            variant="outline"
-            size="sm"
-            className="w-full justify-start group hover:bg-chess-gold/10 hover:border-chess-gold/30 hover:text-chess-gold transition-all duration-300"
-            onClick={() => toast.info("Feature coming soon")}
-          >
-            <RotateCcw className="w-4 h-4 mr-2 group-hover:animate-spin" />
-            Request Takeback
-          </Button>
-
-          <Button
-            variant="outline"
-            size="sm"
-            className="w-full justify-start group hover:bg-accent/10 hover:border-accent/30 hover:text-accent transition-all duration-300"
-            onClick={() => toast.info("Chat feature coming soon!")}
-          >
-            <MessageSquare className="w-4 h-4 mr-2 group-hover:animate-pulse" />
-            Chat
-          </Button>
-        </motion.div>
 
         {/* Leave Game */}
         <motion.div
