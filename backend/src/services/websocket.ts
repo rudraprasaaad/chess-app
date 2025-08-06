@@ -187,6 +187,14 @@ export class WebSocketService {
           );
           break;
 
+        case "GET_LEGAL_MOVES":
+          await this.gameService.getLegalMoves(
+            payload.gameId,
+            ws.playerId,
+            payload.square
+          );
+          break;
+
         case "RESIGN_GAME":
           await this.gameService.resignGame(payload.gameId, ws.playerId);
           break;

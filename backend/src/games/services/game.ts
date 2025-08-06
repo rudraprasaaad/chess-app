@@ -1,4 +1,4 @@
-import { Chess } from "chess.js";
+import { Chess, Square } from "chess.js";
 import { InputJsonValue } from "@prisma/client/runtime/library";
 
 import {
@@ -165,7 +165,7 @@ export class GameService {
   async makeMove(
     gameId: string,
     playerId: string,
-    move: { from: string; to: string; promotion?: string }
+    move: { from: Square; to: Square; promotion?: string }
   ): Promise<void> {
     const gameData = await redis.get(`game:${gameId}`);
     if (!gameData) throw new Error("Game not found");
@@ -263,6 +263,62 @@ export class GameService {
 
     await redis.setJSON(`game:${gameId}`, formattedGame);
     this.ws.broadcastToGame(formattedGame);
+  }
+
+  async getLegalMoves(
+    gameId: string,
+    playerId: string,
+    square: Square
+  ): Promise<void> {
+    try {
+      const gameData = await redis.get(`game:${gameId}`);
+
+      if (!gameData) {
+        logger.warn(`getLegalMoves: Game not found in Redis: ${gameId}`);
+        return;
+      }
+
+      const game = JSON.parse(gameData) as Game;
+      const player = game.players.find((p) => p.userId === playerId);
+
+      const chess = new Chess(game.fen);
+
+      const turn = chess.turn();
+      const piece = chess.get(square);
+
+      if (
+        !player ||
+        !piece ||
+        turn !== player.color[0] ||
+        piece.color !== turn
+      ) {
+        this.ws.broadcastToClient(playerId, {
+          type: "LEGAL_MOVES_UPDATE",
+          payload: { moves: [] },
+        });
+        return;
+      }
+
+      const moves = chess.moves({
+        square,
+        verbose: true,
+      });
+
+      const destinationSquares = moves.map((move) => move.to);
+
+      this.ws.broadcastToClient(playerId, {
+        type: "LEGAL_MOVES_UPDATE",
+        payload: {
+          moves: destinationSquares,
+        },
+      });
+    } catch (err) {
+      logger.error(`Error in getLegalMoves for game ${gameId}`, err);
+      this.ws.broadcastToClient(playerId, {
+        type: "ERROR",
+        payload: { message: "Could not retrieve legal moves." },
+      });
+    }
   }
 
   async resignGame(gameId: string, playerId: string): Promise<void> {
