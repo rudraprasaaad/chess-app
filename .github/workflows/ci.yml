@@ -60,7 +60,7 @@ jobs:
           version: 8
 
       - name: Install dependencies
-        run: pnpm install
+        run: pnpm install --ignore-workspace-root-check
         working-directory: backend
 
       - name: Lint backend
@@ -95,7 +95,7 @@ jobs:
           version: 8
 
       - name: Install Dependencies
-        run: pnpm install
+        run: pnpm install --ignore-workspace-root-check
         working-directory: frontend
 
       - name: Lint frontend
