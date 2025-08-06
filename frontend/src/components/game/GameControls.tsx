@@ -13,7 +13,6 @@ const GameControls = () => {
   const navigate = useNavigate();
 
   const { leaveRoom } = useRoomActions();
-  //   const { user } = useAuthStore();
 
   const handleResign = () => {
     toast.success("You have resigned from the game.");
@@ -162,7 +161,6 @@ const GameControls = () => {
           )}
         </AnimatePresence>
 
-        {/* Leave Game */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}

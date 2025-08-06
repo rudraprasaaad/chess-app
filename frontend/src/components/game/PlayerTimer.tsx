@@ -17,20 +17,18 @@ const PlayerTimer = ({
   color,
   playerName,
   isCurrentPlayer,
-  timeRemaining = 600, // Default 10 minutes
+  timeRemaining = 600,
   initialTime = 600,
   increment = 0,
 }: PlayerTimerProps) => {
   const [displayTime, setDisplayTime] = useState(timeRemaining);
   const [isLowTime, setIsLowTime] = useState(false);
 
-  // Update display time when prop changes
   useEffect(() => {
     setDisplayTime(timeRemaining);
-    setIsLowTime(timeRemaining < 60); // Warning when less than 1 minute
+    setIsLowTime(timeRemaining < 60);
   }, [timeRemaining]);
 
-  // Timer countdown effect
   useEffect(() => {
     if (!isCurrentPlayer || displayTime <= 0) return;
 
@@ -91,7 +89,6 @@ const PlayerTimer = ({
           </div>
 
           <div className="relative z-10 flex items-center justify-between">
-            {/* Player Info */}
             <div className="flex items-center space-x-3">
               <motion.div
                 animate={{
@@ -141,7 +138,6 @@ const PlayerTimer = ({
               </div>
             </div>
 
-            {/* Timer Display */}
             <div className="text-right">
               <motion.div
                 animate={{
@@ -170,7 +166,6 @@ const PlayerTimer = ({
             </div>
           </div>
 
-          {/* Active player indicator */}
           {isCurrentPlayer && (
             <motion.div
               initial={{ opacity: 0, scaleX: 0 }}
@@ -179,7 +174,6 @@ const PlayerTimer = ({
             />
           )}
 
-          {/* Time up overlay */}
           {displayTime === 0 && (
             <motion.div
               initial={{ opacity: 0 }}

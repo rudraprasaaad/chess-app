@@ -10,7 +10,6 @@ export const ChessLoader = ({
   return (
     <div className="absolute inset-0 bg-background/50 backdrop-blur-sm flex items-center justify-center z-20 rounded-3xl">
       <div className="flex flex-col items-center space-y-6">
-        {/* Chess pieces animation */}
         <div className="relative">
           <div className="flex items-center space-x-4">
             <Crown
@@ -27,11 +26,8 @@ export const ChessLoader = ({
             />
           </div>
 
-          {/* Subtle rotating border */}
           <div className="absolute inset-0 -m-6 border border-foreground/20 rounded-full animate-spin-slow"></div>
         </div>
-
-        {/* Loading text */}
         <p className="text-sm text-muted-foreground font-medium tracking-wide animate-fade-in">
           {message}
         </p>

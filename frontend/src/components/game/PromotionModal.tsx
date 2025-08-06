@@ -32,7 +32,6 @@ const PromotionModal = ({
     <AnimatePresence>
       {isOpen && (
         <>
-          {/* Backdrop */}
           <motion.div
             className="fixed inset-0 z-40 bg-black/70 backdrop-blur-sm"
             initial={{ opacity: 0 }}
@@ -41,7 +40,6 @@ const PromotionModal = ({
             transition={{ duration: 0.3 }}
           />
 
-          {/* Modal */}
           <motion.div
             className="fixed inset-0 z-50 flex items-center justify-center p-4"
             initial={{ scale: 0.8, opacity: 0, y: 50 }}
@@ -58,7 +56,6 @@ const PromotionModal = ({
             aria-label="Choose Promotion piece"
           >
             <Card className="w-full max-w-sm glass border-white/10 overflow-hidden">
-              {/* Animated background glow */}
               <motion.div
                 className="absolute inset-0 bg-chess-gold/5 opacity-50"
                 initial={{ scale: 0 }}
@@ -100,7 +97,6 @@ const PromotionModal = ({
                 </CardHeader>
 
                 <CardContent className="space-y-4">
-                  {/* Promotion Pieces Grid */}
                   <motion.div
                     className="grid grid-cols-2 gap-3"
                     initial={{ opacity: 0 }}
@@ -140,7 +136,6 @@ const PromotionModal = ({
                     ))}
                   </motion.div>
 
-                  {/* Cancel Button */}
                   <motion.div
                     className="flex justify-center pt-2"
                     initial={{ opacity: 0 }}

@@ -10,7 +10,7 @@ const files = ["a", "b", "c", "d", "e", "f", "g", "h"];
 const ranks = [8, 7, 6, 5, 4, 3, 2, 1];
 
 function fenToBoard(fen: string): Record<string, string | null> {
-  const fenBoard = fen.split(" ")[0]; // part before space is board layout
+  const fenBoard = fen.split(" ")[0];
   if (!fenBoard) {
     console.warn("Empty or invalid FEN:", fen);
     return {};
@@ -30,7 +30,7 @@ function fenToBoard(fen: string): Record<string, string | null> {
 
     if (!currentRow) {
       console.warn(`Missing row ${r} in FEN:`, fen);
-      continue; // skip invalid rows
+      continue;
     }
 
     for (const char of currentRow) {
@@ -194,7 +194,6 @@ const ChessBoard = () => {
                     )}
                   </AnimatePresence>
 
-                  {/* Legal move indicators */}
                   <AnimatePresence>
                     {isLegal && !piece && (
                       <motion.div
@@ -232,7 +231,6 @@ const ChessBoard = () => {
           )}
         </div>
 
-        {/* External Board Labels */}
         <div className="absolute -bottom-6 left-0 right-0 flex justify-between px-3">
           {files.map((file) => (
             <span

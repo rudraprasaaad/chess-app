@@ -70,7 +70,6 @@ export const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
     <AnimatePresence>
       {isOpen && (
         <>
-          {/* Backdrop */}
           <motion.div
             className="fixed inset-0 bg-background/60 backdrop-blur-lg z-50"
             initial={{ opacity: 0 }}
@@ -79,7 +78,6 @@ export const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
             onClick={onClose}
           />
 
-          {/* Modal */}
           <motion.div
             className="fixed inset-0 flex items-center justify-center z-50 p-4"
             initial={{ opacity: 0, scale: 0.9 }}
@@ -88,13 +86,10 @@ export const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
           >
             <Card className="glass-intense glow-primary w-full max-w-sm relative overflow-hidden rounded-3xl">
-              {/* Grain texture */}
               <div className="grain absolute inset-0" />
 
-              {/* Loading Overlay */}
               {isLoading && <ChessLoader />}
 
-              {/* Close button */}
               <Button
                 variant="ghost"
                 size="icon"
@@ -106,7 +101,6 @@ export const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
               </Button>
 
               <CardHeader className="text-center space-y-6 pb-8">
-                {/* Chess icon */}
                 <motion.div
                   className="mx-auto w-16 h-16 bg-foreground rounded-full flex items-center justify-center glow-chess"
                   initial={{ scale: 0, rotate: -180 }}
@@ -135,7 +129,6 @@ export const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
               <CardContent className="space-y-4 px-8 pb-8">
                 {!showGuestInput ? (
                   <>
-                    {/* Google Login */}
                     <motion.div
                       initial={{ y: 20, opacity: 0 }}
                       animate={{ y: 0, opacity: 1 }}
@@ -169,7 +162,6 @@ export const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
                       </Button>
                     </motion.div>
 
-                    {/* Guest Login Button */}
                     <motion.div
                       initial={{ y: 20, opacity: 0 }}
                       animate={{ y: 0, opacity: 1 }}
@@ -189,7 +181,6 @@ export const LoginModal = ({ isOpen, onClose }: LoginModalProps) => {
                   </>
                 ) : (
                   <>
-                    {/* Guest Name Input */}
                     <motion.div
                       initial={{ y: 20, opacity: 0 }}
                       animate={{ y: 0, opacity: 1 }}

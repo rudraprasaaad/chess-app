@@ -115,7 +115,6 @@ const GameEndModal = ({
             <Card
               className={`glass max-w-md w-full border-white/10 ${config.borderColor} overflow-hidden`}
             >
-              {/* Animated Background Effect */}
               <motion.div
                 className={`absolute inset-0 ${config.bgColor} opacity-50`}
                 initial={{ scale: 0 }}
@@ -130,7 +129,6 @@ const GameEndModal = ({
                 transition={{ delay: 0.3, duration: 0.4 }}
               >
                 <CardHeader className="text-center space-y-4 pb-6">
-                  {/* Icon with animation */}
                   <motion.div
                     className={`flex justify-center ${config.color}`}
                     initial={{ scale: 0, rotate: -180 }}
@@ -145,7 +143,6 @@ const GameEndModal = ({
                     {config.icon}
                   </motion.div>
 
-                  {/* Title */}
                   <motion.div
                     initial={{ y: 20, opacity: 0 }}
                     animate={{ y: 0, opacity: 1 }}
@@ -165,7 +162,6 @@ const GameEndModal = ({
                   </motion.div>
                 </CardHeader>
 
-                {/* Reason Message */}
                 {reasonMessage && (
                   <motion.div
                     className="px-6 pb-4"
@@ -179,7 +175,6 @@ const GameEndModal = ({
                   </motion.div>
                 )}
 
-                {/* Action Buttons */}
                 <CardContent className="pt-0">
                   <motion.div
                     className="flex gap-3 justify-center"

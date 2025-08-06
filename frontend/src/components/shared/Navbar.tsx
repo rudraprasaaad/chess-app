@@ -43,7 +43,6 @@ export const Navbar = () => {
           className="flex items-center justify-between"
           style={{ height: "4.12rem" }}
         >
-          {/* Left Section - Logo and Breadcrumbs */}
           <div className="flex items-center space-x-3 lg:space-x-4 min-w-0 flex-1">
             <motion.button
               onClick={() => navigate("/")}
@@ -57,7 +56,6 @@ export const Navbar = () => {
               </span>
             </motion.button>
 
-            {/* Breadcrumbs */}
             {breadcrumbs.length > 1 && (
               <div className="hidden md:flex items-center space-x-1.5 text-sm text-muted-foreground min-w-0">
                 {breadcrumbs.map((crumb, index) => (
@@ -84,7 +82,6 @@ export const Navbar = () => {
             )}
           </div>
 
-          {/* Center Section - Live Game Indicator */}
           {isGameRoom && (
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
@@ -98,7 +95,6 @@ export const Navbar = () => {
             </motion.div>
           )}
 
-          {/* Right Section - Logout Button */}
           <motion.div
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}

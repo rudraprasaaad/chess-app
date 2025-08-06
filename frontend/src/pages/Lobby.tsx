@@ -20,7 +20,6 @@ import {
 } from "lucide-react";
 import { Navbar } from "../components/shared/Navbar";
 
-// Animation properties
 const floatingAnimation = {
   y: [-20, 20, -20],
   rotate: [-2, 2, -2],
@@ -41,7 +40,6 @@ const sparkleAnimation = {
   },
 };
 
-// Chess piece component
 const FloatingChessPiece = ({
   piece,
   className,

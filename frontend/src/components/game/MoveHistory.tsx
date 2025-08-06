@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { ScrollText, ChevronRight } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
-import { type Move as GameMove } from "../../types/game"; // Import the correct Move type from your global types
+import { type Move as GameMove } from "../../types/game";
 
 interface DisplayMove {
   moveNumber: number;
