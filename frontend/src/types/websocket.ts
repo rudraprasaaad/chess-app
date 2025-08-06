@@ -84,6 +84,13 @@ export interface AcceptDrawMessage {
   };
 }
 
+export interface DeclineDrawMessage {
+  type: "DECLINE_DRAW";
+  payload: {
+    gameId: string;
+  };
+}
+
 export type ClientMessage =
   | CreateRoomMessage
   | JoinRoomMessage
@@ -94,7 +101,8 @@ export type ClientMessage =
   | GetLegalMoveMessage
   | ChatMessage
   | TypingMessage
-  | AcceptDrawMessage;
+  | AcceptDrawMessage
+  | DeclineDrawMessage;
 
 export interface RoomCreatedMessage {
   type: "ROOM_CREATED";

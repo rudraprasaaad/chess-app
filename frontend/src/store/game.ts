@@ -161,6 +161,10 @@ export const useGameStore = create<GameState>((set, get) => ({
           const isPlayerTurn = playerColor === currentTurn;
           set({ isPlayerTurn });
         }
+        if (updatedGame.status === GameStatus.ACTIVE) {
+          get().stopTimer();
+          setTimeout(() => get().startTimer(), 100);
+        }
       }
 
       if (gameUpdate.chat) {
@@ -389,7 +393,7 @@ export const useGameStore = create<GameState>((set, get) => ({
 
     if (currentGame && drawOffer) {
       sendMessage({
-        type: "ACCEPT_DRAW",
+        type: "DECLINE_DRAW",
         payload: { gameId: currentGame.id },
       });
       set({ drawOffer: null });
@@ -586,6 +590,7 @@ export const handleGameMessage = (message: any) => {
     stopTimer,
     setDrawOffer,
     setLegalMoves,
+    clearSelection,
   } = useGameStore.getState();
 
   switch (message.type) {
@@ -598,6 +603,7 @@ export const handleGameMessage = (message: any) => {
     case "MOVE_MADE":
       updateGame(message.payload);
       setMakingMove(false);
+      clearSelection();
       break;
 
     case "LEGAL_MOVES_UPDATE":

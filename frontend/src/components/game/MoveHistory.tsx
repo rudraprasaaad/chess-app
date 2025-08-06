@@ -1,53 +1,43 @@
 import { useEffect, useRef } from "react";
 import { motion } from "framer-motion";
-import { ScrollText, Clock, ChevronRight } from "lucide-react";
+import { ScrollText, ChevronRight } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
+import { type Move as GameMove } from "../../types/game"; // Import the correct Move type from your global types
 
-interface Move {
+interface DisplayMove {
   moveNumber: number;
   white?: string;
   black?: string;
-  timestamp?: number;
 }
 
 interface MoveHistoryProps {
-  moves: Move[];
+  moves: GameMove[];
 }
 
 const MoveHistory = ({ moves = [] }: MoveHistoryProps) => {
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Auto-scroll to bottom when new moves are added
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [moves]);
 
-  const formatTime = (timestamp?: number) => {
-    if (!timestamp) return "";
-    const date = new Date(timestamp);
-    return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-  };
-
-  // Convert flat move array to paired moves for display
-  const pairedMoves = moves.reduce((acc: Move[], move, index) => {
+  const pairedMoves = moves.reduce((acc: DisplayMove[], move, index) => {
     const moveNumber = Math.floor(index / 2) + 1;
-    const isWhite = index % 2 === 0;
+    const isWhiteMove = index % 2 === 0;
 
-    if (isWhite) {
+    if (isWhiteMove) {
       acc.push({
         moveNumber,
-        white: move.white || move.toString(), // Handle different move formats
-        timestamp: move.timestamp,
+        white: move.san,
       });
     } else {
-      const lastMove = acc[acc.length - 1];
-      if (lastMove && lastMove.moveNumber === moveNumber) {
-        lastMove.black = move.black || move.toString();
+      const lastDisplayMove = acc[acc.length - 1];
+      if (lastDisplayMove && lastDisplayMove.moveNumber === moveNumber) {
+        lastDisplayMove.black = move.san;
       }
     }
-
     return acc;
   }, []);
 
@@ -87,14 +77,10 @@ const MoveHistory = ({ moves = [] }: MoveHistoryProps) => {
                 className="group relative"
               >
                 <div className="flex items-center py-3 px-3 rounded-lg hover:bg-white/5 transition-all duration-300 group-hover:shadow-sm">
-                  {/* Move Number */}
                   <div className="flex items-center justify-center w-8 h-8 rounded-full bg-muted/50 text-sm font-bold text-muted-foreground mr-3 group-hover:bg-primary/20 group-hover:text-primary transition-colors duration-300">
                     {move.moveNumber}
                   </div>
-
-                  {/* Moves Container */}
                   <div className="flex-1 flex items-center space-x-3">
-                    {/* White's Move */}
                     <div className="flex-1">
                       <div className="flex items-center space-x-2">
                         <div className="w-3 h-3 bg-white rounded-full border border-gray-300 shadow-sm" />
@@ -103,13 +89,9 @@ const MoveHistory = ({ moves = [] }: MoveHistoryProps) => {
                         </span>
                       </div>
                     </div>
-
-                    {/* Arrow */}
                     {move.black && (
                       <ChevronRight className="w-3 h-3 text-muted-foreground opacity-50" />
                     )}
-
-                    {/* Black's Move */}
                     <div className="flex-1">
                       {move.black && (
                         <div className="flex items-center space-x-2">
@@ -121,23 +103,7 @@ const MoveHistory = ({ moves = [] }: MoveHistoryProps) => {
                       )}
                     </div>
                   </div>
-
-                  {/* Timestamp */}
-                  {move.timestamp && (
-                    <motion.div
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      className="ml-3 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-                    >
-                      <span className="text-xs text-muted-foreground flex items-center bg-muted/50 px-2 py-1 rounded">
-                        <Clock className="w-3 h-3 mr-1" />
-                        {formatTime(move.timestamp)}
-                      </span>
-                    </motion.div>
-                  )}
                 </div>
-
-                {/* Subtle divider */}
                 {index < pairedMoves.length - 1 && (
                   <div className="absolute bottom-0 left-12 right-4 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
                 )}
@@ -145,8 +111,6 @@ const MoveHistory = ({ moves = [] }: MoveHistoryProps) => {
             ))
           )}
         </div>
-
-        {/* Footer with move count */}
         {moves.length > 0 && (
           <motion.div
             initial={{ opacity: 0 }}
