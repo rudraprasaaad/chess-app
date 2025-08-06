@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { Square } from "chess.js";
 import { RoomType } from "./common";
 import type { Game, Room, RoomWithGame } from "./room";
 
@@ -47,9 +48,17 @@ export interface MakeMoveMessage {
   payload: {
     gameId: string;
     move: {
-      from: string;
-      to: string;
+      from: Square;
+      to: Square;
     };
+  };
+}
+
+export interface GetLegalMoveMessage {
+  type: "GET_LEGAL_MOVES";
+  payload: {
+    gameId: string;
+    square: Square;
   };
 }
 
@@ -82,6 +91,7 @@ export type ClientMessage =
   | JoinQueueMessage
   | LeaveQueueMessage
   | MakeMoveMessage
+  | GetLegalMoveMessage
   | ChatMessage
   | TypingMessage
   | AcceptDrawMessage;

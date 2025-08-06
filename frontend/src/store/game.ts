@@ -6,6 +6,7 @@ import { GameStatus, UserStatus } from "../types/common";
 import { useWebSocketStore } from "./websocket";
 import { useAuthStore } from "./auth";
 import { useEffect, useMemo } from "react";
+import { Square } from "chess.js";
 
 interface GameState {
   currentGame: Game | null;
@@ -38,9 +39,9 @@ interface GameState {
 
   setCurrentGame: (game: Game | null) => void;
   updateGame: (gameUpdate: Partial<Game>) => void;
-  makeMove: (move: { from: string; to: string; promotion?: string }) => void;
+  makeMove: (move: { from: Square; to: Square; promotion?: string }) => void;
 
-  setSelectedSquare: (square: string | null) => void;
+  setSelectedSquare: (square: Square | null) => void;
   setLegalMoves: (moves: string[]) => void;
   clearSelection: () => void;
 
@@ -68,9 +69,9 @@ interface GameState {
   setMakingMove: (making: boolean) => void;
   setGameLoading: (loading: boolean) => void;
 
-  pendingPromotionMove: { from: string; to: string } | null;
+  pendingPromotionMove: { from: Square; to: Square } | null;
   isPromotionModalOpen: boolean;
-  requestPromotion: (move: { from: string; to: string }) => void;
+  requestPromotion: (move: { from: Square; to: Square }) => void;
   submitPromotion: (promotion: "q" | "r" | "b" | "n") => void;
   cancelPromotion: () => void;
 }
@@ -200,7 +201,24 @@ export const useGameStore = create<GameState>((set, get) => ({
     get().clearSelection();
   },
 
-  setSelectedSquare: (square: string | null) => set({ selectedSquare: square }),
+  setSelectedSquare: (square: Square | null) => {
+    const { sendMessage } = useWebSocketStore.getState();
+
+    const { currentGame } = get();
+
+    if (square && currentGame) {
+      set({ selectedSquare: square });
+      sendMessage({
+        type: "GET_LEGAL_MOVES",
+        payload: {
+          gameId: currentGame?.id,
+          square: square,
+        },
+      });
+    } else {
+      set({ selectedSquare: null, legalMoves: [] });
+    }
+  },
 
   setLegalMoves: (moves) => set({ legalMoves: moves }),
 
@@ -567,6 +585,7 @@ export const handleGameMessage = (message: any) => {
     setError,
     stopTimer,
     setDrawOffer,
+    setLegalMoves,
   } = useGameStore.getState();
 
   switch (message.type) {
@@ -579,6 +598,10 @@ export const handleGameMessage = (message: any) => {
     case "MOVE_MADE":
       updateGame(message.payload);
       setMakingMove(false);
+      break;
+
+    case "LEGAL_MOVES_UPDATE":
+      setLegalMoves(message.payload.moves);
       break;
 
     case "GAME_ENDED":

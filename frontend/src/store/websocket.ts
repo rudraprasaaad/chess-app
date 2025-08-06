@@ -266,6 +266,7 @@ const handleServerMessage = (message: ServerMessage) => {
   const gameMessages = [
     "GAME_UPDATED",
     "MOVE_MADE",
+    "LEGAL_MOVES_UPDATE",
     "GAME_ENDED",
     "PLAYER_RESIGNED",
     "DRAW_OFFERED",

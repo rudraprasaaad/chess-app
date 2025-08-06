@@ -1,9 +1,10 @@
 import { AnimatePresence, motion } from "framer-motion";
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import { useGameActions, useGameStore } from "../../store/game";
 import { useWebSocketSender } from "../../store/websocket";
 import { cn } from "../../lib/utils";
 import PieceIcon from "./PieceIcon";
+import { Square } from "chess.js";
 
 const files = ["a", "b", "c", "d", "e", "f", "g", "h"];
 const ranks = [8, 7, 6, 5, 4, 3, 2, 1];
@@ -63,10 +64,6 @@ const ChessBoard = () => {
   const clearSelection = useGameActions().clearSelection;
   const sendMessage = useWebSocketSender().sendMessage;
 
-  useEffect(() => {
-    console.log("Current game or FEN changed:", currentGame, fen);
-  }, [currentGame, fen]);
-
   const board = useMemo(() => fenToBoard(fen), [fen]);
 
   const onSquareClick = useCallback(
@@ -83,7 +80,7 @@ const ChessBoard = () => {
           type: "MAKE_MOVE",
           payload: {
             gameId: currentGame.id,
-            move: { from: selectedSquare, to: square },
+            move: { from: selectedSquare as Square, to: square as Square },
           },
         });
         clearSelection();
@@ -91,7 +88,7 @@ const ChessBoard = () => {
       }
 
       if (board[square]) {
-        setSelectedSquare(square);
+        setSelectedSquare(square as Square);
       } else {
         clearSelection();
       }

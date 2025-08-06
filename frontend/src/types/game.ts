@@ -1,4 +1,5 @@
 import { GameStatus } from "./common";
+import { Square } from "chess.js";
 
 export interface Game {
   id: string;
@@ -19,8 +20,8 @@ export interface GamePlayer {
 }
 
 export interface Move {
-  from: string;
-  to: string;
+  from: Square;
+  to: Square;
   san?: string;
 }
 
@@ -33,8 +34,9 @@ export interface ChatMessage {
 export interface MakeMovePayload {
   gameId: string;
   move: {
-    from: string;
-    to: string;
+    from: Square;
+    to: Square;
+    promotion?: "q" | "r" | "b" | "n";
   };
 }
 
