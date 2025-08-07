@@ -146,8 +146,8 @@ const ChessBoard = () => {
                   className={cn(
                     "w-12 h-12 flex items-center justify-center cursor-pointer relative transition-all duration-300",
                     isLight
-                      ? "bg-chess-light hover:bg-chess-light/80"
-                      : "bg-chess-dark hover:bg-chess-dark/80",
+                      ? "bg-amber-50 hover:bg-amber-100"
+                      : "bg-amber-700 hover:bg-amber-600",
                     isSelected &&
                       "ring-2 ring-chess-gold shadow-lg bg-chess-gold/20",
                     isLegal && !piece && "bg-primary/20",
