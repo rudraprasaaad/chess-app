@@ -7,6 +7,7 @@ import {
   RoomType,
   RoomStatus,
   GameStatus,
+  RoomWithGame,
 } from "../../lib/types";
 
 import { GameService } from "./game";
@@ -384,7 +385,19 @@ export class RoomService {
         createdAt: game.createdAt,
       };
 
+      const roomData: RoomWithGame = {
+        id: room.id,
+        type: room.type as RoomType,
+        status: room.status as RoomStatus,
+        players: room.players as { id: string; color: string | null }[],
+        inviteCode: room.inviteCode || undefined,
+        createdAt: room.createdAt,
+        game: gameData,
+      };
+
       await redis.setJSON(`game:${game.id}`, gameData);
+      await redis.setJSON(`room:${room.id}`, roomData);
+
       await prisma.user.update({
         where: { id: ws.playerId },
         data: { status: UserStatus.IN_GAME },
@@ -393,8 +406,9 @@ export class RoomService {
 
       this.ws.broadcastToClient(ws.playerId, {
         type: "REJOIN_GAME",
-        payload: gameData,
+        payload: roomData,
       });
+
       logger.info(`Player ${ws.playerId} reconnected to game ${game.id}`);
     } catch (err) {
       logger.error("Error in handleReconnect:", err);
