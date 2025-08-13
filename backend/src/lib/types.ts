@@ -1,5 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import WebSocket from "ws";
-import { JsonValue } from "@prisma/client/runtime/library";
 
 export enum AuthProvider {
   GOOGLE = "GOOGLE",
@@ -32,6 +32,24 @@ export enum RoomType {
   PRIVATE = "PRIVATE",
 }
 
+export interface Move {
+  from: string;
+  to: string;
+  promotion?: "q" | "r" | "b" | "n";
+  san: string;
+}
+
+export interface ChatMessage {
+  playerId: string;
+  text: string;
+  timestamp: number;
+}
+
+export interface TimeControl {
+  initial: number;
+  increment: number;
+}
+
 export interface Player {
   userId: string;
   color: string;
@@ -46,21 +64,22 @@ export interface Room {
   createdAt: Date;
 }
 
-export interface RoomWithGame extends Room {
-  game: Game;
-}
-
 export interface Game {
   id: string;
   roomId: string;
   fen: string;
-  moveHistory: JsonValue[];
+  moveHistory: Move[];
   timers: { white: number; black: number };
+  timeControl: TimeControl;
   status: GameStatus;
   players: { userId: string; color: string }[];
-  chat: JsonValue[];
+  chat: ChatMessage[];
   winnerId?: string;
   createdAt: Date;
+}
+
+export interface RoomWithGame extends Room {
+  game: Game;
 }
 
 export interface WebSocketMessage {

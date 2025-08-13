@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import WebSocket, { WebSocketServer } from "ws";
 import jwt from "jsonwebtoken";
 
@@ -90,8 +91,6 @@ export class WebSocketService {
 
         logger.info(`Client Connected: ${user.id}`);
 
-        // await this.roomService.handleReconnect(ws);
-
         ws.on("error", (err) => {
           logger.error(`Websocket Error for ${ws.playerId}: ${err.message}`);
         });
@@ -138,7 +137,7 @@ export class WebSocketService {
       let message: WebSocketMessage;
       try {
         message = JSON.parse(data.toString());
-      } catch (parseErr) {
+      } catch {
         throw new Error("Invalid JSON format");
       }
 
@@ -266,12 +265,22 @@ export class WebSocketService {
     });
   }
 
-  public broadcastToGame(game: Game): void {
+  public broadcastToGame(
+    game: Game,
+    messageType?: string,
+    payload?: any,
+  ): void {
+    const typeToSend = messageType || "GAME_UPDATED";
+
+    const payloadToSend = payload !== undefined ? payload : game;
+
+    const message = {
+      type: typeToSend,
+      payload: payloadToSend,
+    };
+
     game.players.forEach((player) => {
-      this.broadcastToClient(player.userId, {
-        type: "GAME_UPDATED",
-        payload: game,
-      });
+      this.broadcastToClient(player.userId, message);
     });
   }
 
