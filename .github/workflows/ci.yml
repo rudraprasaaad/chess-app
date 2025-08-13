@@ -16,38 +16,24 @@ on:
       - "frontend/**"
 
 jobs:
-  detect-changes:
-    name: Detect Changes
+  build-and-test:
+    name: Build and Test
     runs-on: ubuntu-latest
-    outputs:
-      backend_changed: ${{ steps.backend-changes.outputs.any_changed }}
-      frontend_changed: ${{ steps.frontend-changes.outputs.any_changed }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Check backend changes
+      - name: Detect backend changes
         id: backend-changes
         uses: tj-actions/changed-files@v45
         with:
-          files: |
-            backend/**
+          files: backend/**
 
-      - name: Check frontend changes
+      - name: Detect frontend changes
         id: frontend-changes
         uses: tj-actions/changed-files@v45
         with:
-          files: |
-            frontend/**
-
-  backend:
-    name: Backend CI
-    needs: detect-changes
-    if: needs.detect-changes.outputs.backend_changed == 'true'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+          files: frontend/**
 
       - name: Setup Node.js
         uses: actions/setup-node@v3
@@ -59,49 +45,21 @@ jobs:
         with:
           version: 8
 
-      - name: Install dependencies
+      - name: Install dependencies (from workspace root)
         run: pnpm install
-        working-directory: backend
 
-      - name: Lint backend
-        run: pnpm lint
-        working-directory: backend
+      - name: Generate Prisma Client
+        if: steps.backend-changes.outputs.any_changed == 'true'
+        run: pnpm --filter backend exec prisma generate
 
-      - name: Generate Prisma client
-        run: npx prisma generate
-        working-directory: backend
+      - name: Lint and Build Backend
+        if: steps.backend-changes.outputs.any_changed == 'true'
+        run: |
+          pnpm --filter backend lint
+          pnpm --filter backend build
 
-      - name: Build backend
-        run: pnpm run build
-        working-directory: backend
-
-  frontend:
-    name: Frontend CI
-    needs: detect-changes
-    if: needs.detect-changes.outputs.frontend_changed == 'true'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: "20"
-
-      - name: Install pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 8
-
-      - name: Install Dependencies
-        run: pnpm install
-        working-directory: frontend
-
-      - name: Lint frontend
-        run: pnpm lint
-        working-directory: frontend
-
-      - name: Build frontend
-        run: pnpm run build
-        working-directory: frontend
+      - name: Lint and Build Frontend
+        if: steps.frontend-changes.outputs.any_changed == 'true'
+        run: |
+          pnpm --filter frontend lint
+          pnpm --filter frontend build
