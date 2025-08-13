@@ -1,34 +1,57 @@
 import { useState } from "react";
-import { useRoomActions } from "../../store/room";
 import { toast } from "sonner";
-import { AlertTriangle, Flag, Handshake, LogOut, Settings } from "lucide-react";
+import {
+  AlertTriangle,
+  Check,
+  Flag,
+  Handshake,
+  LogOut,
+  Settings,
+  XCircle,
+} from "lucide-react";
 import { Button } from "../ui/button";
 import { AnimatePresence, motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { useNavigate } from "react-router-dom";
+import { useGameStore } from "../../store/game";
 
 const GameControls = () => {
   const [showConfirmResign, setShowConfirmResign] = useState(false);
   const [showConfirmDraw, setShowConfirmDraw] = useState(false);
   const navigate = useNavigate();
 
-  const { leaveRoom } = useRoomActions();
+  const resignGame = useGameStore((state) => state.resignGame);
+  const offerDraw = useGameStore((state) => state.offerDraw);
+  const acceptDraw = useGameStore((state) => state.acceptDraw);
+  const declineDraw = useGameStore((state) => state.declineDraw);
+  const drawOffer = useGameStore((state) => state.drawOffer);
+  const currentGame = useGameStore((state) => state.currentGame);
+
+  const isGameActive = currentGame?.status === "ACTIVE";
 
   const handleResign = () => {
-    toast.success("You have resigned from the game.");
+    resignGame();
     setShowConfirmResign(false);
-    navigate("/lobby");
   };
 
   const handleOfferDraw = () => {
-    toast.info("Left the game");
+    offerDraw();
     setShowConfirmDraw(false);
   };
 
   const handleLeaveGame = () => {
-    leaveRoom();
-    toast.info("Left the game");
-    navigate("/lobby");
+    if (isGameActive) {
+      if (
+        window.confirm(
+          "The game is still active. Leaving will count as a resignation. Are you sure?"
+        )
+      ) {
+        resignGame();
+      } else {
+        toast.info("Returning to lobby");
+        navigate("/lobby");
+      }
+    }
   };
 
   return (
@@ -39,7 +62,6 @@ const GameControls = () => {
           Game Controls
         </CardTitle>
       </CardHeader>
-
       <CardContent className="space-y-3">
         <AnimatePresence mode="wait">
           {!showConfirmResign ? (
@@ -54,6 +76,7 @@ const GameControls = () => {
                 size="sm"
                 className="w-full justify-start group hover:shadow-lg transition-all duration-300"
                 onClick={() => setShowConfirmResign(true)}
+                disabled={!isGameActive}
               >
                 <Flag className="w-4 h-4 mr-2 group-hover:animate-pulse" />
                 Resign
@@ -102,23 +125,65 @@ const GameControls = () => {
         </AnimatePresence>
 
         <AnimatePresence mode="wait">
-          {!showConfirmDraw ? (
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.2, delay: 0.05 }}
-            >
-              <Button
-                variant="outline"
-                size="sm"
-                className="w-full justify-start group hover:bg-primary/10 hover:border-primary/30 hover:text-primary transition-all duration-300"
-                onClick={() => setShowConfirmDraw(true)}
+          {!drawOffer ? (
+            !showConfirmDraw ? (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.2, delay: 0.05 }}
               >
-                <Handshake className="w-4 h-4 mr-2 group-hover:animate-bounce" />
-                Offer Draw
-              </Button>
-            </motion.div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full justify-start group hover:bg-primary/10 hover:border-primary/30 hover:text-primary transition-all duration-300"
+                  onClick={() => setShowConfirmDraw(true)}
+                  disabled={!isGameActive}
+                >
+                  <Handshake className="w-4 h-4 mr-2 group-hover:animate-bounce" />
+                  Offer Draw
+                </Button>
+              </motion.div>
+            ) : (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={{ duration: 0.2 }}
+                className="bg-primary/10 border border-primary/30 rounded-lg p-4 space-y-3"
+              >
+                <div className="flex items-center text-primary">
+                  <Handshake className="w-4 h-4 mr-2" />
+                  <span className="text-sm font-heading font-semibold">
+                    Offer Draw
+                  </span>
+                </div>
+
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Send a draw offer to your opponent? The game will end in a
+                  draw if they accept.
+                </p>
+
+                <div className="flex gap-2">
+                  <Button
+                    variant="default"
+                    size="sm"
+                    onClick={handleOfferDraw}
+                    className="flex-1 hover:shadow-lg transition-all duration-300"
+                  >
+                    Send Offer
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowConfirmDraw(false)}
+                    className="flex-1 hover:bg-muted/50"
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </motion.div>
+            )
           ) : (
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
@@ -130,31 +195,27 @@ const GameControls = () => {
               <div className="flex items-center text-primary">
                 <Handshake className="w-4 h-4 mr-2" />
                 <span className="text-sm font-heading font-semibold">
-                  Offer Draw
+                  {drawOffer.playerName} offered a draw
                 </span>
               </div>
 
-              <p className="text-xs text-muted-foreground leading-relaxed">
-                Send a draw offer to your opponent? The game will end in a draw
-                if they accept.
-              </p>
-
               <div className="flex gap-2">
                 <Button
-                  variant="default"
                   size="sm"
-                  onClick={handleOfferDraw}
-                  className="flex-1 hover:shadow-lg transition-all duration-300"
+                  onClick={acceptDraw}
+                  className="flex-1 bg-green-600 hover:bg-green-700 text-white"
                 >
-                  Send Offer
+                  <Check className="w-4 h-4 mr-2" />
+                  Accept
                 </Button>
                 <Button
-                  variant="outline"
+                  variant="destructive"
                   size="sm"
-                  onClick={() => setShowConfirmDraw(false)}
-                  className="flex-1 hover:bg-muted/50"
+                  onClick={declineDraw}
+                  className="flex-1"
                 >
-                  Cancel
+                  <XCircle className="w-4 h-4 mr-2" />
+                  Decline
                 </Button>
               </div>
             </motion.div>

@@ -33,6 +33,8 @@ const GameRoom = () => {
   const joinQueue = useRoomStore((state) => state.joinQueue);
 
   const currentGame = useGameStore((state) => state.currentGame);
+  const clearGame = useGameStore((state) => state.clearGame);
+  const clearRoom = useRoomStore((state) => state.clearRoom);
 
   const currentTurn = useGameStore(
     (state) => state.currentGame?.fen.split(" ")[1]
@@ -74,6 +76,7 @@ const GameRoom = () => {
       GameStatus.COMPLETED,
       GameStatus.DRAW,
       GameStatus.ABANDONED,
+      GameStatus.RESIGNED,
     ].includes(currentGame.status);
 
     if (isGameEnded && !modalOpenedRef.current) {
@@ -83,15 +86,22 @@ const GameRoom = () => {
       let res: typeof endResult = null;
       let reason: string | undefined = undefined;
 
-      if (currentGame.status === GameStatus.DRAW) {
+      if (currentGame.status === GameStatus.RESIGNED) {
+        res = currentGame.winnerId === userId ? "win" : "loss";
+        reason =
+          res === "win"
+            ? "Your opponent resigned."
+            : "You resigned from the game.";
+      } else if (currentGame.status === GameStatus.DRAW) {
         res = "draw";
-        reason = "Game ended in a Draw.";
+        reason = "The game is a draw.";
       } else if (currentGame.status === GameStatus.COMPLETED) {
         res = currentGame.winnerId === userId ? "win" : "loss";
-        reason = res === "win" ? "You won the game!" : "You lost the game.";
+        reason =
+          res === "win" ? "You won by checkmate!" : "You lost by checkmate.";
       } else if (currentGame.status === GameStatus.ABANDONED) {
-        res = "resign";
-        reason = "Game abandoned due to opponent's disconnection.";
+        res = currentGame.winnerId === userId ? "win" : "loss";
+        reason = "Your opponent disconnected and abandoned the game.";
       }
 
       setEndResult(res);
@@ -107,12 +117,16 @@ const GameRoom = () => {
 
   const handleEndModalClose = () => {
     setModalOpen(false);
+    clearGame();
+    clearRoom();
     navigate("/lobby");
   };
 
   const handlePlayAgain = () => {
-    joinQueue(true);
     setModalOpen(false);
+    clearGame();
+    clearRoom();
+    joinQueue(true);
   };
 
   const { whitePlayer, blackPlayer } = useMemo(() => {
