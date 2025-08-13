@@ -70,10 +70,7 @@ export const useWebSocketStore = create<WebSocketState>((set, get) => ({
     set({ status: "connecting", error: null });
 
     try {
-      const wsProtocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-      const wsHost =
-        import.meta.env.VITE_WS_URL_DEV ||
-        `${wsProtocol}//${window.location.host}`;
+      const wsHost = import.meta.env.VITE_WS_URL_DEV;
       const wsUrl = `${wsHost}`;
 
       const ws = new WebSocket(wsUrl);
@@ -174,7 +171,7 @@ export const useWebSocketStore = create<WebSocketState>((set, get) => ({
 
     if (messageCount >= RATE_LIMIT.MAX_MESSAGES_PER_MINUTE) {
       toast.warning(
-        "Rate limit exceeded! Please wait before sending more messages.",
+        "Rate limit exceeded! Please wait before sending more messages."
       );
       set({ error: "Rate limit exceeded. Please slow down." });
       return;
@@ -236,7 +233,7 @@ export const useWebSocketStore = create<WebSocketState>((set, get) => ({
         toast.info(
           `Reconnecting (${state.reconnectAttempts + 1}/${
             state.maxReconnectAttempts
-          })...`,
+          })...`
         );
         get().connect();
       }
@@ -306,7 +303,7 @@ export const useWebSocketConnection = () => {
   const connect = useWebSocketStore((state) => state.connect);
   const disconnect = useWebSocketStore((state) => state.disconnect);
   const isConnected = useWebSocketStore(
-    (state) => state.status === "connected",
+    (state) => state.status === "connected"
   );
 
   return useMemo(
@@ -317,7 +314,7 @@ export const useWebSocketConnection = () => {
       disconnect,
       isConnected,
     }),
-    [status, error, connect, disconnect, isConnected],
+    [status, error, connect, disconnect, isConnected]
   );
 };
 
@@ -330,7 +327,7 @@ export const useWebSocketSender = () => {
       sendMessage,
       canSend,
     }),
-    [sendMessage, canSend],
+    [sendMessage, canSend]
   );
 };
 
@@ -345,6 +342,6 @@ export const useWebSocketMessages = () => {
       messageHistory,
       clearHistory,
     }),
-    [lastMessage, messageHistory, clearHistory],
+    [lastMessage, messageHistory, clearHistory]
   );
 };

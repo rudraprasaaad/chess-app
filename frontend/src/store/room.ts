@@ -20,8 +20,6 @@ interface RoomState {
 
   isInQueue: boolean;
   queueType: "guest" | "rated" | null;
-  queueStartTime: number | null;
-  queueTimeElapsed: number;
 
   isJoiningRoom: boolean;
   isCreatingRoom: boolean;
@@ -51,8 +49,6 @@ export const useRoomStore = create<RoomState>((set, get) => ({
   availableRooms: [],
   isInQueue: false,
   queueType: null,
-  queueStartTime: null,
-  queueTimeElapsed: 0,
   isJoiningRoom: false,
   isCreatingRoom: false,
   error: null,
@@ -134,13 +130,10 @@ export const useRoomStore = create<RoomState>((set, get) => ({
     }
 
     const queueType = isGuest ? "guest" : "rated";
-    const startTime = Date.now();
 
     set({
       isInQueue: true,
       queueType,
-      queueStartTime: startTime,
-      queueTimeElapsed: 0,
       error: null,
     });
 
@@ -151,23 +144,6 @@ export const useRoomStore = create<RoomState>((set, get) => ({
 
     useAuthStore.getState().setStatus(UserStatus.WAITING);
     toast.info(`Searching for a ${isGuest ? "guest" : "rated"} match...`);
-
-    const timer = setInterval(() => {
-      const { isInQueue, queueStartTime } = get();
-      if (!isInQueue || !queueStartTime) {
-        clearInterval(timer);
-        return;
-      }
-
-      const elapsed = Math.floor((Date.now() - queueStartTime) / 1000);
-      set({ queueTimeElapsed: elapsed });
-
-      if (elapsed >= 60) {
-        clearInterval(timer);
-        get().leaveQueue();
-        toast.warning("No opponent found. Please try again.");
-      }
-    }, 1000);
   },
 
   leaveQueue: () => {
@@ -181,8 +157,6 @@ export const useRoomStore = create<RoomState>((set, get) => ({
     set({
       isInQueue: false,
       queueType: null,
-      queueStartTime: null,
-      queueTimeElapsed: 0,
       error: null,
     });
 
@@ -228,7 +202,7 @@ export const useRoomStore = create<RoomState>((set, get) => ({
     const { currentRoom } = get();
     if (currentRoom) {
       const updatedPlayers = currentRoom.players.filter(
-        (p) => p.id !== playerId,
+        (p) => p.id !== playerId
       );
       set({
         currentRoom: {
@@ -249,8 +223,6 @@ export const useRoomStore = create<RoomState>((set, get) => ({
       currentRoom: null,
       isInQueue: false,
       queueType: null,
-      queueStartTime: null,
-      queueTimeElapsed: 0,
       isJoiningRoom: false,
       isCreatingRoom: false,
       error: null,
@@ -273,9 +245,6 @@ export const useQueueStatus = () =>
   useRoomStore((state) => ({
     isInQueue: state.isInQueue,
     queueType: state.queueType,
-    timeElapsed: state.queueTimeElapsed,
-    timeRemaining: Math.max(0, 60 - state.queueTimeElapsed),
-    formattedTime: formatQueueTime(state.queueTimeElapsed),
   }));
 
 export const useRoomActions = () => {
@@ -293,7 +262,7 @@ export const useRoomActions = () => {
       joinQueue,
       leaveQueue,
     }),
-    [createRoom, joinRoom, leaveRoom, joinQueue, leaveQueue],
+    [createRoom, joinRoom, leaveRoom, joinQueue, leaveQueue]
   );
 };
 
@@ -304,12 +273,6 @@ export const useRoomUI = () =>
     error: state.error,
     setError: state.setError,
   }));
-
-const formatQueueTime = (seconds: number): string => {
-  const mins = Math.floor(seconds / 60);
-  const secs = seconds % 60;
-  return `${mins}:${secs.toString().padStart(2, "0")}`;
-};
 
 export const handleRoomMessage = (message: any) => {
   const { setCurrentRoom, setError, setJoiningRoom, setCreatingRoom } =
@@ -324,6 +287,7 @@ export const handleRoomMessage = (message: any) => {
       break;
 
     case "ROOM_UPDATED":
+      useRoomStore.setState({ isInQueue: false, queueType: null });
       setCurrentRoom(message.payload);
       setCurrentGame(message.payload.game);
       setJoiningRoom(false);
@@ -333,17 +297,15 @@ export const handleRoomMessage = (message: any) => {
       break;
 
     case "QUEUE_TIMEOUT":
-      useRoomStore.getState().leaveQueue();
+      useRoomStore.setState({ isInQueue: false, queueType: null });
       useAuthStore.getState().setStatus(UserStatus.ONLINE);
-      setError("No match found. Please try again.");
+      toast.error("No match found. Please try again.");
       break;
 
     case "QUEUE_LEFT":
       useRoomStore.setState({
         isInQueue: false,
         queueType: null,
-        queueStartTime: null,
-        queueTimeElapsed: 0,
       });
       useAuthStore.getState().setStatus(UserStatus.ONLINE);
       break;
