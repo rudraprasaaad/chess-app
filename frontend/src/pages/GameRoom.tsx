@@ -3,7 +3,6 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
 import { useRoomStore } from "../store/room";
 import { useAuthStore } from "../store/auth";
-import { toast } from "sonner";
 import PlayerTime from "../components/game/PlayerTimer";
 import MoveHistory from "../components/game/MoveHistory";
 import GameControls from "../components/game/GameControls";
@@ -21,17 +20,22 @@ import { GameStatus } from "../types/common";
 import GameEndModal from "../components/game/GameEndModal";
 import GameChat from "../components/game/GameChat";
 import { Navbar } from "../components/shared/Navbar";
+import { useWebSocketConnection, useWebSocketSender } from "../store/websocket";
 
 const GameRoom = () => {
   const navigate = useNavigate();
   const { gameId } = useParams<{ gameId: string }>();
 
   const { user } = useAuthStore();
+  const { isConnected } = useWebSocketConnection();
+  const { sendMessage } = useWebSocketSender();
+
   const joinQueue = useRoomStore((state) => state.joinQueue);
 
   const currentGame = useGameStore((state) => state.currentGame);
+
   const currentTurn = useGameStore(
-    (state) => state.currentGame?.fen.split(" ")[1]
+    (state) => state.currentGame?.fen.split(" ")[1],
   );
   const isPromotionOpen = useGameStore((state) => state.isPromotionModalOpen);
   const submitPromotion = useGameStore((state) => state.submitPromotion);
@@ -42,48 +46,64 @@ const GameRoom = () => {
     "win" | "loss" | "draw" | "timeout" | "resign" | null
   >(null);
   const [endReasonMessage, setEndReasonMessage] = useState<string | undefined>(
-    undefined
+    undefined,
   );
-  const hasRedirected = useRef(false);
+
+  const modalOpenedRef = useRef(false);
 
   useEffect(() => {
-    if (!currentGame || currentGame.id !== gameId) {
-      if (!hasRedirected.current) {
-        hasRedirected.current = true;
-        toast.error("Game not found or not active. Redirecting to lobby.");
-        navigate("/lobby");
-      }
+    if (!gameId) {
+      navigate("/lobby");
       return;
     }
 
-    if (
-      currentGame.status === GameStatus.COMPLETED ||
-      currentGame.status === GameStatus.DRAW ||
-      currentGame.status === GameStatus.ABANDONED
-    ) {
-      setModalOpen(true);
+    if (isConnected) {
+      if (!currentGame || currentGame.id !== gameId) {
+        sendMessage({
+          type: "REQUEST_REJOIN",
+          payload: { gameId },
+        });
+      }
+    }
+  }, [isConnected, gameId, currentGame, sendMessage, navigate]);
+
+  useEffect(() => {
+    if (!currentGame || currentGame.id !== gameId) return;
+
+    const isGameEnded = [
+      GameStatus.COMPLETED,
+      GameStatus.DRAW,
+      GameStatus.ABANDONED,
+    ].includes(currentGame.status);
+
+    if (isGameEnded && !modalOpenedRef.current) {
+      modalOpenedRef.current = true;
+
       const userId = user?.id;
-      let res: typeof endResult = "draw";
+      let res: typeof endResult = null;
+      let reason: string | undefined = undefined;
 
       if (currentGame.status === GameStatus.DRAW) {
         res = "draw";
-        setEndReasonMessage("Game ended in a Draw.");
+        reason = "Game ended in a Draw.";
       } else if (currentGame.status === GameStatus.COMPLETED) {
         res = currentGame.winnerId === userId ? "win" : "loss";
-        setEndReasonMessage(
-          res === "win" ? "You won the game!" : "You lost the game."
-        );
+        reason = res === "win" ? "You won the game!" : "You lost the game.";
       } else if (currentGame.status === GameStatus.ABANDONED) {
         res = "resign";
-        setEndReasonMessage("Game abandoned due to disconnection.");
+        reason = "Game abandoned due to opponent's disconnection.";
       }
+
       setEndResult(res);
-    } else {
+      setEndReasonMessage(reason);
+      setModalOpen(true);
+    } else if (!isGameEnded && modalOpenedRef.current) {
+      modalOpenedRef.current = false;
       setModalOpen(false);
       setEndResult(null);
       setEndReasonMessage(undefined);
     }
-  }, [currentGame, gameId, navigate, user]);
+  }, [currentGame, gameId, user?.id]);
 
   const handleEndModalClose = () => {
     setModalOpen(false);
@@ -105,17 +125,23 @@ const GameRoom = () => {
         >
           <div className="w-12 h-12 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
           <p className="text-lg font-heading text-foreground">
-            Loading game...
+            {isConnected ? "Loading Game..." : "Connecting to Server..."}
           </p>
+          {!isConnected && ( // Show this additional message only if not connected
+            <p className="text-sm text-muted-foreground mt-2">
+              Waiting for server connection to rejoin game.
+            </p>
+          )}
         </motion.div>
       </div>
     );
   }
 
+  // Once currentGame is loaded and matches gameId, render the game UI
   const whitePlayer = currentGame.players.find((p) => p.color === "white");
   const blackPlayer = currentGame.players.find((p) => p.color === "black");
   const currentPlayerColor = currentGame.players.find(
-    (p) => p.userId === user?.id
+    (p) => p.userId === user?.id,
   )?.color;
 
   return (
