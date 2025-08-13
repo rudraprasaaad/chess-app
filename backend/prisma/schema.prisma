@@ -37,6 +37,7 @@ model Game {
   fen         String
   moveHistory Json[]
   timers      Json
+  timeControl Json
   status      GameStatus   @default(ACTIVE)
   players     GamePlayer[]
   chat        Json[]
