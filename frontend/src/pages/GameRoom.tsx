@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { useNavigate, useParams } from "react-router-dom";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRoomStore } from "../store/room";
 import { useAuthStore } from "../store/auth";
 import PlayerTime from "../components/game/PlayerTimer";
@@ -35,7 +35,7 @@ const GameRoom = () => {
   const currentGame = useGameStore((state) => state.currentGame);
 
   const currentTurn = useGameStore(
-    (state) => state.currentGame?.fen.split(" ")[1],
+    (state) => state.currentGame?.fen.split(" ")[1]
   );
   const isPromotionOpen = useGameStore((state) => state.isPromotionModalOpen);
   const submitPromotion = useGameStore((state) => state.submitPromotion);
@@ -46,7 +46,7 @@ const GameRoom = () => {
     "win" | "loss" | "draw" | "timeout" | "resign" | null
   >(null);
   const [endReasonMessage, setEndReasonMessage] = useState<string | undefined>(
-    undefined,
+    undefined
   );
 
   const modalOpenedRef = useRef(false);
@@ -115,6 +115,19 @@ const GameRoom = () => {
     setModalOpen(false);
   };
 
+  const { whitePlayer, blackPlayer } = useMemo(() => {
+    if (!currentGame?.players) return { whitePlayer: null, blackPlayer: null };
+
+    const white = currentGame.players.find((p) => p.color === "white");
+    const black = currentGame.players.find((p) => p.color === "black");
+
+    return { whitePlayer: white, blackPlayer: black };
+  }, [currentGame?.players]);
+
+  const currentPlayerColor = useMemo(() => {
+    return currentGame?.players.find((p) => p.userId === user?.id)?.color;
+  }, [currentGame?.players, user?.id]);
+
   if (!currentGame || currentGame.id !== gameId) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-background">
@@ -127,7 +140,7 @@ const GameRoom = () => {
           <p className="text-lg font-heading text-foreground">
             {isConnected ? "Loading Game..." : "Connecting to Server..."}
           </p>
-          {!isConnected && ( // Show this additional message only if not connected
+          {!isConnected && (
             <p className="text-sm text-muted-foreground mt-2">
               Waiting for server connection to rejoin game.
             </p>
@@ -136,13 +149,6 @@ const GameRoom = () => {
       </div>
     );
   }
-
-  // Once currentGame is loaded and matches gameId, render the game UI
-  const whitePlayer = currentGame.players.find((p) => p.color === "white");
-  const blackPlayer = currentGame.players.find((p) => p.color === "black");
-  const currentPlayerColor = currentGame.players.find(
-    (p) => p.userId === user?.id,
-  )?.color;
 
   return (
     <div className="h-screen bg-background overflow-hidden">
