@@ -1,12 +1,16 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { Chess, Square } from "chess.js";
 import { InputJsonValue } from "@prisma/client/runtime/library";
 
 import {
+  ChatMessage,
   Game,
   GameStatus,
+  Move,
   RoomStatus,
   RoomType,
   RoomWithGame,
+  TimeControl,
 } from "../../lib/types";
 import { prisma } from "../../lib/prisma";
 
@@ -18,54 +22,68 @@ import { logger } from "../../services/logger";
 export class GameService {
   private ws: WebSocketService;
 
+  private activeGames: Set<string> = new Set();
+  private masterTimer: NodeJS.Timeout | null = null;
+
   constructor(ws: WebSocketService) {
     this.ws = ws;
+    this.startMasterTimer();
   }
 
-  private gameTimers: Map<string, NodeJS.Timeout> = new Map();
+  private startMasterTimer(): void {
+    if (this.masterTimer) return;
 
-  private clearGameTimer(gameId: string): void {
-    const timer = this.gameTimers.get(gameId);
-    if (timer) {
-      clearInterval(timer);
-      this.gameTimers.delete(gameId);
-    }
-    redis.del(`gameTimerActive:${gameId}`);
-  }
+    this.masterTimer = setInterval(async () => {
+      if (this.activeGames.size === 0) return;
 
-  private async startGameTimer(gameId: string): Promise<void> {
-    const timerId = setInterval(async () => {
-      try {
-        const gameData = await redis.get(`game:${gameId}`);
-        if (!gameData) {
-          this.clearGameTimer(gameId);
-          return;
+      for (const gameId of this.activeGames) {
+        try {
+          const gameData = await redis.get(`game:${gameId}`);
+          if (!gameData) {
+            this.activeGames.delete(gameId);
+            continue;
+          }
+
+          const game = JSON.parse(gameData) as Game;
+
+          if (game.status !== GameStatus.ACTIVE) {
+            this.activeGames.delete(gameId);
+            continue;
+          }
+
+          const currentTurn = game.fen.split(" ")[1] as "w" | "b";
+          const colorMap = { w: "white", b: "black" } as const;
+          const currentColor = colorMap[currentTurn];
+
+          game.timers[currentColor] -= 1;
+
+          await redis.setJSON(`game:${gameId}`, game);
+
+          this.ws.broadcastToGame(game, "TIMER_UPDATE", {
+            white: game.timers.white,
+            black: game.timers.black,
+          });
+
+          if (game.timers[currentColor] <= 0)
+            await this.handleTimeout(gameId, currentColor);
+        } catch (err) {
+          logger.error(`Error in master timer loop for game ${gameId}:`, err);
+          this.activeGames.delete(gameId);
         }
-
-        const game = JSON.parse(gameData) as Game;
-
-        if (game.status !== GameStatus.ACTIVE) {
-          this.clearGameTimer(gameId);
-          return;
-        }
-
-        const currentTurn = game.fen.split(" ")[1] as "w" | "b";
-        const colorMap = { w: "white", b: "black" } as const;
-        const currentColor = colorMap[currentTurn];
-
-        if (game.timers[currentColor] <= 0) {
-          this.clearGameTimer(gameId);
-          await this.handleTimeout(gameId, currentColor);
-        }
-      } catch (err) {
-        logger.error("Error in game timer:", err);
-        clearInterval(timerId);
       }
     }, 1000);
 
-    this.gameTimers.set(gameId, timerId);
+    logger.info("Master game timer has started");
+  }
 
-    await redis.set(`gameTimerActive:${gameId}`, "true", { EX: 7200 });
+  public addGameToTimer(gameId: string) {
+    this.activeGames.add(gameId);
+    logger.info(`Game ${gameId} added to master timer.`);
+  }
+
+  public removeGameFromTimer(gameId: string) {
+    this.activeGames.delete(gameId);
+    logger.info(`Game ${gameId} removed from master timer.`);
   }
 
   async loadGame(gameId: string, playerId: string): Promise<void> {
@@ -101,14 +119,15 @@ export class GameService {
           id: dbGame.id,
           roomId: dbGame.roomId,
           fen: dbGame.fen,
-          moveHistory: dbGame.moveHistory,
+          moveHistory: dbGame.moveHistory as unknown as Move[],
           timers: dbGame.timers as { white: number; black: number },
+          timeControl: dbGame.timeControl as unknown as TimeControl,
           status: dbGame.status as GameStatus,
           players: dbGame.players.map((p) => ({
             userId: p.userId,
             color: p.color,
           })),
-          chat: dbGame.chat,
+          chat: dbGame.chat as unknown as ChatMessage[],
           winnerId: dbGame.winnerId || undefined,
           createdAt: dbGame.createdAt,
         };
@@ -131,18 +150,13 @@ export class GameService {
         payload: game,
       });
 
-      if (game.status === GameStatus.ACTIVE) {
-        const timerActive = await redis.get(`gameTimerActive:${gameId}`);
-        if (!timerActive && !this.gameTimers.has(gameId)) {
-          await this.startGameTimer(gameId);
-        }
-      }
+      if (game.status === GameStatus.ACTIVE) this.addGameToTimer(game.id);
 
       logger.info(`Game ${gameId} loaded for player ${playerId}`);
     } catch (error) {
       logger.error(
         `Error loading game ${gameId} for player ${playerId}:`,
-        error
+        error,
       );
       this.ws.broadcastToClient(playerId, {
         type: "LOAD_GAME_ERROR",
@@ -199,12 +213,18 @@ export class GameService {
     });
 
     const chess = new Chess();
+
+    const timeControl: TimeControl = {
+      initial: 600,
+      increment: 0,
+    };
     const game = await prisma.game.create({
       data: {
         roomId,
         fen: chess.fen(),
         moveHistory: [],
-        timers: { white: 600, black: 600 },
+        timers: { white: timeControl.initial, black: timeControl.initial },
+        timeControl: timeControl as unknown as InputJsonValue,
         status: GameStatus.ACTIVE,
         chat: [],
         players: {
@@ -221,11 +241,12 @@ export class GameService {
       id: game.id,
       roomId: game.roomId,
       fen: game.fen,
-      moveHistory: game.moveHistory,
+      moveHistory: game.moveHistory as unknown as Move[],
       timers: game.timers as { white: number; black: number },
+      timeControl: game.timeControl as unknown as TimeControl,
       status: game.status as GameStatus,
       players: game.players.map((p) => ({ userId: p.userId, color: p.color })),
-      chat: game.chat,
+      chat: game.chat as unknown as ChatMessage[],
       winnerId: game.winnerId || undefined,
       createdAt: game.createdAt,
     };
@@ -241,26 +262,20 @@ export class GameService {
 
     this.ws.broadcastToRoom(roomWithGame);
 
-    await this.startGameTimer(game.id);
+    this.addGameToTimer(game.id);
     return gameData;
   }
 
   async makeMove(
     gameId: string,
     playerId: string,
-    move: { from: Square; to: Square; promotion?: string }
+    move: { from: Square; to: Square; promotion?: string },
   ): Promise<void> {
     const gameData = await redis.get(`game:${gameId}`);
     if (!gameData) throw new Error("Game not found");
-
-    const gameRaw = JSON.parse(gameData) as Game;
-    const moveHistory = gameRaw.moveHistory as {
-      from: string;
-      to: string;
-      san?: string;
-    }[];
-    const chess = new Chess(gameRaw.fen);
-    const player = gameRaw.players.find((p) => p.userId === playerId);
+    const game = JSON.parse(gameData) as Game;
+    const chess = new Chess(game.fen);
+    const player = game.players.find((p) => p.userId === playerId);
 
     if (!player || chess.turn() !== player.color[0]) {
       throw new Error("Not your turn");
@@ -279,7 +294,6 @@ export class GameService {
           where: { id: playerId },
           data: { banned: true },
         });
-
         this.ws.broadcastToClient(playerId, {
           type: "ERROR",
           payload: { message: "Banned for Illegal moves." },
@@ -289,69 +303,57 @@ export class GameService {
         await redis.set(`invalidMoves:${playerId}`, String(attempts + 1), {
           EX: 3600,
         });
-
         this.ws.broadcastToClient(playerId, {
           type: "ILLEGAL_MOVE",
-          payload: {
-            gameId,
-            move,
-            attempts: attempts + 1,
-            maxAttempts: 3,
-          },
+          payload: { gameId, move, attempts: attempts + 1, maxAttempts: 3 },
         });
         return;
       }
     }
 
-    moveHistory.push({ ...move, san: result.san });
+    const movedPlayerColor = player.color as "white" | "black";
+    game.timers[movedPlayerColor] += game.timeControl.increment;
 
-    const playerWhoMoved = chess.turn() === "w" ? "black" : "white";
-
-    let gameStatus = GameStatus.ACTIVE;
-    let winnerId: string | undefined;
-
-    if (chess.isCheckmate()) {
-      gameStatus = GameStatus.COMPLETED;
-      winnerId = player.userId;
-    } else if (chess.isDraw()) {
-      gameStatus = GameStatus.COMPLETED;
-    }
-
-    const updatedGame = await prisma.game.update({
-      where: { id: gameId },
-      data: {
-        fen: chess.fen(),
-        moveHistory: moveHistory as InputJsonValue[],
-        status: gameStatus,
-        winnerId,
-        timers: {
-          ...gameRaw.timers,
-          [playerWhoMoved]: gameRaw.timers[playerWhoMoved] - 1,
-        },
-      },
+    game.fen = chess.fen();
+    game.moveHistory.push({
+      from: move.from,
+      to: move.to,
+      promotion: move.promotion as "q" | "r" | "b" | "n",
+      san: result.san,
     });
 
-    const formattedGame: Game = {
-      id: updatedGame.id,
-      roomId: updatedGame.roomId,
-      fen: updatedGame.fen,
-      moveHistory: updatedGame.moveHistory,
-      timers: updatedGame.timers as { white: number; black: number },
-      status: updatedGame.status as GameStatus,
-      players: gameRaw.players,
-      chat: updatedGame.chat,
-      winnerId: updatedGame.winnerId || undefined,
-      createdAt: updatedGame.createdAt,
-    };
+    if (chess.isCheckmate()) {
+      game.status = GameStatus.COMPLETED;
+      game.winnerId = player.userId;
+      this.removeGameFromTimer(gameId);
+    } else if (chess.isDraw()) {
+      game.status = GameStatus.DRAW;
+      this.removeGameFromTimer(gameId);
+    }
 
-    await redis.setJSON(`game:${gameId}`, formattedGame);
-    this.ws.broadcastToGame(formattedGame);
+    if (game.status !== GameStatus.ACTIVE) {
+      await prisma.game.update({
+        where: { id: gameId },
+        data: {
+          fen: game.fen,
+          moveHistory: game.moveHistory as unknown as InputJsonValue[],
+          status: game.status,
+          winnerId: game.winnerId,
+          timers: game.timers as unknown as InputJsonValue,
+          timeControl: game.timeControl as unknown as InputJsonValue,
+        },
+      });
+    }
+
+    await redis.setJSON(`game:${gameId}`, game);
+
+    this.ws.broadcastToGame(game);
   }
 
   async getLegalMoves(
     gameId: string,
     playerId: string,
-    square: Square
+    square: Square,
   ): Promise<void> {
     try {
       const gameData = await redis.get(`game:${gameId}`);
@@ -405,6 +407,7 @@ export class GameService {
   }
 
   async resignGame(gameId: string, playerId: string): Promise<void> {
+    this.removeGameFromTimer(gameId);
     try {
       const gameData = await redis.get(`game:${gameId}`);
       if (!gameData) throw new Error("Game not found");
@@ -426,6 +429,10 @@ export class GameService {
         data: {
           status: GameStatus.COMPLETED,
           winnerId: opponent.userId,
+          fen: game.fen,
+          timers: game.timers as InputJsonValue,
+          moveHistory: game.moveHistory as unknown as InputJsonValue[],
+          timeControl: game.timeControl as unknown as InputJsonValue,
         },
       });
 
@@ -518,6 +525,7 @@ export class GameService {
   }
 
   async acceptDraw(gameId: string, playerId: string): Promise<void> {
+    this.removeGameFromTimer(gameId);
     try {
       const gameData = await redis.get(`game:${gameId}}`);
       if (!gameData) throw new Error("Game not found");
@@ -533,7 +541,7 @@ export class GameService {
       if (!opponent) throw new Error("Opponent not found");
 
       const drawOffer = await redis.get(
-        `drawOffer:${gameId}:${opponent.userId}`
+        `drawOffer:${gameId}:${opponent.userId}`,
       );
       if (!drawOffer) throw new Error("No draw offer to accept");
 
@@ -607,8 +615,9 @@ export class GameService {
 
   async handleTimeout(
     gameId: string,
-    playerColor: "white" | "black"
+    playerColor: "white" | "black",
   ): Promise<void> {
+    this.removeGameFromTimer(gameId);
     try {
       const gameData = await redis.get(`game:${gameId}`);
       if (!gameData) throw new Error("Game not found");
