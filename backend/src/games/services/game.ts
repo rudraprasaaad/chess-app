@@ -68,6 +68,89 @@ export class GameService {
     await redis.set(`gameTimerActive:${gameId}`, "true", { EX: 7200 });
   }
 
+  async loadGame(gameId: string, playerId: string): Promise<void> {
+    try {
+      if (!gameId || typeof gameId !== "string" || gameId.trim().length === 0) {
+        this.ws.broadcastToClient(playerId, {
+          type: "INVALID_GAME_ID",
+          payload: { message: "Invalid game ID format" },
+        });
+        return;
+      }
+
+      const gameData = await redis.get(`game:${gameId}`);
+      let game: Game;
+
+      if (gameData) {
+        game = JSON.parse(gameData) as Game;
+      } else {
+        const dbGame = await prisma.game.findUnique({
+          where: { id: gameId },
+          include: { players: true },
+        });
+
+        if (!dbGame) {
+          this.ws.broadcastToClient(playerId, {
+            type: "GAME_NOT_FOUND",
+            payload: { message: "Game not found" },
+          });
+          return;
+        }
+
+        game = {
+          id: dbGame.id,
+          roomId: dbGame.roomId,
+          fen: dbGame.fen,
+          moveHistory: dbGame.moveHistory,
+          timers: dbGame.timers as { white: number; black: number },
+          status: dbGame.status as GameStatus,
+          players: dbGame.players.map((p) => ({
+            userId: p.userId,
+            color: p.color,
+          })),
+          chat: dbGame.chat,
+          winnerId: dbGame.winnerId || undefined,
+          createdAt: dbGame.createdAt,
+        };
+
+        await redis.setJSON(`game:${gameId}`, game);
+      }
+
+      const isPlayerInGame = game.players.some((p) => p.userId === playerId);
+
+      if (!isPlayerInGame) {
+        this.ws.broadcastToClient(playerId, {
+          type: "UNAUTHORIZED",
+          payload: { message: "Not authorized to view this game" },
+        });
+        return;
+      }
+
+      this.ws.broadcastToClient(playerId, {
+        type: "GAME_LOADED",
+        payload: game,
+      });
+
+      if (game.status === GameStatus.ACTIVE) {
+        const timerActive = await redis.get(`gameTimerActive:${gameId}`);
+        if (!timerActive && !this.gameTimers.has(gameId)) {
+          await this.startGameTimer(gameId);
+        }
+      }
+
+      logger.info(`Game ${gameId} loaded for player ${playerId}`);
+    } catch (error) {
+      logger.error(
+        `Error loading game ${gameId} for player ${playerId}:`,
+        error
+      );
+      this.ws.broadcastToClient(playerId, {
+        type: "LOAD_GAME_ERROR",
+        payload: { message: "Failed to load game" },
+      });
+    }
+  }
+
   async startGame(roomId: string): Promise<Game> {
     const room = await prisma.room.findUnique({
       where: {
