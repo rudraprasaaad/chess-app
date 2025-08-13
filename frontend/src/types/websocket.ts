@@ -61,6 +61,13 @@ export interface LoadGameMessage {
   };
 }
 
+export interface ResignGameMessage {
+  type: "RESIGN_GAME";
+  payload: {
+    gameId: string;
+  };
+}
+
 export interface RequestRejoinMessage {
   type: "REQUEST_REJOIN";
   payload: {
@@ -91,6 +98,13 @@ export interface TypingMessage {
   };
 }
 
+export interface OfferDrawMessage {
+  type: "OFFER_DRAW";
+  payload: {
+    gameId: string;
+  };
+}
+
 export interface AcceptDrawMessage {
   type: "ACCEPT_DRAW";
   payload: {
@@ -113,10 +127,12 @@ export type ClientMessage =
   | LeaveQueueMessage
   | MakeMoveMessage
   | LoadGameMessage
+  | ResignGameMessage
   | RequestRejoinMessage
   | GetLegalMoveMessage
   | ChatMessage
   | TypingMessage
+  | OfferDrawMessage
   | AcceptDrawMessage
   | DeclineDrawMessage;
 

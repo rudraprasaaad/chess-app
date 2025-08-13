@@ -39,6 +39,7 @@ interface GameState {
   setCurrentGame: (game: Game | null) => void;
   updateGame: (gameUpdate: Partial<Game>) => void;
   loadGame: (gameId: string) => void;
+  resignGame: () => void;
   makeMove: (move: { from: Square; to: Square; promotion?: string }) => void;
 
   setSelectedSquare: (square: Square | null) => void;
@@ -52,8 +53,9 @@ interface GameState {
   stopTyping: () => void;
   addChatMessage: (message: ChatMessage[]) => void;
 
+  offerDraw: () => void;
   setDrawOffer: (
-    offer: { playerName: string; playerId: string; isOpen: boolean } | null,
+    offer: { playerName: string; playerId: string; isOpen: boolean } | null
   ) => void;
   acceptDraw: () => void;
   declineDraw: () => void;
@@ -103,6 +105,21 @@ export const useGameStore = create<GameState>((set, get) => ({
       type: "LOAD_GAME",
       payload: { gameId },
     });
+  },
+
+  resignGame: () => {
+    const { currentGame } = get();
+    const { sendMessage } = useWebSocketStore.getState();
+
+    if (currentGame && currentGame.status === GameStatus.ACTIVE) {
+      sendMessage({
+        type: "RESIGN_GAME",
+        payload: {
+          gameId: currentGame.id,
+        },
+      });
+      toast.info("You have resigned the game.");
+    }
   },
 
   setCurrentGame: (game) => {
@@ -322,6 +339,20 @@ export const useGameStore = create<GameState>((set, get) => ({
     });
   },
 
+  offerDraw: () => {
+    const { currentGame } = get();
+    const { sendMessage } = useWebSocketStore.getState();
+
+    if (currentGame && currentGame.status === "ACTIVE") {
+      sendMessage({
+        type: "OFFER_DRAW",
+        payload: {
+          gameId: currentGame.id,
+        },
+      });
+    }
+  },
+
   setDrawOffer: (offer) => set({ drawOffer: offer }),
 
   acceptDraw: () => {
@@ -398,7 +429,7 @@ export const useCurrentGame = () => {
   const isPlayerTurn = useGameStore((state) => state.isPlayerTurn);
   const fen = useGameStore((state) => state.currentGame?.fen || "");
   const moveHistory = useGameStore(
-    (state) => state.currentGame?.moveHistory || [],
+    (state) => state.currentGame?.moveHistory || []
   );
 
   return useMemo(
@@ -411,7 +442,7 @@ export const useCurrentGame = () => {
       fen,
       moveHistory,
     }),
-    [game, isInGame, gameStatus, playerColor, isPlayerTurn, fen, moveHistory],
+    [game, isInGame, gameStatus, playerColor, isPlayerTurn, fen, moveHistory]
   );
 };
 
@@ -439,7 +470,7 @@ export const useBoardState = () => {
       setSelectedSquare,
       setLegalMoves,
       clearSelection,
-    ],
+    ]
   );
 };
 
@@ -459,7 +490,7 @@ export const useGameTimer = () => {
       blackTimeLeft,
       formatTime,
     }),
-    [whiteTimeLeft, blackTimeLeft],
+    [whiteTimeLeft, blackTimeLeft]
   );
 };
 
@@ -480,7 +511,7 @@ export const useGameChat = () => {
       startTyping,
       stopTyping,
     }),
-    [messages, isTyping, typingUsers, sendMessage, startTyping, stopTyping],
+    [messages, isTyping, typingUsers, sendMessage, startTyping, stopTyping]
   );
 };
 
@@ -495,7 +526,7 @@ export const useDrawOffer = () => {
       acceptDraw,
       declineDraw,
     }),
-    [drawOffer, acceptDraw, declineDraw],
+    [drawOffer, acceptDraw, declineDraw]
   );
 };
 
@@ -516,14 +547,7 @@ export const useGameActions = () => {
       setSelectedSquare,
       clearSelection,
     }),
-    [
-      makeMove,
-      isMakingMove,
-      error,
-      setError,
-      setSelectedSquare,
-      clearSelection,
-    ],
+    [makeMove, isMakingMove, error, setError, setSelectedSquare, clearSelection]
   );
 };
 
@@ -602,7 +626,7 @@ export const handleGameMessage = (message: any) => {
 
     case "PLAYER_RESIGNED":
       updateGame({
-        status: GameStatus.COMPLETED,
+        status: GameStatus.RESIGNED,
         winnerId: message.payload.winnerId,
       });
       toast.info(`${message.payload.playerName} resigned`);
@@ -660,7 +684,7 @@ export const handleGameMessage = (message: any) => {
             const currentTyping = useGameStore.getState().typingUsers;
             useGameStore.setState({
               typingUsers: currentTyping.filter(
-                (id) => id !== message.payload.playerId,
+                (id) => id !== message.payload.playerId
               ),
             });
           }, 3000);
