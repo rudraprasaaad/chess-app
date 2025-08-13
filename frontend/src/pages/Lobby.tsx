@@ -124,7 +124,10 @@ const Lobby = () => {
       currentRoom.status === RoomStatus.ACTIVE &&
       isRoomWithGame(currentRoom)
     ) {
-      navigate(`/game/${currentRoom.game.id}`);
+      const currentPath = window.location.pathname;
+      const targetPath = `/game/${currentRoom.game.id}`;
+
+      if (currentPath !== targetPath) navigate(targetPath);
     }
   }, [currentRoom, navigate]);
 
