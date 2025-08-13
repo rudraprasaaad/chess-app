@@ -99,6 +99,7 @@ const Lobby = () => {
     joinQueue,
     leaveQueue,
     error,
+    isInQueue,
   } = useRoomStore();
 
   const [roomType, setRoomType] = useState<RoomType.PUBLIC | RoomType.PRIVATE>(
@@ -107,7 +108,6 @@ const Lobby = () => {
   const [createInviteCode, setCreateInviteCode] = useState("");
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [joinInviteCode, setJoinInviteCode] = useState("");
-  const [isGuestQueue, setIsGuestQueue] = useState(false);
 
   const { isLoading: isLookinUp, refetch } = useRoomByInviteCode(
     joinInviteCode,
@@ -170,13 +170,11 @@ const Lobby = () => {
   };
 
   const handleQueue = (isGuest: boolean) => {
-    setIsGuestQueue(isGuest);
     joinQueue(isGuest);
   };
 
   const handleLeaveQueue = () => {
     leaveQueue();
-    setIsGuestQueue(false);
   };
 
   return (
@@ -373,7 +371,7 @@ const Lobby = () => {
               <div className="h-px bg-border flex-1" />
             </div>
 
-            {!isGuestQueue ? (
+            {!isInQueue ? (
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
