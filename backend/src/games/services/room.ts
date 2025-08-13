@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { prisma } from "../../lib/prisma";
 import {
   Room,
@@ -7,7 +8,9 @@ import {
   RoomType,
   RoomStatus,
   GameStatus,
-  RoomWithGame,
+  Move,
+  ChatMessage,
+  TimeControl,
 } from "../../lib/types";
 
 import { GameService } from "./game";
@@ -352,69 +355,6 @@ export class RoomService {
     }
   }
 
-  // async handleReconnect(ws: AuthenticatedWebSocket): Promise<void> {
-  //   try {
-  //     const lastGameId = await redis.get(`player:${ws.playerId}:lastGame`);
-  //     if (!lastGameId) return;
-
-  //     const game = await prisma.game.findUnique({
-  //       where: { id: lastGameId },
-  //       include: { players: true },
-  //     });
-  //     if (!game || game.status !== GameStatus.ACTIVE) return;
-
-  //     ws.gameId = game.id;
-  //     ws.roomId = game.roomId;
-
-  //     const room = await prisma.room.findUnique({ where: { id: game.roomId } });
-  //     if (!room) return;
-
-  //     const gameData: Game = {
-  //       id: game.id,
-  //       roomId: game.roomId,
-  //       fen: game.fen,
-  //       moveHistory: game.moveHistory,
-  //       timers: game.timers as { white: number; black: number },
-  //       status: game.status as GameStatus,
-  //       players: game.players.map((p) => ({
-  //         userId: p.userId,
-  //         color: p.color,
-  //       })),
-  //       chat: game.chat,
-  //       winnerId: game.winnerId || undefined,
-  //       createdAt: game.createdAt,
-  //     };
-
-  //     const roomData: RoomWithGame = {
-  //       id: room.id,
-  //       type: room.type as RoomType,
-  //       status: room.status as RoomStatus,
-  //       players: room.players as { id: string; color: string | null }[],
-  //       inviteCode: room.inviteCode || undefined,
-  //       createdAt: room.createdAt,
-  //       game: gameData,
-  //     };
-
-  //     await redis.setJSON(`game:${game.id}`, gameData);
-  //     await redis.setJSON(`room:${room.id}`, roomData);
-
-  //     await prisma.user.update({
-  //       where: { id: ws.playerId },
-  //       data: { status: UserStatus.IN_GAME },
-  //     });
-  //     await redis.set(`player:${ws.playerId}:status`, UserStatus.IN_GAME);
-
-  //     this.ws.broadcastToClient(ws.playerId, {
-  //       type: "REJOIN_GAME",
-  //       payload: roomData,
-  //     });
-
-  //     logger.info(`Player ${ws.playerId} reconnected to game ${game.id}`);
-  //   } catch (err) {
-  //     logger.error("Error in handleReconnect:", err);
-  //   }
-  // }
-
   async handleRequestRejoin(playerId: string, gameId: string): Promise<void> {
     try {
       const game = await prisma.game.findUnique({
@@ -448,14 +388,15 @@ export class RoomService {
         id: game.id,
         roomId: game.roomId,
         fen: game.fen,
-        moveHistory: game.moveHistory,
+        moveHistory: game.moveHistory as unknown as Move[],
         timers: game.timers as { white: number; black: number },
+        timeControl: game.timeControl as unknown as TimeControl,
         status: game.status as GameStatus,
         players: game.players.map((p) => ({
           userId: p.userId,
           color: p.color,
         })),
-        chat: game.chat,
+        chat: game.chat as unknown as ChatMessage[],
         winnerId: game.winnerId || undefined,
         createdAt: game.createdAt,
       };
@@ -467,6 +408,8 @@ export class RoomService {
 
       await redis.set(`player:${playerId}:status`, UserStatus.IN_GAME);
       await redis.set(`player:${playerId}:lastGame`, game.id);
+
+      this.gameService.addGameToTimer(game.id);
 
       this.ws.broadcastToClient(playerId, {
         type: "REJOIN_GAME",
@@ -566,14 +509,15 @@ export class RoomService {
             id: game.id,
             roomId: game.roomId,
             fen: game.fen,
-            moveHistory: game.moveHistory,
+            moveHistory: game.moveHistory as unknown as Move[],
             timers: game.timers as { white: number; black: number },
+            timeControl: game.timeControl as unknown as TimeControl,
             status: GameStatus.ABANDONED,
             players: game.players.map((p) => ({
               userId: p.userId,
               color: p.color,
             })),
-            chat: game.chat,
+            chat: game.chat as unknown as ChatMessage[],
             winnerId: opponent.userId,
             createdAt: game.createdAt,
           };
