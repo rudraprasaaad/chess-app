@@ -168,7 +168,7 @@ export class RoomService {
       const queueKey = `player:${playerId}:queue`;
 
       await redis.lpush(queue, playerId);
-      await redis.set(queueKey, queue, { EX: 60 });
+      await redis.set(queueKey, queue);
       await prisma.user.update({
         where: { id: playerId },
         data: { status: UserStatus.WAITING },
@@ -195,7 +195,7 @@ export class RoomService {
           });
           logger.info(`Player ${playerId} timed out from queue`);
         }
-      }, 60000);
+      }, 10000);
 
       if (isGuest) {
         await this.tryMatchGuests();

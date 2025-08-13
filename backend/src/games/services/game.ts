@@ -156,7 +156,7 @@ export class GameService {
     } catch (error) {
       logger.error(
         `Error loading game ${gameId} for player ${playerId}:`,
-        error,
+        error
       );
       this.ws.broadcastToClient(playerId, {
         type: "LOAD_GAME_ERROR",
@@ -269,7 +269,7 @@ export class GameService {
   async makeMove(
     gameId: string,
     playerId: string,
-    move: { from: Square; to: Square; promotion?: string },
+    move: { from: Square; to: Square; promotion?: string }
   ): Promise<void> {
     const gameData = await redis.get(`game:${gameId}`);
     if (!gameData) throw new Error("Game not found");
@@ -353,7 +353,7 @@ export class GameService {
   async getLegalMoves(
     gameId: string,
     playerId: string,
-    square: Square,
+    square: Square
   ): Promise<void> {
     try {
       const gameData = await redis.get(`game:${gameId}`);
@@ -427,7 +427,7 @@ export class GameService {
           id: gameId,
         },
         data: {
-          status: GameStatus.COMPLETED,
+          status: GameStatus.RESIGNED,
           winnerId: opponent.userId,
           fen: game.fen,
           timers: game.timers as InputJsonValue,
@@ -527,7 +527,7 @@ export class GameService {
   async acceptDraw(gameId: string, playerId: string): Promise<void> {
     this.removeGameFromTimer(gameId);
     try {
-      const gameData = await redis.get(`game:${gameId}}`);
+      const gameData = await redis.get(`game:${gameId}`);
       if (!gameData) throw new Error("Game not found");
 
       const game = JSON.parse(gameData) as Game;
@@ -541,7 +541,7 @@ export class GameService {
       if (!opponent) throw new Error("Opponent not found");
 
       const drawOffer = await redis.get(
-        `drawOffer:${gameId}:${opponent.userId}`,
+        `drawOffer:${gameId}:${opponent.userId}`
       );
       if (!drawOffer) throw new Error("No draw offer to accept");
 
@@ -615,7 +615,7 @@ export class GameService {
 
   async handleTimeout(
     gameId: string,
-    playerColor: "white" | "black",
+    playerColor: "white" | "black"
   ): Promise<void> {
     this.removeGameFromTimer(gameId);
     try {
