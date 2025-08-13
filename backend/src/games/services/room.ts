@@ -31,7 +31,7 @@ export class RoomService {
   async createRoom(
     type: RoomType,
     playerId: string,
-    inviteCode?: string,
+    inviteCode?: string
   ): Promise<void> {
     try {
       const user = await prisma.user.findUnique({ where: { id: playerId } });
@@ -87,7 +87,7 @@ export class RoomService {
   async joinRoom(
     roomId: string,
     playerId: string,
-    inviteCode?: string,
+    inviteCode?: string
   ): Promise<void> {
     try {
       const room = await prisma.room.findUnique({ where: { id: roomId } });
@@ -261,7 +261,7 @@ export class RoomService {
 
         this.ws.broadcastToRoom(roomData as Room);
         logger.info(
-          `Guest match created: ${room.id} (${player1} vs ${player2})`,
+          `Guest match created: ${room.id} (${player1} vs ${player2})`
         );
 
         await this.gameService.startGame(room.id);
@@ -340,7 +340,7 @@ export class RoomService {
 
         this.ws.broadcastToRoom(roomData as Room);
         logger.info(
-          `Rated match created: ${room.id} (${playerId} vs ${matchedPlayer})`,
+          `Rated match created: ${room.id} (${playerId} vs ${matchedPlayer})`
         );
 
         await this.gameService.startGame(room.id);
@@ -357,26 +357,49 @@ export class RoomService {
 
   async handleRequestRejoin(playerId: string, gameId: string): Promise<void> {
     try {
-      const game = await prisma.game.findUnique({
-        where: { id: gameId },
-        include: { players: true },
-      });
+      let game: Game | null = null;
 
-      if (!game || game.status !== GameStatus.ACTIVE) {
-        throw new Error("Active game not found");
+      const gameDataFromRedis = await redis.get(`game:${gameId}`);
+      if (gameDataFromRedis) {
+        game = JSON.parse(gameDataFromRedis) as Game;
+      } else {
+        const dbGame = await prisma.game.findUnique({
+          where: { id: gameId },
+          include: { players: true },
+        });
+
+        if (dbGame) {
+          game = {
+            id: dbGame.id,
+            roomId: dbGame.roomId,
+            fen: dbGame.fen,
+            moveHistory: dbGame.moveHistory as unknown as Move[],
+            timers: dbGame.timers as { white: number; black: number },
+            timeControl: dbGame.timeControl as unknown as TimeControl,
+            status: dbGame.status as GameStatus,
+            players: dbGame.players.map((p) => ({
+              userId: p.userId,
+              color: p.color,
+            })),
+            chat: dbGame.chat as unknown as ChatMessage[],
+            winnerId: dbGame.winnerId || undefined,
+            createdAt: dbGame.createdAt,
+          };
+          await redis.setJSON(`game:${gameId}`, game);
+        }
+      }
+
+      if (!game) {
+        throw new Error("Game not found.");
+      }
+
+      if (game.status !== GameStatus.ACTIVE) {
+        throw new Error("You can only rejoin active games.");
       }
 
       if (!game.players.some((p) => p.userId === playerId)) {
         throw new Error("You are not a player in this game.");
       }
-
-      const room = await prisma.room.findUnique({
-        where: {
-          id: game.roomId,
-        },
-      });
-
-      if (!room) throw new Error("Room associated with game not found.");
 
       const ws = this.ws.getClient(playerId);
       if (ws) {
@@ -384,28 +407,10 @@ export class RoomService {
         ws.roomId = game.roomId;
       }
 
-      const gameData: Game = {
-        id: game.id,
-        roomId: game.roomId,
-        fen: game.fen,
-        moveHistory: game.moveHistory as unknown as Move[],
-        timers: game.timers as { white: number; black: number },
-        timeControl: game.timeControl as unknown as TimeControl,
-        status: game.status as GameStatus,
-        players: game.players.map((p) => ({
-          userId: p.userId,
-          color: p.color,
-        })),
-        chat: game.chat as unknown as ChatMessage[],
-        winnerId: game.winnerId || undefined,
-        createdAt: game.createdAt,
-      };
-
       await prisma.user.update({
         where: { id: playerId },
         data: { status: UserStatus.IN_GAME },
       });
-
       await redis.set(`player:${playerId}:status`, UserStatus.IN_GAME);
       await redis.set(`player:${playerId}:lastGame`, game.id);
 
@@ -413,7 +418,7 @@ export class RoomService {
 
       this.ws.broadcastToClient(playerId, {
         type: "REJOIN_GAME",
-        payload: gameData,
+        payload: game,
       });
 
       logger.info(`Player ${playerId} successfully rejoined game ${game.id}`);
@@ -502,7 +507,7 @@ export class RoomService {
           await redis.set(`player:${ws.playerId}:status`, UserStatus.OFFLINE);
           await redis.set(
             `player:${opponent.userId}:status`,
-            UserStatus.ONLINE,
+            UserStatus.ONLINE
           );
 
           const updatedGame: Game = {
@@ -524,7 +529,7 @@ export class RoomService {
 
           this.ws.broadcastToGame(updatedGame);
           logger.info(
-            `Game ${ws.gameId} abandoned due to player ${ws.playerId} disconnect`,
+            `Game ${ws.gameId} abandoned due to player ${ws.playerId} disconnect`
           );
         } catch (err) {
           logger.error("Error in disconnect timeout:", err);
