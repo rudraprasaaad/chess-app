@@ -228,7 +228,7 @@ export const useRoomStore = create<RoomState>((set, get) => ({
     const { currentRoom } = get();
     if (currentRoom) {
       const updatedPlayers = currentRoom.players.filter(
-        (p) => p.id !== playerId
+        (p) => p.id !== playerId,
       );
       set({
         currentRoom: {
@@ -293,7 +293,7 @@ export const useRoomActions = () => {
       joinQueue,
       leaveQueue,
     }),
-    [createRoom, joinRoom, leaveRoom, joinQueue, leaveQueue]
+    [createRoom, joinRoom, leaveRoom, joinQueue, leaveQueue],
   );
 };
 
@@ -330,14 +330,6 @@ export const handleRoomMessage = (message: any) => {
       if (message.payload.game) {
         useAuthStore.getState().setStatus(UserStatus.IN_GAME);
       }
-      break;
-
-    case "REJOIN_GAME":
-      setCurrentRoom(message.payload);
-      setJoiningRoom(false);
-      setCreatingRoom(false);
-      useAuthStore.getState().setStatus(UserStatus.IN_GAME);
-      toast.success("Reconnected to your game.");
       break;
 
     case "QUEUE_TIMEOUT":

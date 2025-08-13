@@ -174,7 +174,7 @@ export const useWebSocketStore = create<WebSocketState>((set, get) => ({
 
     if (messageCount >= RATE_LIMIT.MAX_MESSAGES_PER_MINUTE) {
       toast.warning(
-        "Rate limit exceeded! Please wait before sending more messages."
+        "Rate limit exceeded! Please wait before sending more messages.",
       );
       set({ error: "Rate limit exceeded. Please slow down." });
       return;
@@ -236,7 +236,7 @@ export const useWebSocketStore = create<WebSocketState>((set, get) => ({
         toast.info(
           `Reconnecting (${state.reconnectAttempts + 1}/${
             state.maxReconnectAttempts
-          })...`
+          })...`,
         );
         get().connect();
       }
@@ -260,11 +260,17 @@ const handleServerMessage = (message: ServerMessage) => {
     "ROOM_UPDATED",
     "QUEUE_TIMEOUT",
     "QUEUE_LEFT",
-    "REJOIN_GAME",
   ];
 
   const gameMessages = [
     "GAME_UPDATED",
+    "TIMER_UPDATE",
+    "GAME_LOADED",
+    "GAME_NOT_FOUND",
+    "UNAUTHORIZED",
+    "INVAILD_GAME_ID",
+    "LOAD_GAME_ERROR",
+    "REJOIN_GAME",
     "MOVE_MADE",
     "LEGAL_MOVES_UPDATE",
     "GAME_ENDED",
@@ -300,7 +306,7 @@ export const useWebSocketConnection = () => {
   const connect = useWebSocketStore((state) => state.connect);
   const disconnect = useWebSocketStore((state) => state.disconnect);
   const isConnected = useWebSocketStore(
-    (state) => state.status === "connected"
+    (state) => state.status === "connected",
   );
 
   return useMemo(
@@ -311,7 +317,7 @@ export const useWebSocketConnection = () => {
       disconnect,
       isConnected,
     }),
-    [status, error, connect, disconnect, isConnected]
+    [status, error, connect, disconnect, isConnected],
   );
 };
 
@@ -324,7 +330,7 @@ export const useWebSocketSender = () => {
       sendMessage,
       canSend,
     }),
-    [sendMessage, canSend]
+    [sendMessage, canSend],
   );
 };
 
@@ -339,6 +345,6 @@ export const useWebSocketMessages = () => {
       messageHistory,
       clearHistory,
     }),
-    [lastMessage, messageHistory, clearHistory]
+    [lastMessage, messageHistory, clearHistory],
   );
 };

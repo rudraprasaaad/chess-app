@@ -54,6 +54,20 @@ export interface MakeMoveMessage {
   };
 }
 
+export interface LoadGameMessage {
+  type: "LOAD_GAME";
+  payload: {
+    gameId: string;
+  };
+}
+
+export interface RequestRejoinMessage {
+  type: "REQUEST_REJOIN";
+  payload: {
+    gameId: string;
+  };
+}
+
 export interface GetLegalMoveMessage {
   type: "GET_LEGAL_MOVES";
   payload: {
@@ -98,6 +112,8 @@ export type ClientMessage =
   | JoinQueueMessage
   | LeaveQueueMessage
   | MakeMoveMessage
+  | LoadGameMessage
+  | RequestRejoinMessage
   | GetLegalMoveMessage
   | ChatMessage
   | TypingMessage

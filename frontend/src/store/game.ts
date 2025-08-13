@@ -5,7 +5,7 @@ import type { Game, Move, ChatMessage } from "../types/game";
 import { GameStatus, UserStatus } from "../types/common";
 import { useWebSocketStore } from "./websocket";
 import { useAuthStore } from "./auth";
-import { useEffect, useMemo } from "react";
+import { useMemo } from "react";
 import { Square } from "chess.js";
 
 interface GameState {
@@ -21,7 +21,6 @@ interface GameState {
 
   whiteTimeLeft: number;
   blackTimeLeft: number;
-  timerInterval: ReturnType<typeof setInterval> | null;
 
   chatMessages: ChatMessage[];
   isTyping: boolean;
@@ -39,14 +38,13 @@ interface GameState {
 
   setCurrentGame: (game: Game | null) => void;
   updateGame: (gameUpdate: Partial<Game>) => void;
+  loadGame: (gameId: string) => void;
   makeMove: (move: { from: Square; to: Square; promotion?: string }) => void;
 
   setSelectedSquare: (square: Square | null) => void;
   setLegalMoves: (moves: string[]) => void;
   clearSelection: () => void;
 
-  startTimer: () => void;
-  stopTimer: () => void;
   updateTimers: (white: number, black: number) => void;
 
   sendChatMessage: (message: string) => void;
@@ -55,7 +53,7 @@ interface GameState {
   addChatMessage: (message: ChatMessage[]) => void;
 
   setDrawOffer: (
-    offer: { playerName: string; playerId: string; isOpen: boolean } | null
+    offer: { playerName: string; playerId: string; isOpen: boolean } | null,
   ) => void;
   acceptDraw: () => void;
   declineDraw: () => void;
@@ -86,7 +84,6 @@ export const useGameStore = create<GameState>((set, get) => ({
   playerColor: null,
   whiteTimeLeft: 600,
   blackTimeLeft: 600,
-  timerInterval: null,
   chatMessages: [],
   isTyping: false,
   typingUsers: [],
@@ -96,6 +93,17 @@ export const useGameStore = create<GameState>((set, get) => ({
   error: null,
   pendingPromotionMove: null,
   isPromotionModalOpen: false,
+
+  loadGame: (gameId: string) => {
+    const { sendMessage } = useWebSocketStore.getState();
+
+    set({ isGameLoading: true, error: null });
+
+    sendMessage({
+      type: "LOAD_GAME",
+      payload: { gameId },
+    });
+  },
 
   setCurrentGame: (game) => {
     const { user } = useAuthStore.getState();
@@ -111,8 +119,8 @@ export const useGameStore = create<GameState>((set, get) => ({
         currentGame: game,
         playerColor,
         isPlayerTurn,
-        whiteTimeLeft: game.timers.white,
-        blackTimeLeft: game.timers.black,
+        whiteTimeLeft: game ? game.timers.white : 600,
+        blackTimeLeft: game ? game.timers.black : 600,
         chatMessages: game.chat || [],
         selectedSquare: null,
         legalMoves: [],
@@ -120,11 +128,6 @@ export const useGameStore = create<GameState>((set, get) => ({
         isGameLoading: false,
         drawOffer: null,
       });
-
-      // Start timer if game is active
-      if (game.status === GameStatus.ACTIVE) {
-        get().startTimer();
-      }
     } else {
       set({
         currentGame: null,
@@ -133,10 +136,9 @@ export const useGameStore = create<GameState>((set, get) => ({
         selectedSquare: null,
         legalMoves: [],
         error: null,
+        isGameLoading: false,
         drawOffer: null,
       });
-
-      get().stopTimer();
     }
   },
 
@@ -161,10 +163,6 @@ export const useGameStore = create<GameState>((set, get) => ({
           const isPlayerTurn = playerColor === currentTurn;
           set({ isPlayerTurn });
         }
-        if (updatedGame.status === GameStatus.ACTIVE) {
-          get().stopTimer();
-          setTimeout(() => get().startTimer(), 100);
-        }
       }
 
       if (gameUpdate.chat) {
@@ -174,7 +172,6 @@ export const useGameStore = create<GameState>((set, get) => ({
       set({ currentGame: updatedGame });
 
       if (gameUpdate.status && gameUpdate.status !== GameStatus.ACTIVE) {
-        get().stopTimer();
         get().addToHistory(updatedGame);
         useAuthStore.getState().setStatus(UserStatus.ONLINE);
       }
@@ -267,53 +264,6 @@ export const useGameStore = create<GameState>((set, get) => ({
       selectedSquare: null,
       legalMoves: [],
     }),
-
-  startTimer: () => {
-    const { timerInterval } = get();
-
-    if (timerInterval) {
-      clearInterval(timerInterval);
-    }
-
-    const newInterval = setInterval(() => {
-      const { currentGame, whiteTimeLeft, blackTimeLeft } = get();
-
-      if (!currentGame || currentGame.status !== GameStatus.ACTIVE) {
-        get().stopTimer();
-        return;
-      }
-
-      const currentTurn = currentGame.fen.split(" ")[1];
-
-      if (currentTurn === "w" && whiteTimeLeft > 0) {
-        const newTime = whiteTimeLeft - 1;
-        set({ whiteTimeLeft: Math.max(0, newTime) });
-
-        if (newTime === 0) {
-          get().stopTimer();
-          toast.error("White's time has run out!");
-        }
-      } else if (currentTurn === "b" && blackTimeLeft > 0) {
-        const newTime = blackTimeLeft - 1;
-        set({ blackTimeLeft: Math.max(0, newTime) });
-
-        if (newTime === 0) {
-          get().stopTimer();
-          toast.error("Black's time has run out");
-        }
-      }
-    }, 1000);
-
-    set({ timerInterval: newInterval });
-  },
-
-  stopTimer: () => {
-    const { timerInterval } = get();
-    if (timerInterval) {
-      clearInterval(timerInterval);
-      set({ timerInterval: null });
-    }
-  },
 
   updateTimers: (white, black) => {
     set({
@@ -417,7 +367,6 @@ export const useGameStore = create<GameState>((set, get) => ({
   },
 
   clearGame: () => {
-    get().stopTimer();
     set({
       currentGame: null,
       selectedSquare: null,
@@ -449,7 +398,7 @@ export const useCurrentGame = () => {
   const isPlayerTurn = useGameStore((state) => state.isPlayerTurn);
   const fen = useGameStore((state) => state.currentGame?.fen || "");
   const moveHistory = useGameStore(
-    (state) => state.currentGame?.moveHistory || []
+    (state) => state.currentGame?.moveHistory || [],
   );
 
   return useMemo(
@@ -462,7 +411,7 @@ export const useCurrentGame = () => {
       fen,
       moveHistory,
     }),
-    [game, isInGame, gameStatus, playerColor, isPlayerTurn, fen, moveHistory]
+    [game, isInGame, gameStatus, playerColor, isPlayerTurn, fen, moveHistory],
   );
 };
 
@@ -490,7 +439,7 @@ export const useBoardState = () => {
       setSelectedSquare,
       setLegalMoves,
       clearSelection,
-    ]
+    ],
   );
 };
 
@@ -510,7 +459,7 @@ export const useGameTimer = () => {
       blackTimeLeft,
       formatTime,
     }),
-    [whiteTimeLeft, blackTimeLeft]
+    [whiteTimeLeft, blackTimeLeft],
   );
 };
 
@@ -531,7 +480,7 @@ export const useGameChat = () => {
       startTyping,
       stopTyping,
     }),
-    [messages, isTyping, typingUsers, sendMessage, startTyping, stopTyping]
+    [messages, isTyping, typingUsers, sendMessage, startTyping, stopTyping],
   );
 };
 
@@ -546,17 +495,8 @@ export const useDrawOffer = () => {
       acceptDraw,
       declineDraw,
     }),
-    [drawOffer, acceptDraw, declineDraw]
+    [drawOffer, acceptDraw, declineDraw],
   );
-};
-
-export const useGameCleanup = () => {
-  useEffect(() => {
-    return () => {
-      const { stopTimer } = useGameStore.getState();
-      stopTimer();
-    };
-  }, []);
 };
 
 export const useGameActions = () => {
@@ -576,7 +516,14 @@ export const useGameActions = () => {
       setSelectedSquare,
       clearSelection,
     }),
-    [makeMove, isMakingMove, error, setError, setSelectedSquare, clearSelection]
+    [
+      makeMove,
+      isMakingMove,
+      error,
+      setError,
+      setSelectedSquare,
+      clearSelection,
+    ],
   );
 };
 
@@ -587,17 +534,53 @@ export const handleGameMessage = (message: any) => {
     addChatMessage,
     setMakingMove,
     setError,
-    stopTimer,
     setDrawOffer,
     setLegalMoves,
     clearSelection,
+    setGameLoading,
+    updateTimers,
   } = useGameStore.getState();
 
   switch (message.type) {
+    case "TIMER_UPDATE":
+      updateTimers(message.payload.white, message.payload.black);
+      break;
+
     case "GAME_UPDATED":
-    case "REJOIN_GAME":
       setCurrentGame(message.payload);
       setMakingMove(false);
+      break;
+
+    case "REJOIN_GAME": {
+      setCurrentGame(message.payload);
+      setGameLoading(false);
+      setMakingMove(false);
+      break;
+    }
+
+    case "GAME_LOADED":
+      setCurrentGame(message.payload);
+      setGameLoading(false);
+      break;
+
+    case "GAME_NOT_FOUND":
+      setError("Game not found");
+      setGameLoading(false);
+      break;
+
+    case "UNAUTHORIZED":
+      setError("Not authorized to view this game");
+      setGameLoading(false);
+      break;
+
+    case "INVALID_GAME_ID":
+      setError("Invalid game ID");
+      setGameLoading(false);
+      break;
+
+    case "LOAD_GAME_ERROR":
+      setError(message.payload.message);
+      setGameLoading(false);
       break;
 
     case "MOVE_MADE":
@@ -615,7 +598,6 @@ export const handleGameMessage = (message: any) => {
         status: GameStatus.COMPLETED,
         winnerId: message.payload.winnerId,
       });
-      stopTimer();
       break;
 
     case "PLAYER_RESIGNED":
@@ -624,7 +606,6 @@ export const handleGameMessage = (message: any) => {
         winnerId: message.payload.winnerId,
       });
       toast.info(`${message.payload.playerName} resigned`);
-      stopTimer();
       break;
 
     case "DRAW_OFFERED":
@@ -639,7 +620,6 @@ export const handleGameMessage = (message: any) => {
     case "DRAW_ACCEPTED":
       updateGame({ status: GameStatus.DRAW });
       toast.success("Draw Accepted!");
-      stopTimer();
       break;
 
     case "DRAW_DECLINED":
@@ -656,7 +636,6 @@ export const handleGameMessage = (message: any) => {
         winnerId: message.payload.winnerId,
       });
       toast.error("Time's up!");
-      stopTimer();
       break;
 
     case "ILLEGAL_MOVE":
@@ -681,7 +660,7 @@ export const handleGameMessage = (message: any) => {
             const currentTyping = useGameStore.getState().typingUsers;
             useGameStore.setState({
               typingUsers: currentTyping.filter(
-                (id) => id !== message.payload.playerId
+                (id) => id !== message.payload.playerId,
               ),
             });
           }, 3000);

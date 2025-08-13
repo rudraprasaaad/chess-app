@@ -7,11 +7,17 @@ export interface Game {
   fen: string;
   moveHistory: Move[];
   timers: { white: number; black: number };
+  timeControl: TimeControl;
   status: GameStatus;
   players: GamePlayer[];
   chat: ChatMessage[];
   winnerId?: string;
   createdAt: Date;
+}
+
+export interface TimeControl {
+  initial: number;
+  increment: number;
 }
 
 export interface GamePlayer {
