@@ -28,7 +28,7 @@ export class RoomService {
   async createRoom(
     type: RoomType,
     playerId: string,
-    inviteCode?: string
+    inviteCode?: string,
   ): Promise<void> {
     try {
       const user = await prisma.user.findUnique({ where: { id: playerId } });
@@ -84,7 +84,7 @@ export class RoomService {
   async joinRoom(
     roomId: string,
     playerId: string,
-    inviteCode?: string
+    inviteCode?: string,
   ): Promise<void> {
     try {
       const room = await prisma.room.findUnique({ where: { id: roomId } });
@@ -258,7 +258,7 @@ export class RoomService {
 
         this.ws.broadcastToRoom(roomData as Room);
         logger.info(
-          `Guest match created: ${room.id} (${player1} vs ${player2})`
+          `Guest match created: ${room.id} (${player1} vs ${player2})`,
         );
 
         await this.gameService.startGame(room.id);
@@ -337,7 +337,7 @@ export class RoomService {
 
         this.ws.broadcastToRoom(roomData as Room);
         logger.info(
-          `Rated match created: ${room.id} (${playerId} vs ${matchedPlayer})`
+          `Rated match created: ${room.id} (${playerId} vs ${matchedPlayer})`,
         );
 
         await this.gameService.startGame(room.id);
@@ -352,22 +352,97 @@ export class RoomService {
     }
   }
 
-  async handleReconnect(ws: AuthenticatedWebSocket): Promise<void> {
-    try {
-      const lastGameId = await redis.get(`player:${ws.playerId}:lastGame`);
-      if (!lastGameId) return;
+  // async handleReconnect(ws: AuthenticatedWebSocket): Promise<void> {
+  //   try {
+  //     const lastGameId = await redis.get(`player:${ws.playerId}:lastGame`);
+  //     if (!lastGameId) return;
 
+  //     const game = await prisma.game.findUnique({
+  //       where: { id: lastGameId },
+  //       include: { players: true },
+  //     });
+  //     if (!game || game.status !== GameStatus.ACTIVE) return;
+
+  //     ws.gameId = game.id;
+  //     ws.roomId = game.roomId;
+
+  //     const room = await prisma.room.findUnique({ where: { id: game.roomId } });
+  //     if (!room) return;
+
+  //     const gameData: Game = {
+  //       id: game.id,
+  //       roomId: game.roomId,
+  //       fen: game.fen,
+  //       moveHistory: game.moveHistory,
+  //       timers: game.timers as { white: number; black: number },
+  //       status: game.status as GameStatus,
+  //       players: game.players.map((p) => ({
+  //         userId: p.userId,
+  //         color: p.color,
+  //       })),
+  //       chat: game.chat,
+  //       winnerId: game.winnerId || undefined,
+  //       createdAt: game.createdAt,
+  //     };
+
+  //     const roomData: RoomWithGame = {
+  //       id: room.id,
+  //       type: room.type as RoomType,
+  //       status: room.status as RoomStatus,
+  //       players: room.players as { id: string; color: string | null }[],
+  //       inviteCode: room.inviteCode || undefined,
+  //       createdAt: room.createdAt,
+  //       game: gameData,
+  //     };
+
+  //     await redis.setJSON(`game:${game.id}`, gameData);
+  //     await redis.setJSON(`room:${room.id}`, roomData);
+
+  //     await prisma.user.update({
+  //       where: { id: ws.playerId },
+  //       data: { status: UserStatus.IN_GAME },
+  //     });
+  //     await redis.set(`player:${ws.playerId}:status`, UserStatus.IN_GAME);
+
+  //     this.ws.broadcastToClient(ws.playerId, {
+  //       type: "REJOIN_GAME",
+  //       payload: roomData,
+  //     });
+
+  //     logger.info(`Player ${ws.playerId} reconnected to game ${game.id}`);
+  //   } catch (err) {
+  //     logger.error("Error in handleReconnect:", err);
+  //   }
+  // }
+
+  async handleRequestRejoin(playerId: string, gameId: string): Promise<void> {
+    try {
       const game = await prisma.game.findUnique({
-        where: { id: lastGameId },
+        where: { id: gameId },
         include: { players: true },
       });
-      if (!game || game.status !== GameStatus.ACTIVE) return;
 
-      ws.gameId = game.id;
-      ws.roomId = game.roomId;
+      if (!game || game.status !== GameStatus.ACTIVE) {
+        throw new Error("Active game not found");
+      }
 
-      const room = await prisma.room.findUnique({ where: { id: game.roomId } });
-      if (!room) return;
+      if (!game.players.some((p) => p.userId === playerId)) {
+        throw new Error("You are not a player in this game.");
+      }
+
+      const room = await prisma.room.findUnique({
+        where: {
+          id: game.roomId,
+        },
+      });
+
+      if (!room) throw new Error("Room associated with game not found.");
+
+      const ws = this.ws.getClient(playerId);
+      if (ws) {
+        ws.gameId = game.id;
+        ws.roomId = game.roomId;
+      }
 
       const gameData: Game = {
         id: game.id,
@@ -385,33 +460,28 @@ export class RoomService {
         createdAt: game.createdAt,
       };
 
-      const roomData: RoomWithGame = {
-        id: room.id,
-        type: room.type as RoomType,
-        status: room.status as RoomStatus,
-        players: room.players as { id: string; color: string | null }[],
-        inviteCode: room.inviteCode || undefined,
-        createdAt: room.createdAt,
-        game: gameData,
-      };
-
-      await redis.setJSON(`game:${game.id}`, gameData);
-      await redis.setJSON(`room:${room.id}`, roomData);
-
       await prisma.user.update({
-        where: { id: ws.playerId },
+        where: { id: playerId },
         data: { status: UserStatus.IN_GAME },
       });
-      await redis.set(`player:${ws.playerId}:status`, UserStatus.IN_GAME);
 
-      this.ws.broadcastToClient(ws.playerId, {
+      await redis.set(`player:${playerId}:status`, UserStatus.IN_GAME);
+      await redis.set(`player:${playerId}:lastGame`, game.id);
+
+      this.ws.broadcastToClient(playerId, {
         type: "REJOIN_GAME",
-        payload: roomData,
+        payload: gameData,
       });
 
-      logger.info(`Player ${ws.playerId} reconnected to game ${game.id}`);
+      logger.info(`Player ${playerId} successfully rejoined game ${game.id}`);
     } catch (err) {
-      logger.error("Error in handleReconnect:", err);
+      logger.error(`Error in handleRequestRejoin for player ${playerId}:`, err);
+      this.ws.broadcastToClient(playerId, {
+        type: "ERROR",
+        payload: {
+          message: (err as Error).message,
+        },
+      });
     }
   }
 
@@ -489,7 +559,7 @@ export class RoomService {
           await redis.set(`player:${ws.playerId}:status`, UserStatus.OFFLINE);
           await redis.set(
             `player:${opponent.userId}:status`,
-            UserStatus.ONLINE
+            UserStatus.ONLINE,
           );
 
           const updatedGame: Game = {
@@ -510,7 +580,7 @@ export class RoomService {
 
           this.ws.broadcastToGame(updatedGame);
           logger.info(
-            `Game ${ws.gameId} abandoned due to player ${ws.playerId} disconnect`
+            `Game ${ws.gameId} abandoned due to player ${ws.playerId} disconnect`,
           );
         } catch (err) {
           logger.error("Error in disconnect timeout:", err);
