@@ -135,8 +135,8 @@ class Application {
     );
 
     const limiter = rateLimit({
-      windowMs: 15 * 60 * 1000, // 15 minutes
-      max: isProduction ? 200 : 100, // More lenient in production for real usage
+      windowMs: 15 * 60 * 1000,
+      max: isProduction ? 200 : 100,
       message: "Too many requests from this IP, please try again later.",
       standardHeaders: true,
       legacyHeaders: false,
