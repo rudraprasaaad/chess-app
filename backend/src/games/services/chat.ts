@@ -1,7 +1,4 @@
-import { InputJsonValue, JsonValue } from "@prisma/client/runtime/library";
-
-import { prisma } from "../../lib/prisma";
-import { Game, GameStatus } from "../../lib/types";
+import { ChatMessage, Game } from "../../lib/types";
 
 import { redis } from "../../services/redis";
 import { WebSocketService } from "../../services/websocket";
@@ -64,42 +61,16 @@ export class ChatService {
       throw new Error("Player not in game");
     }
 
-    const message = {
+    const message: ChatMessage = {
       playerId,
       text: text.trim(),
       timestamp: Date.now(),
     };
 
-    const chat = [...(gameRaw.chat || []), message];
+    gameRaw.chat.push(message);
 
-    const updatedGame = await prisma.game.update({
-      where: {
-        id: gameId,
-      },
-      data: {
-        chat: chat as InputJsonValue[],
-      },
-      include: { players: true },
-    });
-
-    const formattedGame: Game = {
-      id: updatedGame.id,
-      roomId: updatedGame.roomId,
-      fen: updatedGame.fen,
-      moveHistory: updatedGame.moveHistory,
-      timers: updatedGame.timers as { white: number; black: number },
-      status: updatedGame.status as GameStatus,
-      players: updatedGame.players.map((p) => ({
-        userId: p.userId,
-        color: p.color,
-      })),
-      chat: updatedGame.chat,
-      winnerId: updatedGame.winnerId || undefined,
-      createdAt: updatedGame.createdAt,
-    };
-
-    await redis.setJSON(`game:${gameId}`, formattedGame);
-    this.ws.broadcastToGame(formattedGame);
+    await redis.setJSON(`game:${gameId}`, gameRaw);
+    this.ws.broadcastToGame(gameRaw);
   }
 
   async broadCastTyping(gameId: string, playerId: string): Promise<void> {
@@ -121,7 +92,10 @@ export class ChatService {
     });
   }
 
-  async getChatHistory(gameId: string, playerId: string): Promise<JsonValue[]> {
+  async getChatHistory(
+    gameId: string,
+    playerId: string
+  ): Promise<ChatMessage[]> {
     const gameData = await redis.get(`game:${gameId}`);
     if (!gameData) throw new Error("Game not found");
 
