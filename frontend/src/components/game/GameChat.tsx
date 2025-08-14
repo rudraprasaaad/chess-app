@@ -28,7 +28,6 @@ const GameChat = () => {
     if (typingTimeoutRef.current) {
       clearTimeout(typingTimeoutRef.current);
     }
-
     typingTimeoutRef.current = setTimeout(() => {
       stopTyping();
     }, 1000);
@@ -87,41 +86,46 @@ const GameChat = () => {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.5, duration: 0.6 }}
-      className="mt-4"
+      className="h-full flex flex-col"
     >
-      <Card className="glass border-white/10 h-64">
-        <CardHeader className="pb-3">
+      <Card className="glass border-white/10 h-full flex flex-col overflow-hidden">
+        <CardHeader className="pb-3 flex-shrink-0">
           <CardTitle className="flex items-center text-lg">
             <MessageCircle className="w-5 h-5 mr-2 text-primary" />
             Chat
           </CardTitle>
         </CardHeader>
-        <CardContent className="p-0 px-6 pb-6 h-48 flex flex-col">
-          <div className="flex-1 overflow-y-auto space-y-2 mb-3 pr-2">
-            <AnimatePresence>
-              {messages.map((msg, idx) => (
-                <motion.div
-                  key={idx}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 20 }}
-                  transition={{ duration: 0.3 }}
-                  className="p-2 bg-muted/50 rounded-lg text-sm break-words"
-                >
-                  {msg.text}
-                </motion.div>
-              ))}
-            </AnimatePresence>
-            <div ref={messageRef} />
+
+        <CardContent className="p-0 px-6 pb-6 flex flex-col flex-1 min-h-0 overflow-hidden">
+          {/* Scrollable Messages */}
+          <div className="flex-1 overflow-y-auto mb-3 pr-2 chat-scroll min-h-0">
+            <div className="space-y-2">
+              <AnimatePresence>
+                {messages.map((msg, idx) => (
+                  <motion.div
+                    key={idx}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 20 }}
+                    transition={{ duration: 0.3 }}
+                    className="p-2 bg-muted/50 rounded-lg text-sm break-words"
+                  >
+                    {msg.text}
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+              <div ref={messageRef} />
+            </div>
           </div>
 
+          {/* Typing Indicator */}
           <AnimatePresence>
             {typingUsersDisplay && (
               <motion.div
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: "auto" }}
                 exit={{ opacity: 0, height: 0 }}
-                className="text-xs text-muted-foreground italic mb-2 px-2"
+                className="text-xs text-muted-foreground italic mb-2 px-2 flex-shrink-0"
               >
                 <motion.span
                   animate={{ opacity: [0.5, 1, 0.5] }}
@@ -133,7 +137,7 @@ const GameChat = () => {
             )}
           </AnimatePresence>
 
-          <div className="flex gap-2 items-center">
+          <div className="flex gap-2 items-center flex-shrink-0">
             <Input
               type="text"
               className="flex-1 bg-background/50 border-white/10 focus:border-primary/50 transition-colors"

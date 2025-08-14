@@ -165,7 +165,7 @@ const GameRoom = () => {
   }
 
   return (
-    <div className="h-screen bg-background overflow-hidden">
+    <div className="h-screen bg-background overflow-hidden flex flex-col">
       <div className="fixed inset-0 overflow-hidden pointer-events-none -z-10">
         <motion.div
           className="absolute -top-40 -right-40 w-80 h-80 bg-primary/5 rounded-full blur-3xl"
@@ -185,9 +185,11 @@ const GameRoom = () => {
         <div className="absolute inset-0 chess-pattern opacity-[0.02]" />
       </div>
 
-      <Navbar />
+      <div className="flex-shrink-0">
+        <Navbar />
+      </div>
 
-      <div className="relative z-10 h-[calc(100vh-64px)] overflow-hidden flex justify-center">
+      <div className="relative z-10 flex-1 min-h-0 flex justify-center">
         <div className="w-[90%] max-w-7xl h-full px-3 py-2">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -197,60 +199,67 @@ const GameRoom = () => {
           >
             <div className="hidden xl:block h-full">
               <div className="grid grid-cols-12 gap-6 h-full">
+                {/* Left Panel - Game Info & Controls */}
                 <motion.div
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 0.2, duration: 0.6 }}
-                  className="col-span-3 space-y-4 overflow-y-auto"
+                  className="col-span-3 flex flex-col min-h-0"
                 >
-                  <Card className="glass border-white/10">
-                    <CardHeader className="pb-2">
-                      <CardTitle className="flex items-center text-base">
-                        <Crown className="w-4 h-4 mr-2 text-chess-gold" />
-                        Game Info
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-2">
-                      <div className="flex items-center justify-between p-2 bg-muted/50 rounded-lg border border-white/5">
-                        <span className="text-xs font-medium text-muted-foreground">
-                          Status
-                        </span>
-                        <span className="text-xs font-bold capitalize text-chess-gold px-2 py-1 bg-chess-gold/10 rounded">
-                          {currentGame.status}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between p-2 bg-muted/50 rounded-lg border border-white/5">
-                        <span className="text-xs font-medium text-muted-foreground">
-                          Turn
-                        </span>
-                        <span className="text-xs font-semibold flex items-center">
-                          <div
-                            className={`w-3 h-3 rounded-full mr-1.5 border ${
-                              currentTurn === "w"
-                                ? "bg-white border-gray-400"
-                                : "bg-gray-900 border-gray-600"
-                            }`}
-                          />
-                          {currentTurn === "w" ? "White" : "Black"}
-                        </span>
-                      </div>
-                      {currentPlayerColor && (
-                        <div className="p-2 bg-primary/15 rounded-lg border border-primary/30">
-                          <div className="flex items-center justify-between">
-                            <span className="text-xs font-medium text-muted-foreground">
-                              You are
-                            </span>
-                            <span className="text-xs font-bold text-primary capitalize px-2 py-1 bg-primary/20 rounded">
-                              {currentPlayerColor}
-                            </span>
-                          </div>
+                  <div className="flex-shrink-0 mb-4">
+                    <Card className="glass border-white/10">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="flex items-center text-base">
+                          <Crown className="w-4 h-4 mr-2 text-chess-gold" />
+                          Game Info
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-2">
+                        <div className="flex items-center justify-between p-2 bg-muted/50 rounded-lg border border-white/5">
+                          <span className="text-xs font-medium text-muted-foreground">
+                            Status
+                          </span>
+                          <span className="text-xs font-bold capitalize text-chess-gold px-2 py-1 bg-chess-gold/10 rounded">
+                            {currentGame.status}
+                          </span>
                         </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                  <GameControls />
+                        <div className="flex items-center justify-between p-2 bg-muted/50 rounded-lg border border-white/5">
+                          <span className="text-xs font-medium text-muted-foreground">
+                            Turn
+                          </span>
+                          <span className="text-xs font-semibold flex items-center">
+                            <div
+                              className={`w-3 h-3 rounded-full mr-1.5 border ${
+                                currentTurn === "w"
+                                  ? "bg-white border-gray-400"
+                                  : "bg-gray-900 border-gray-600"
+                              }`}
+                            />
+                            {currentTurn === "w" ? "White" : "Black"}
+                          </span>
+                        </div>
+                        {currentPlayerColor && (
+                          <div className="p-2 bg-primary/15 rounded-lg border border-primary/30">
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-medium text-muted-foreground">
+                                You are
+                              </span>
+                              <span className="text-xs font-bold text-primary capitalize px-2 py-1 bg-primary/20 rounded">
+                                {currentPlayerColor}
+                              </span>
+                            </div>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  <div className="flex-1 min-h-0">
+                    <GameControls />
+                  </div>
                 </motion.div>
 
+                {/* Center Panel - Chess Board */}
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -280,16 +289,20 @@ const GameRoom = () => {
                   </div>
                 </motion.div>
 
+                {/* Right Panel - Move History & Chat */}
                 <motion.div
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 0.4, duration: 0.6 }}
-                  className="col-span-3 flex flex-col space-y-4 h-full"
+                  className="col-span-3 flex flex-col h-full space-y-4"
                 >
-                  <div className="flex-1 min-h-0">
+                  {/* Move History - Fixed height with internal scrolling */}
+                  <div className="h-[300px] min-h-[200px]">
                     <MoveHistory moves={currentGame.moveHistory} />
                   </div>
-                  <div className="flex-1 min-h-0">
+
+                  {/* Chat - Fixed height with internal scrolling */}
+                  <div className="flex-1 min-h-[200px]">
                     <GameChat />
                   </div>
                 </motion.div>

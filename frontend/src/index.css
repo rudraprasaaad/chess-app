@@ -89,33 +89,209 @@
 
   body {
     @apply bg-background text-foreground font-sans antialiased;
-    font-family: 'Inter', system-ui, sans-serif;
-    font-feature-settings: 'cv11', 'ss01';
+    font-family: "Inter", system-ui, sans-serif;
+    font-feature-settings: "cv11", "ss01";
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
 
+  /* Enhanced scrolling behavior */
+  html {
+    scroll-behavior: smooth;
+  }
+
   /* Refined Typography */
   .font-display {
-    font-family: 'Playfair Display', serif;
-    font-feature-settings: 'ss01', 'ss02';
+    font-family: "Playfair Display", serif;
+    font-feature-settings: "ss01", "ss02";
   }
 
   .font-heading {
-    font-family: 'Space Grotesk', sans-serif;
-    font-feature-settings: 'ss01';
+    font-family: "Space Grotesk", sans-serif;
+    font-feature-settings: "ss01";
   }
 
   .font-body {
-    font-family: 'Inter', system-ui, sans-serif;
-    font-feature-settings: 'cv11', 'ss01';
+    font-family: "Inter", system-ui, sans-serif;
+    font-feature-settings: "cv11", "ss01";
+  }
+
+  /* Enhanced Scrollbar Styling - Unified Theme */
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: hsla(var(--foreground), 0.15) hsla(var(--muted), 0.1);
+  }
+
+  .scrollbar-thumb-theme::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  .scrollbar-thumb-theme::-webkit-scrollbar-thumb {
+    background: hsla(var(--foreground), 0.15);
+    border-radius: 6px;
+    border: 1px solid hsla(var(--border), 0.3);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .scrollbar-thumb-theme::-webkit-scrollbar-thumb:hover {
+    background: hsla(var(--foreground), 0.25);
+    border-color: hsla(var(--border), 0.5);
+    transform: scaleX(1.1);
+  }
+
+  .scrollbar-thumb-theme::-webkit-scrollbar-track {
+    background: hsla(var(--muted), 0.1);
+    border-radius: 6px;
+    border: 1px solid hsla(var(--border), 0.1);
+  }
+
+  .scrollbar-thumb-theme::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+
+  /* Game Room Unified Scrollbar Theme */
+  .game-scroll-container {
+    scrollbar-width: thin;
+    scrollbar-color: hsla(var(--foreground), 0.15) hsla(var(--muted), 0.1);
+    scroll-behavior: smooth;
+  }
+
+  .game-scroll-container::-webkit-scrollbar {
+    width: 7px;
+    height: 7px;
+  }
+
+  .game-scroll-container::-webkit-scrollbar-thumb {
+    background: linear-gradient(
+      180deg,
+      hsla(var(--foreground), 0.12) 0%,
+      hsla(var(--foreground), 0.18) 50%,
+      hsla(var(--foreground), 0.12) 100%
+    );
+    border-radius: 6px;
+    border: 1px solid hsla(var(--border), 0.2);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .game-scroll-container::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(
+      180deg,
+      hsla(var(--foreground), 0.2) 0%,
+      hsla(var(--foreground), 0.3) 50%,
+      hsla(var(--foreground), 0.2) 100%
+    );
+    border-color: hsla(var(--border), 0.4);
+    transform: scaleX(1.15);
+    box-shadow: 0 0 8px hsla(var(--foreground), 0.1);
+  }
+
+  .game-scroll-container::-webkit-scrollbar-track {
+    background: hsla(var(--muted), 0.08);
+    border-radius: 6px;
+    border: 1px solid hsla(var(--border), 0.08);
+  }
+
+  .game-scroll-container::-webkit-scrollbar-corner {
+    background: hsla(var(--muted), 0.08);
+  }
+
+  /* Move History - Consistent with overall theme */
+  .move-history-scroll {
+    scroll-behavior: smooth;
+    scrollbar-width: thin;
+    scrollbar-color: hsla(var(--foreground), 0.15) hsla(var(--muted), 0.1);
+  }
+
+  .move-history-scroll::-webkit-scrollbar {
+    width: 7px;
+  }
+
+  .move-history-scroll::-webkit-scrollbar-thumb {
+    background: linear-gradient(
+      180deg,
+      hsla(var(--foreground), 0.12) 0%,
+      hsla(var(--chess-silver), 0.15) 50%,
+      hsla(var(--foreground), 0.12) 100%
+    );
+    border-radius: 6px;
+    border: 1px solid hsla(var(--border), 0.2);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .move-history-scroll::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(
+      180deg,
+      hsla(var(--foreground), 0.2) 0%,
+      hsla(var(--chess-silver), 0.25) 50%,
+      hsla(var(--foreground), 0.2) 100%
+    );
+    border-color: hsla(var(--chess-silver), 0.3);
+    transform: scaleX(1.15);
+    box-shadow: 0 0 8px hsla(var(--chess-silver), 0.1);
+  }
+
+  .move-history-scroll::-webkit-scrollbar-track {
+    background: hsla(var(--muted), 0.08);
+    border-radius: 6px;
+    border: 1px solid hsla(var(--border), 0.08);
+  }
+
+  /* Chat - Consistent with overall theme */
+  .chat-scroll {
+    scroll-behavior: smooth;
+    scrollbar-width: thin;
+    scrollbar-color: hsla(var(--foreground), 0.15) hsla(var(--muted), 0.1);
+  }
+
+  .chat-scroll::-webkit-scrollbar {
+    width: 7px;
+  }
+
+  .chat-scroll::-webkit-scrollbar-thumb {
+    background: linear-gradient(
+      180deg,
+      hsla(var(--foreground), 0.12) 0%,
+      hsla(var(--primary), 0.15) 50%,
+      hsla(var(--foreground), 0.12) 100%
+    );
+    border-radius: 6px;
+    border: 1px solid hsla(var(--border), 0.2);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .chat-scroll::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(
+      180deg,
+      hsla(var(--foreground), 0.2) 0%,
+      hsla(var(--primary), 0.25) 50%,
+      hsla(var(--foreground), 0.2) 100%
+    );
+    border-color: hsla(var(--primary), 0.3);
+    transform: scaleX(1.15);
+    box-shadow: 0 0 8px hsla(var(--primary), 0.1);
+  }
+
+  .chat-scroll::-webkit-scrollbar-track {
+    background: hsla(var(--muted), 0.08);
+    border-radius: 6px;
+    border: 1px solid hsla(var(--border), 0.08);
+  }
+
+  /* Prevent scroll containers from overflowing */
+  .scroll-container-fixed {
+    contain: layout style size;
+    overflow: hidden;
+  }
+
+  .scroll-content-contained {
+    contain: layout;
+    overflow-anchor: none;
   }
 }
 
-/* Refined Utility Classes */
 @layer utilities {
-  /* Glassmorphism Effects */
   .glass {
     background: hsla(var(--card), 0.3);
     backdrop-filter: blur(20px) saturate(180%);
@@ -128,23 +304,34 @@
     border: 1px solid hsla(var(--border), 0.3);
   }
 
-  /* Refined Gradients */
   .gradient-primary {
-    background: linear-gradient(135deg, hsl(var(--foreground)) 0%, hsl(var(--muted-foreground)) 100%);
+    background: linear-gradient(
+      135deg,
+      hsl(var(--foreground)) 0%,
+      hsl(var(--muted-foreground)) 100%
+    );
   }
 
   .gradient-chess {
-    background: linear-gradient(135deg, hsl(var(--chess-dark)) 0%, hsl(240 8% 12%) 50%, hsl(var(--chess-dark)) 100%);
+    background: linear-gradient(
+      135deg,
+      hsl(var(--chess-dark)) 0%,
+      hsl(240 8% 12%) 50%,
+      hsl(var(--chess-dark)) 100%
+    );
   }
 
   .gradient-text {
-    background: linear-gradient(135deg, hsl(var(--foreground)) 0%, hsl(var(--muted-foreground)) 100%);
+    background: linear-gradient(
+      135deg,
+      hsl(var(--foreground)) 0%,
+      hsl(var(--muted-foreground)) 100%
+    );
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
   }
 
-  /* Subtle Glow Effects */
   .glow-primary {
     box-shadow: 0 0 80px hsla(var(--primary), 0.1);
   }
@@ -153,31 +340,90 @@
     box-shadow: 0 0 60px hsla(var(--chess-glow), 0.15);
   }
 
-  /* Refined Grain Texture */
   .grain {
     position: relative;
   }
 
   .grain::before {
-    content: '';
+    content: "";
     position: absolute;
     inset: 0;
     opacity: 0.03;
-    background-image: 
-      radial-gradient(circle at 25% 25%, transparent 20%, hsla(0, 0%, 100%, 0.2) 21%, hsla(0, 0%, 100%, 0.2) 34%, transparent 35%),
-      linear-gradient(0deg, transparent 24%, hsla(0, 0%, 100%, 0.03) 25%, hsla(0, 0%, 100%, 0.03) 26%, transparent 27%, transparent 74%, hsla(0, 0%, 100%, 0.03) 75%, hsla(0, 0%, 100%, 0.03) 76%, transparent 77%);
+    background-image: radial-gradient(
+        circle at 25% 25%,
+        transparent 20%,
+        hsla(0, 0%, 100%, 0.2) 21%,
+        hsla(0, 0%, 100%, 0.2) 34%,
+        transparent 35%
+      ),
+      linear-gradient(
+        0deg,
+        transparent 24%,
+        hsla(0, 0%, 100%, 0.03) 25%,
+        hsla(0, 0%, 100%, 0.03) 26%,
+        transparent 27%,
+        transparent 74%,
+        hsla(0, 0%, 100%, 0.03) 75%,
+        hsla(0, 0%, 100%, 0.03) 76%,
+        transparent 77%
+      );
     background-size: 4px 4px;
     pointer-events: none;
   }
 
-  /* Subtle Chess Board Pattern */
   .chess-pattern {
-    background-image: 
-      linear-gradient(45deg, hsla(var(--muted), 0.15) 25%, transparent 25%),
+    background-image: linear-gradient(
+        45deg,
+        hsla(var(--muted), 0.15) 25%,
+        transparent 25%
+      ),
       linear-gradient(-45deg, hsla(var(--muted), 0.15) 25%, transparent 25%),
       linear-gradient(45deg, transparent 75%, hsla(var(--muted), 0.15) 75%),
       linear-gradient(-45deg, transparent 75%, hsla(var(--muted), 0.15) 75%);
     background-size: 60px 60px;
     background-position: 0 0, 0 30px, 30px -30px, -30px 0px;
+  }
+
+  /* Enhanced scroll utilities */
+  .scroll-smooth-enhanced {
+    scroll-behavior: smooth;
+    overflow-anchor: auto;
+  }
+
+  .scroll-lock {
+    overflow: hidden;
+    height: 100%;
+  }
+
+  .scroll-container {
+    contain: layout style size;
+  }
+
+  /* Game Room specific utilities */
+  .game-room-layout {
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .game-panel-scroll {
+    overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-width: thin;
+    scroll-behavior: smooth;
+  }
+
+  /* Prevent layout shift during scrolling */
+  .stable-layout {
+    contain: layout style;
+    will-change: scroll-position;
+  }
+
+  /* Enhanced focus states for better accessibility */
+  .focus-ring-enhanced:focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+    border-radius: calc(var(--radius) - 2px);
   }
 }
