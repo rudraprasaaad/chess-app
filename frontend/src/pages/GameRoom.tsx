@@ -128,6 +128,7 @@ const GameRoom = () => {
     setModalOpen(false);
     clearGame();
     clearRoom();
+    navigate("/lobby");
     joinQueue(true);
   };
 
@@ -291,20 +292,17 @@ const GameRoom = () => {
                   </div>
                 </motion.div>
 
-                {/* Right Panel - Move History & Chat */}
                 <motion.div
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 0.4, duration: 0.6 }}
                   className="col-span-3 flex flex-col h-full space-y-4"
                 >
-                  {/* Move History - Fixed height with internal scrolling */}
-                  <div className="h-[300px] min-h-[200px]">
+                  <div className="h-[400px] min-h-[200px]">
                     <MoveHistory moves={currentGame.moveHistory} />
                   </div>
 
-                  {/* Chat - Fixed height with internal scrolling */}
-                  <div className="flex-1 min-h-[200px]">
+                  <div className="h-[400px] min-h-[200px]">
                     <GameChat />
                   </div>
                 </motion.div>
