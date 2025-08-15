@@ -28,6 +28,23 @@ export class RoomService {
     this.gameService = new GameService(ws);
   }
 
+  private shuffle<T>(array: T[]): T[] {
+    let currentIndex = array.length;
+    let randomIndex;
+
+    while (currentIndex != 0) {
+      randomIndex = Math.floor(Math.random() * currentIndex);
+      currentIndex--;
+
+      [array[currentIndex], array[randomIndex]] = [
+        array[randomIndex],
+        array[currentIndex],
+      ];
+    }
+
+    return array;
+  }
+
   async createRoom(
     type: RoomType,
     playerId: string,
@@ -113,7 +130,8 @@ export class RoomService {
       const players = (
         room.players as { id: string; color: string | null }[]
       ).concat({ id: playerId, color: null });
-      const colors = ["white", "black"].sort(() => Math.random() - 0.5);
+
+      const colors = this.shuffle(["white", "black"]);
       players[0].color = colors[0];
       players[1].color = colors[1];
 
@@ -177,11 +195,12 @@ export class RoomService {
 
       logger.info(`Player ${playerId} joined ${queue}`);
 
-      setTimeout(async () => {
+      const timeoutId = setTimeout(async () => {
         const stillInQueue = await redis.get(queueKey);
         if (stillInQueue) {
           await redis.lrem(queue, 0, playerId);
           await redis.del(queueKey);
+          await redis.del(`player:${playerId}:queueTimeoutId`);
           await prisma.user.update({
             where: { id: playerId },
             data: { status: UserStatus.ONLINE },
@@ -195,7 +214,12 @@ export class RoomService {
           });
           logger.info(`Player ${playerId} timed out from queue`);
         }
-      }, 10000);
+      }, 60000);
+
+      await redis.set(
+        `player:${playerId}:queueTimeoutId`,
+        String(timeoutId[Symbol.toPrimitive]())
+      );
 
       if (isGuest) {
         await this.tryMatchGuests();
@@ -221,6 +245,15 @@ export class RoomService {
       if (!players || !Array.isArray(players) || players.length < 2) return;
 
       const [player1, player2] = players;
+
+      const timeoutId1 = await redis.get(`player:${player1}:queueTimeoutId`);
+      const timeoutId2 = await redis.get(`player:${player2}:queueTimeoutId`);
+
+      if (timeoutId1) clearTimeout(Number(timeoutId1));
+      if (timeoutId2) clearTimeout(Number(timeoutId2));
+
+      await redis.del(`player:${player1}:queueTimeoutId`);
+      await redis.del(`player:${player2}:queueTimeoutId`);
 
       try {
         const room = await prisma.$transaction(async (tx) => {
@@ -298,9 +331,22 @@ export class RoomService {
 
       if (!matchedPlayer) return;
 
+      const timeoutId1 = await redis.get(`player:${playerId}:queueTimeoutId`);
+      const timeoutId2 = await redis.get(
+        `player:${matchedPlayer}:queueTimeoutId`
+      );
+
+      if (timeoutId1) clearTimeout(Number(timeoutId1));
+      if (timeoutId2) clearTimeout(Number(timeoutId2));
+
+      await redis.del(`player:${playerId}:queueTimeoutId`);
+      await redis.del(`player:${matchedPlayer}:queueTimeoutId`);
+
       try {
         await redis.lrem("ratedQueue", 0, playerId);
         await redis.lrem("ratedQueue", 0, matchedPlayer);
+
+        const colors = this.shuffle(["white", "black"]);
 
         const room = await prisma.$transaction(async (tx) => {
           const newRoom = await tx.room.create({
@@ -308,8 +354,8 @@ export class RoomService {
               type: RoomType.PUBLIC,
               status: RoomStatus.ACTIVE,
               players: [
-                { id: playerId, color: "white" },
-                { id: matchedPlayer, color: "black" },
+                { id: playerId, color: colors[0] },
+                { id: matchedPlayer, color: colors[1] },
               ],
             },
           });
