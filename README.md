@@ -1,3 +1,4 @@
+text
 # Chess Game - Real-time Multiplayer Chess Application
 
 A modern, full-stack, real-time multiplayer chess application built with a powerful combination of Node.js, React, PostgreSQL, and WebSocket technology. It features a comprehensive authentication system, intelligent matchmaking, and a seamless, responsive gameplay experience.
@@ -6,6 +7,7 @@ A modern, full-stack, real-time multiplayer chess application built with a power
 ![Node.js](https://img.shields.io/badge/Node.js-339933?style=for-the-badge&logo=nodedotjs&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-316192?style=for-the-badge&logo=postgresql&logoColor=white)
+![Redis](https://img.shields.io/badge/redis-%23DD0031.svg?&style=for-the-badge&logo=redis&logoColor=white)
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)
 
 This chess application provides a complete multiplayer experience, designed from the ground up for performance and scalability. The responsive frontend built with React and the robust Node.js backend support thousands of concurrent players with sub-second move latency.
@@ -15,7 +17,7 @@ This chess application provides a complete multiplayer experience, designed from
 -   🔐 **Dual Authentication System** – Secure session-based access for guests & Google OAuth integration.
 -   ⚡ **Seamless Real-time Gameplay** – WebSocket-powered instant move synchronization for a fluid experience.
 -   🎨 **Responsive & Animated UI** – Modern interface built with Tailwind CSS and Framer Motion that works flawlessly on all devices.
--   🧠 **Smart Matchmaking** – Queue-based pairing with ELO rating support to find the perfect opponent.
+-   🧠 **Smart Matchmaking** – **Redis-powered queues** for pairing players based on ELO rating.
 -   ♟️ **Complete Chess Engine** – Full rule validation including *en passant*, castling, and promotions via Chess.js.
 -   💬 **In-Game Chat** – Real-time messaging between players with typing indicators.
 -   🏠 **Flexible Room System** – Public rooms for quick matches and private, invite-only rooms for friends.
@@ -38,7 +40,7 @@ This chess application provides a complete multiplayer experience, designed from
 -   **Core**: **Node.js 18+** with TypeScript
 -   **API Framework**: **Express.js** with comprehensive middleware
 -   **Database**: **PostgreSQL** with **Prisma ORM** for type-safe database access
--   **Caching & Game State**: **Redis** for managing active games, queues, and sessions
+-   **In-Memory Caching & Queues**: **Redis** for high-performance caching of active game state, session management, and powering the real-time matchmaking queues.
 -   **Real-time Server**: **`ws` library** for a high-performance WebSocket server
 -   **Authentication**: **JWT** with **Passport.js** for Google OAuth strategy
 -   **Game Logic**: **Chess.js** for robust move validation
@@ -46,7 +48,6 @@ This chess application provides a complete multiplayer experience, designed from
 ## 📊 System Design Diagrams
 
 ### Entity Relationship Diagram
-
 
 
 ```mermaid
