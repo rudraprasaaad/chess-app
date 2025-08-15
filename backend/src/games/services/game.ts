@@ -104,7 +104,13 @@ export class GameService {
       } else {
         const dbGame = await prisma.game.findUnique({
           where: { id: gameId },
-          include: { players: true },
+          include: {
+            players: {
+              include: {
+                user: true,
+              },
+            },
+          },
         });
 
         if (!dbGame) {
@@ -126,6 +132,7 @@ export class GameService {
           players: dbGame.players.map((p) => ({
             userId: p.userId,
             color: p.color,
+            name: p.user.name,
           })),
           chat: dbGame.chat as unknown as ChatMessage[],
           winnerId: dbGame.winnerId || undefined,
@@ -237,6 +244,14 @@ export class GameService {
       include: { players: true },
     });
 
+    const playerIds = roomData.players.map((p) => p.id);
+    const users = await prisma.user.findMany({
+      where: { id: { in: playerIds } },
+      select: { id: true, name: true },
+    });
+
+    const userNameMap = new Map(users.map((u) => [u.id, u.name]));
+
     const gameData: Game = {
       id: game.id,
       roomId: game.roomId,
@@ -245,7 +260,11 @@ export class GameService {
       timers: game.timers as { white: number; black: number },
       timeControl: game.timeControl as unknown as TimeControl,
       status: game.status as GameStatus,
-      players: game.players.map((p) => ({ userId: p.userId, color: p.color })),
+      players: game.players.map((p) => ({
+        userId: p.userId,
+        color: p.color,
+        name: userNameMap.get(p.userId) || "Player",
+      })),
       chat: game.chat as unknown as ChatMessage[],
       winnerId: game.winnerId || undefined,
       createdAt: game.createdAt,

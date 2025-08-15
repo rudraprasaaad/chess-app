@@ -35,6 +35,8 @@ interface GameState {
   isMakingMove: boolean;
   isGameLoading: boolean;
   error: string | null;
+  pendingPromotionMove: { from: Square; to: Square } | null;
+  isPromotionModalOpen: boolean;
 
   setCurrentGame: (game: Game | null) => void;
   updateGame: (gameUpdate: Partial<Game>) => void;
@@ -69,8 +71,6 @@ interface GameState {
   setMakingMove: (making: boolean) => void;
   setGameLoading: (loading: boolean) => void;
 
-  pendingPromotionMove: { from: Square; to: Square } | null;
-  isPromotionModalOpen: boolean;
   requestPromotion: (move: { from: Square; to: Square }) => void;
   submitPromotion: (promotion: "q" | "r" | "b" | "n") => void;
   cancelPromotion: () => void;

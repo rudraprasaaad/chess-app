@@ -411,7 +411,15 @@ export class RoomService {
       } else {
         const dbGame = await prisma.game.findUnique({
           where: { id: gameId },
-          include: { players: true },
+          include: {
+            players: {
+              include: {
+                user: {
+                  select: { name: true },
+                },
+              },
+            },
+          },
         });
 
         if (dbGame) {
@@ -426,6 +434,7 @@ export class RoomService {
             players: dbGame.players.map((p) => ({
               userId: p.userId,
               color: p.color,
+              name: p.user.name,
             })),
             chat: dbGame.chat as unknown as ChatMessage[],
             winnerId: dbGame.winnerId || undefined,

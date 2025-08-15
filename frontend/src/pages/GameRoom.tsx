@@ -88,10 +88,12 @@ const GameRoom = () => {
 
       if (currentGame.status === GameStatus.RESIGNED) {
         res = currentGame.winnerId === userId ? "win" : "loss";
-        reason =
-          res === "win"
-            ? "Your opponent resigned."
-            : "You resigned from the game.";
+        if (res === "win") {
+          const opponent = currentGame.players.find((p) => p.userId !== userId);
+          reason = `${opponent?.name || "Your opponent"} resigned.`;
+        } else {
+          reason = "You resigned the game.";
+        }
       } else if (currentGame.status === GameStatus.DRAW) {
         res = "draw";
         reason = "The game is a draw.";
@@ -270,7 +272,7 @@ const GameRoom = () => {
                     <div className="mb-3 flex-shrink-0 scale-90 origin-center">
                       <PlayerTime
                         color="black"
-                        playerName={blackPlayer?.userId || "Black Player"}
+                        playerName={blackPlayer?.name || "Black Player"}
                         isCurrentPlayer={currentTurn === "b"}
                       />
                     </div>
@@ -282,7 +284,7 @@ const GameRoom = () => {
                     <div className="mt-3 flex-shrink-0 scale-90 origin-center">
                       <PlayerTime
                         color="white"
-                        playerName={whitePlayer?.userId || "White Player"}
+                        playerName={whitePlayer?.name || "White Player"}
                         isCurrentPlayer={currentTurn === "w"}
                       />
                     </div>

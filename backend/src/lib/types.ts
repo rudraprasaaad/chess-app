@@ -54,6 +54,7 @@ export interface TimeControl {
 export interface Player {
   userId: string;
   color: string;
+  name: string | null;
 }
 
 export interface Room {

@@ -23,6 +23,7 @@ export interface TimeControl {
 export interface GamePlayer {
   userId: string;
   color: string;
+  name: string | null;
 }
 
 export interface Move {
