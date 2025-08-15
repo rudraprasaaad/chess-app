@@ -135,19 +135,25 @@ export class RoomService {
       players[0].color = colors[0];
       players[1].color = colors[1];
 
-      const result = await prisma.$transaction(async (tx) => {
-        const updatedRoom = await tx.room.update({
-          where: { id: roomId },
-          data: { players, status: RoomStatus.ACTIVE },
-        });
+      const result = await prisma.$transaction(
+        async (tx) => {
+          const updatedRoom = await tx.room.update({
+            where: { id: roomId },
+            data: { players, status: RoomStatus.ACTIVE },
+          });
 
-        await tx.user.updateMany({
-          where: { id: { in: players.map((p) => p.id) } },
-          data: { status: UserStatus.IN_GAME },
-        });
+          await tx.user.updateMany({
+            where: { id: { in: players.map((p) => p.id) } },
+            data: { status: UserStatus.IN_GAME },
+          });
 
-        return updatedRoom;
-      });
+          return updatedRoom;
+        },
+        {
+          maxWait: 10000,
+          timeout: 20000,
+        }
+      );
 
       const roomData = {
         id: result.id,
@@ -256,25 +262,31 @@ export class RoomService {
       await redis.del(`player:${player2}:queueTimeoutId`);
 
       try {
-        const room = await prisma.$transaction(async (tx) => {
-          const newRoom = await tx.room.create({
-            data: {
-              type: RoomType.PUBLIC,
-              status: RoomStatus.ACTIVE,
-              players: [
-                { id: player1, color: "white" },
-                { id: player2, color: "black" },
-              ],
-            },
-          });
+        const room = await prisma.$transaction(
+          async (tx) => {
+            const newRoom = await tx.room.create({
+              data: {
+                type: RoomType.PUBLIC,
+                status: RoomStatus.ACTIVE,
+                players: [
+                  { id: player1, color: "white" },
+                  { id: player2, color: "black" },
+                ],
+              },
+            });
 
-          await tx.user.updateMany({
-            where: { id: { in: [player1, player2] } },
-            data: { status: UserStatus.IN_GAME },
-          });
+            await tx.user.updateMany({
+              where: { id: { in: [player1, player2] } },
+              data: { status: UserStatus.IN_GAME },
+            });
 
-          return newRoom;
-        });
+            return newRoom;
+          },
+          {
+            maxWait: 10000,
+            timeout: 20000,
+          }
+        );
 
         await redis.del(`player:${player1}:queue`);
         await redis.del(`player:${player2}:queue`);
@@ -348,25 +360,31 @@ export class RoomService {
 
         const colors = this.shuffle(["white", "black"]);
 
-        const room = await prisma.$transaction(async (tx) => {
-          const newRoom = await tx.room.create({
-            data: {
-              type: RoomType.PUBLIC,
-              status: RoomStatus.ACTIVE,
-              players: [
-                { id: playerId, color: colors[0] },
-                { id: matchedPlayer, color: colors[1] },
-              ],
-            },
-          });
+        const room = await prisma.$transaction(
+          async (tx) => {
+            const newRoom = await tx.room.create({
+              data: {
+                type: RoomType.PUBLIC,
+                status: RoomStatus.ACTIVE,
+                players: [
+                  { id: playerId, color: colors[0] },
+                  { id: matchedPlayer, color: colors[1] },
+                ],
+              },
+            });
 
-          await tx.user.updateMany({
-            where: { id: { in: [playerId, matchedPlayer] } },
-            data: { status: UserStatus.IN_GAME },
-          });
+            await tx.user.updateMany({
+              where: { id: { in: [playerId, matchedPlayer] } },
+              data: { status: UserStatus.IN_GAME },
+            });
 
-          return newRoom;
-        });
+            return newRoom;
+          },
+          {
+            maxWait: 10000,
+            timeout: 20000,
+          }
+        );
 
         await redis.del(`player:${playerId}:queue`);
         await redis.del(`player:${matchedPlayer}:queue`);
@@ -535,25 +553,31 @@ export class RoomService {
           const opponent = game.players.find((p) => p.userId !== ws.playerId);
           if (!opponent) return;
 
-          await prisma.$transaction(async (tx) => {
-            await tx.game.update({
-              where: { id: ws.gameId },
-              data: {
-                status: GameStatus.ABANDONED,
-                winnerId: opponent.userId,
-              },
-            });
+          await prisma.$transaction(
+            async (tx) => {
+              await tx.game.update({
+                where: { id: ws.gameId },
+                data: {
+                  status: GameStatus.ABANDONED,
+                  winnerId: opponent.userId,
+                },
+              });
 
-            await tx.room.update({
-              where: { id: ws.roomId },
-              data: { status: RoomStatus.CLOSED },
-            });
+              await tx.room.update({
+                where: { id: ws.roomId },
+                data: { status: RoomStatus.CLOSED },
+              });
 
-            await tx.user.updateMany({
-              where: { id: { in: [ws.playerId, opponent.userId] } },
-              data: { status: UserStatus.ONLINE },
-            });
-          });
+              await tx.user.updateMany({
+                where: { id: { in: [ws.playerId, opponent.userId] } },
+                data: { status: UserStatus.ONLINE },
+              });
+            },
+            {
+              maxWait: 10000,
+              timeout: 20000,
+            }
+          );
 
           await redis.del(`game:${ws.gameId}`);
           await redis.del(`room:${ws.roomId}`);
