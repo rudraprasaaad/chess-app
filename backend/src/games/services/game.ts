@@ -332,16 +332,26 @@ export class GameService {
     }
 
     if (game.status !== GameStatus.ACTIVE) {
-      await prisma.game.update({
-        where: { id: gameId },
-        data: {
-          fen: game.fen,
-          moveHistory: game.moveHistory as unknown as InputJsonValue[],
-          status: game.status,
-          winnerId: game.winnerId,
-          timers: game.timers as unknown as InputJsonValue,
-          timeControl: game.timeControl as unknown as InputJsonValue,
-        },
+      await prisma.$transaction(async (tx) => {
+        await tx.game.update({
+          where: {
+            id: gameId,
+          },
+          data: {
+            fen: game.fen,
+            moveHistory: game.moveHistory as unknown as InputJsonValue[],
+            status: game.status,
+            winnerId: game.winnerId,
+            chat: game.chat as unknown as InputJsonValue[],
+            timers: game.timers as unknown as InputJsonValue,
+            timeControl: game.timeControl as unknown as InputJsonValue,
+          },
+        });
+
+        await tx.room.update({
+          where: { id: game.roomId },
+          data: { status: RoomStatus.CLOSED },
+        });
       });
     }
 
@@ -422,32 +432,40 @@ export class GameService {
       const opponent = game.players.find((p) => p.userId !== playerId);
       if (!opponent) throw new Error("Opponent not found");
 
-      await prisma.game.update({
-        where: {
-          id: gameId,
-        },
-        data: {
-          status: GameStatus.RESIGNED,
-          winnerId: opponent.userId,
-          fen: game.fen,
-          timers: game.timers as InputJsonValue,
-          moveHistory: game.moveHistory as unknown as InputJsonValue[],
-          timeControl: game.timeControl as unknown as InputJsonValue,
-        },
+      await prisma.$transaction(async (tx) => {
+        await tx.game.update({
+          where: {
+            id: gameId,
+          },
+          data: {
+            status: GameStatus.RESIGNED,
+            winnerId: opponent.userId,
+            fen: game.fen,
+            timers: game.timers as InputJsonValue,
+            moveHistory: game.moveHistory as unknown as InputJsonValue[],
+            chat: game.chat as unknown as InputJsonValue[],
+            timeControl: game.timeControl as unknown as InputJsonValue,
+          },
+        });
+
+        await tx.room.update({
+          where: { id: game.roomId },
+          data: { status: RoomStatus.CLOSED },
+        });
+
+        await tx.user.updateMany({
+          where: { id: { in: [playerId, opponent.userId] } },
+          data: { status: UserStatus.ONLINE },
+        });
       });
 
       const formattedGame: Game = {
         ...game,
-        status: GameStatus.COMPLETED,
+        status: GameStatus.RESIGNED,
         winnerId: opponent.userId,
       };
 
       await redis.setJSON(`game:${gameId}`, formattedGame);
-
-      await prisma.user.updateMany({
-        where: { id: { in: [playerId, opponent.userId] } },
-        data: { status: UserStatus.ONLINE },
-      });
 
       const resignedPlayer = await prisma.user.findUnique({
         where: {
@@ -545,13 +563,34 @@ export class GameService {
       );
       if (!drawOffer) throw new Error("No draw offer to accept");
 
-      await prisma.game.update({
-        where: {
-          id: gameId,
-        },
-        data: {
-          status: GameStatus.DRAW,
-        },
+      await prisma.$transaction(async (tx) => {
+        await tx.game.update({
+          where: {
+            id: gameId,
+          },
+          data: {
+            status: GameStatus.DRAW,
+            fen: game.fen,
+            timers: game.timers as InputJsonValue,
+            moveHistory: game.moveHistory as unknown as InputJsonValue[],
+            chat: game.chat as unknown as InputJsonValue[],
+            timeControl: game.timeControl as unknown as InputJsonValue,
+          },
+        });
+
+        await tx.room.update({
+          where: {
+            id: game.roomId,
+          },
+          data: {
+            status: RoomStatus.CLOSED,
+          },
+        });
+
+        await tx.user.updateMany({
+          where: { id: { in: [playerId, opponent.userId] } },
+          data: { status: UserStatus.ONLINE },
+        });
       });
 
       const formattedGame: Game = {
@@ -562,11 +601,6 @@ export class GameService {
       await redis.setJSON(`game:${gameId}`, formattedGame);
 
       await redis.del(`drawOffer:${gameId}:${opponent.userId}`);
-
-      await prisma.user.updateMany({
-        where: { id: { in: [playerId, opponent.userId] } },
-        data: { status: UserStatus.ONLINE },
-      });
 
       game.players.forEach((gamePlayer) => {
         this.ws.broadcastToClient(gamePlayer.userId, {
@@ -630,14 +664,37 @@ export class GameService {
 
       if (!timedOutPlayer || !winner) throw new Error("Player not found");
 
-      await prisma.game.update({
-        where: {
-          id: gameId,
-        },
-        data: {
-          status: GameStatus.COMPLETED,
-          winnerId: winner.userId,
-        },
+      await prisma.$transaction(async (tx) => {
+        await tx.game.update({
+          where: {
+            id: gameId,
+          },
+          data: {
+            status: GameStatus.COMPLETED,
+            winnerId: winner.userId,
+            fen: game.fen,
+            timers: game.timers as InputJsonValue,
+            moveHistory: game.moveHistory as unknown as InputJsonValue[],
+            chat: game.chat as unknown as InputJsonValue[],
+            timeControl: game.timeControl as unknown as InputJsonValue,
+          },
+        });
+
+        await tx.room.update({
+          where: {
+            id: game.roomId,
+          },
+          data: {
+            status: RoomStatus.CLOSED,
+          },
+        });
+
+        await tx.user.updateMany({
+          where: {
+            id: { in: [timedOutPlayer.userId, winner.userId] },
+          },
+          data: { status: UserStatus.ONLINE },
+        });
       });
 
       const formattedGame: Game = {
@@ -647,11 +704,6 @@ export class GameService {
       };
 
       await redis.setJSON(`game:${gameId}`, formattedGame);
-
-      await prisma.user.updateMany({
-        where: { id: { in: [timedOutPlayer.userId, winner.userId] } },
-        data: { status: UserStatus.ONLINE },
-      });
 
       game.players.forEach((gamePlayer) => {
         this.ws.broadcastToClient(gamePlayer.userId, {
