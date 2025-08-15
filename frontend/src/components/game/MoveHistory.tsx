@@ -53,8 +53,7 @@ const MoveHistory = ({ moves = [] }: MoveHistoryProps) => {
       <CardContent className="p-0 flex flex-col flex-1 min-h-0 overflow-hidden">
         <div
           ref={scrollRef}
-          className="flex-1 overflow-y-auto space-y-1 px-4 pb-4 move-history-scroll"
-          style={{ maxHeight: "100%" }}
+          className="flex-1 overflow-y-auto space-y-1 px-4 pb-4 game-scroll-container scrollbar-thin"
         >
           {pairedMoves.length === 0 ? (
             <motion.div

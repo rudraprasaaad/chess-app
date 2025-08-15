@@ -5,6 +5,34 @@
 /* Minimalist Design System - 2025 Aesthetic */
 
 @layer base {
+  /* WebKit Browsers */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: #111;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background-color: #444;
+    border-radius: 6px;
+    border: 2px solid #111;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: #666;
+  }
+
+  /* Firefox */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: #444 #111;
+  }
+}
+
+@layer base {
   :root {
     /* Refined monochrome palette with subtle accents */
     --background: 0 0% 2%;
@@ -106,12 +134,10 @@
     font-family: "Playfair Display", serif;
     font-feature-settings: "ss01", "ss02";
   }
-
   .font-heading {
     font-family: "Space Grotesk", sans-serif;
     font-feature-settings: "ss01";
   }
-
   .font-body {
     font-family: "Inter", system-ui, sans-serif;
     font-feature-settings: "cv11", "ss01";
@@ -127,26 +153,22 @@
     width: 6px;
     height: 6px;
   }
-
   .scrollbar-thumb-theme::-webkit-scrollbar-thumb {
     background: hsla(var(--foreground), 0.15);
     border-radius: 6px;
     border: 1px solid hsla(var(--border), 0.3);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
-
   .scrollbar-thumb-theme::-webkit-scrollbar-thumb:hover {
     background: hsla(var(--foreground), 0.25);
     border-color: hsla(var(--border), 0.5);
     transform: scaleX(1.1);
   }
-
   .scrollbar-thumb-theme::-webkit-scrollbar-track {
     background: hsla(var(--muted), 0.1);
     border-radius: 6px;
     border: 1px solid hsla(var(--border), 0.1);
   }
-
   .scrollbar-thumb-theme::-webkit-scrollbar-corner {
     background: transparent;
   }
@@ -157,12 +179,10 @@
     scrollbar-color: hsla(var(--foreground), 0.15) hsla(var(--muted), 0.1);
     scroll-behavior: smooth;
   }
-
   .game-scroll-container::-webkit-scrollbar {
     width: 7px;
     height: 7px;
   }
-
   .game-scroll-container::-webkit-scrollbar-thumb {
     background: linear-gradient(
       180deg,
@@ -174,7 +194,6 @@
     border: 1px solid hsla(var(--border), 0.2);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
-
   .game-scroll-container::-webkit-scrollbar-thumb:hover {
     background: linear-gradient(
       180deg,
@@ -186,13 +205,11 @@
     transform: scaleX(1.15);
     box-shadow: 0 0 8px hsla(var(--foreground), 0.1);
   }
-
   .game-scroll-container::-webkit-scrollbar-track {
     background: hsla(var(--muted), 0.08);
     border-radius: 6px;
     border: 1px solid hsla(var(--border), 0.08);
   }
-
   .game-scroll-container::-webkit-scrollbar-corner {
     background: hsla(var(--muted), 0.08);
   }
@@ -203,11 +220,9 @@
     scrollbar-width: thin;
     scrollbar-color: hsla(var(--foreground), 0.15) hsla(var(--muted), 0.1);
   }
-
   .move-history-scroll::-webkit-scrollbar {
     width: 7px;
   }
-
   .move-history-scroll::-webkit-scrollbar-thumb {
     background: linear-gradient(
       180deg,
@@ -219,7 +234,6 @@
     border: 1px solid hsla(var(--border), 0.2);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
-
   .move-history-scroll::-webkit-scrollbar-thumb:hover {
     background: linear-gradient(
       180deg,
@@ -231,7 +245,6 @@
     transform: scaleX(1.15);
     box-shadow: 0 0 8px hsla(var(--chess-silver), 0.1);
   }
-
   .move-history-scroll::-webkit-scrollbar-track {
     background: hsla(var(--muted), 0.08);
     border-radius: 6px;
@@ -244,11 +257,9 @@
     scrollbar-width: thin;
     scrollbar-color: hsla(var(--foreground), 0.15) hsla(var(--muted), 0.1);
   }
-
   .chat-scroll::-webkit-scrollbar {
     width: 7px;
   }
-
   .chat-scroll::-webkit-scrollbar-thumb {
     background: linear-gradient(
       180deg,
@@ -260,7 +271,6 @@
     border: 1px solid hsla(var(--border), 0.2);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
-
   .chat-scroll::-webkit-scrollbar-thumb:hover {
     background: linear-gradient(
       180deg,
@@ -272,7 +282,6 @@
     transform: scaleX(1.15);
     box-shadow: 0 0 8px hsla(var(--primary), 0.1);
   }
-
   .chat-scroll::-webkit-scrollbar-track {
     background: hsla(var(--muted), 0.08);
     border-radius: 6px;
@@ -284,10 +293,46 @@
     contain: layout style size;
     overflow: hidden;
   }
-
   .scroll-content-contained {
     contain: layout;
     overflow-anchor: none;
+  }
+
+  /* GLOBAL DARK SCROLLBAR FALLBACK (ensures dark scrollbar even if class missing) */
+  * {
+    scrollbar-width: thin; /* Firefox */
+    scrollbar-color: hsla(var(--foreground), 0.15) hsla(var(--muted), 0.1);
+  }
+  *::-webkit-scrollbar {
+    width: 7px;
+    height: 7px;
+  }
+  *::-webkit-scrollbar-track {
+    background: hsla(var(--muted), 0.08);
+    border-radius: 6px;
+    border: 1px solid hsla(var(--border), 0.08);
+  }
+  *::-webkit-scrollbar-thumb {
+    background: linear-gradient(
+      180deg,
+      hsla(var(--foreground), 0.12) 0%,
+      hsla(var(--primary), 0.15) 50%,
+      hsla(var(--foreground), 0.12) 100%
+    );
+    border-radius: 6px;
+    border: 1px solid hsla(var(--border), 0.2);
+  }
+  *::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(
+      180deg,
+      hsla(var(--foreground), 0.2) 0%,
+      hsla(var(--primary), 0.25) 50%,
+      hsla(var(--foreground), 0.2) 100%
+    );
+    border-color: hsla(var(--primary), 0.3);
+  }
+  *::-webkit-scrollbar-corner {
+    background: hsla(var(--muted), 0.08);
   }
 }
 
@@ -297,7 +342,6 @@
     backdrop-filter: blur(20px) saturate(180%);
     border: 1px solid hsla(var(--border), 0.2);
   }
-
   .glass-intense {
     background: hsla(var(--card), 0.5);
     backdrop-filter: blur(32px) saturate(200%);
@@ -311,7 +355,6 @@
       hsl(var(--muted-foreground)) 100%
     );
   }
-
   .gradient-chess {
     background: linear-gradient(
       135deg,
@@ -320,7 +363,6 @@
       hsl(var(--chess-dark)) 100%
     );
   }
-
   .gradient-text {
     background: linear-gradient(
       135deg,
@@ -335,7 +377,6 @@
   .glow-primary {
     box-shadow: 0 0 80px hsla(var(--primary), 0.1);
   }
-
   .glow-chess {
     box-shadow: 0 0 60px hsla(var(--chess-glow), 0.15);
   }
@@ -343,7 +384,6 @@
   .grain {
     position: relative;
   }
-
   .grain::before {
     content: "";
     position: absolute;
@@ -389,12 +429,10 @@
     scroll-behavior: smooth;
     overflow-anchor: auto;
   }
-
   .scroll-lock {
     overflow: hidden;
     height: 100%;
   }
-
   .scroll-container {
     contain: layout style size;
   }
@@ -406,7 +444,6 @@
     display: flex;
     flex-direction: column;
   }
-
   .game-panel-scroll {
     overflow-y: auto;
     overflow-x: hidden;

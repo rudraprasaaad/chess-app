@@ -1,4 +1,11 @@
-import { motion } from "framer-motion";
+import {
+  memo,
+  useEffect as useEffectReact,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { motion, useMotionValue, useSpring } from "framer-motion";
 import { Clock, User, Crown, Zap } from "lucide-react";
 import { cn } from "../../lib/utils";
 import { Card, CardContent } from "../ui/card";
@@ -15,85 +22,96 @@ const PlayerTimer = ({
   playerName,
   isCurrentPlayer,
 }: PlayerTimerProps) => {
-  const whiteTimeLeft = useGameStore((state) => state.whiteTimeLeft);
-  const blackTimeLeft = useGameStore((state) => state.blackTimeLeft);
-  const currentGame = useGameStore((state) => state.currentGame);
+  const whiteTimeLeft = useGameStore((s) => s.whiteTimeLeft);
+  const blackTimeLeft = useGameStore((s) => s.blackTimeLeft);
+  const initialTime = useGameStore(
+    (s) => s.currentGame?.timeControl?.initial || 600
+  );
 
   const displayTime = color === "white" ? whiteTimeLeft : blackTimeLeft;
-
-  const initialTime = currentGame?.timeControl?.initial || 600;
-
   const isLowTime = displayTime < 60;
 
   const formatTime = (seconds: number): string => {
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = seconds % 60;
-    return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`;
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m}:${s.toString().padStart(2, "0")}`;
   };
 
-  const getTimeProgress = (): number => {
-    if (initialTime <= 0) return 100;
-    return (displayTime / initialTime) * 100;
-  };
+  const rawProgress = useMotionValue(1);
+  const progressSpring = useSpring(rawProgress, {
+    stiffness: 120,
+    damping: 20,
+    mass: 0.4,
+  });
+
+  useEffectReact(() => {
+    const p =
+      initialTime > 0 ? Math.max(0, Math.min(1, displayTime / initialTime)) : 0;
+    rawProgress.set(p);
+  }, [displayTime, initialTime, rawProgress]);
+
+  const prevActiveRef = useRef<boolean>(false);
+  const [pulse, setPulse] = useState(false);
+  useEffectReact(() => {
+    if (isCurrentPlayer && !prevActiveRef.current) {
+      setPulse(true);
+      const t = setTimeout(() => setPulse(false), 800);
+      return () => clearTimeout(t);
+    }
+    prevActiveRef.current = isCurrentPlayer;
+  }, [isCurrentPlayer]);
+
+  const PlayerIcon = useMemo(
+    () =>
+      color === "white" ? (
+        <Crown className="h-6 w-6" />
+      ) : (
+        <User className="h-6 w-6" />
+      ),
+    [color]
+  );
 
   return (
-    <motion.div
-      animate={{
-        scale: isCurrentPlayer ? 1.02 : 1,
-      }}
-      transition={{ duration: 0.3, ease: "easeOut" }}
-      className={cn("relative", color === "black" && "order-first")}
-    >
+    <div className={cn("relative", color === "black" && "order-first")}>
       <Card
         className={cn(
           "glass border-white/10 transition-all duration-300",
-          isCurrentPlayer && "glow-primary border-primary/30",
+          isCurrentPlayer && "glow-primary border-primary/30"
         )}
       >
         <CardContent className="p-4">
           <div className="absolute inset-0 rounded-lg overflow-hidden">
-            <div
+            <motion.div
               className={cn(
-                "h-full transition-all duration-1000 ease-linear bg-gradient-to-r",
+                "h-full origin-left bg-gradient-to-r",
                 displayTime === 0 && "from-destructive/20 to-destructive/10",
-                isLowTime && "from-yellow-500/20 to-yellow-500/10",
+                isLowTime &&
+                  displayTime > 0 &&
+                  "from-yellow-500/20 to-yellow-500/10",
                 isCurrentPlayer && "from-primary/10 to-primary/5",
-                !isCurrentPlayer && "from-muted/10 to-muted/5",
+                !isCurrentPlayer && "from-muted/10 to-muted/5"
               )}
-              style={{ width: `${getTimeProgress()}%` }}
+              style={{ scaleX: progressSpring }}
             />
           </div>
 
           <div className="relative z-10 flex items-center justify-between">
-            {/* Player Info Section */}
             <div className="flex items-center space-x-3">
               <motion.div
-                animate={{
-                  scale: isCurrentPlayer ? [1, 1.1, 1] : 1,
-                  boxShadow: isCurrentPlayer
-                    ? "0 0 20px hsl(var(--primary) / 0.5)"
-                    : "none",
-                }}
-                transition={{
-                  duration: 2,
-                  repeat: isCurrentPlayer ? Infinity : 0,
-                  ease: "easeInOut",
-                }}
+                animate={pulse ? { scale: [1, 1.08, 1] } : { scale: 1 }}
+                transition={{ duration: 0.8, ease: "easeInOut" }}
                 className={cn(
-                  "flex h-12 w-12 items-center justify-center rounded-full border transition-all duration-300",
+                  "flex h-12 w-12 items-center justify-center rounded-full border shadow-lg transition-all duration-300",
                   color === "white"
-                    ? "bg-white/90 text-gray-900 border-white/50 shadow-lg"
-                    : "bg-gray-900/90 text-white border-gray-600/50 shadow-lg",
+                    ? "bg-white/90 text-gray-900 border-white/50"
+                    : "bg-gray-900/90 text-white border-gray-600/50",
                   isCurrentPlayer &&
-                    "ring-2 ring-primary ring-offset-2 ring-offset-background",
+                    "ring-2 ring-primary ring-offset-2 ring-offset-background"
                 )}
               >
-                {color === "white" ? (
-                  <Crown className="h-6 w-6" />
-                ) : (
-                  <User className="h-6 w-6" />
-                )}
+                {PlayerIcon}
               </motion.div>
+
               <div>
                 <div className="flex items-center space-x-2">
                   <span className="font-heading font-semibold text-foreground capitalize">
@@ -101,8 +119,10 @@ const PlayerTimer = ({
                   </span>
                   {isCurrentPlayer && (
                     <motion.div
-                      animate={{ scale: [1, 1.2, 1], rotate: [0, 10, -10, 0] }}
-                      transition={{ duration: 1, repeat: Infinity }}
+                      key="bolt"
+                      initial={{ scale: 0.8, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      transition={{ duration: 0.2 }}
                     >
                       <Zap className="h-4 w-4 text-chess-gold" />
                     </motion.div>
@@ -114,25 +134,24 @@ const PlayerTimer = ({
               </div>
             </div>
 
-            {/* Timer Display Section */}
             <div className="text-right">
-              <motion.div
+              <div
                 className={cn(
-                  "flex items-center space-x-2 text-2xl font-mono font-bold transition-colors duration-300",
+                  "flex items-center space-x-2 text-2xl font-mono font-bold",
                   displayTime === 0 && "text-destructive",
                   isLowTime && displayTime > 0 && "text-yellow-500",
-                  !isLowTime && "text-foreground",
+                  !isLowTime && displayTime > 0 && "text-foreground"
                 )}
               >
                 <Clock className="h-5 w-5" />
                 <span>{formatTime(displayTime)}</span>
-              </motion.div>
+              </div>
             </div>
           </div>
         </CardContent>
       </Card>
-    </motion.div>
+    </div>
   );
 };
 
-export default PlayerTimer;
+export default memo(PlayerTimer);

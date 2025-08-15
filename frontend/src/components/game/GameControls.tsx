@@ -47,9 +47,9 @@ const GameControls = () => {
         )
       ) {
         resignGame();
-      } else {
-        toast.info("Returning to lobby");
         navigate("/lobby");
+      } else {
+        toast.info("Cool!! You decided to stay in game.");
       }
     }
   };
