@@ -1,38 +1,53 @@
 # Chess Game - Real-time Multiplayer Chess Application
 
-A modern, real-time multiplayer chess application built with Node.js, Express, PostgreSQL, Redis, and WebSocket technology. Features comprehensive authentication, intelligent matchmaking, and seamless gameplay experience.
+A modern, full-stack, real-time multiplayer chess application built with a powerful combination of Node.js, React, PostgreSQL, and WebSocket technology. It features a comprehensive authentication system, intelligent matchmaking, and a seamless, responsive gameplay experience.
 
-![Chess Game Banner](https://img.shields.io/badge/Chess-Game-blue?style=for-the-badge&logo=chess)
+![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)
+![Node.js](https://img.shields.io/badge/Node.js-339933?style=for-the-badge&logo=nodedotjs&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-316192?style=for-the-badge&logo=postgresql&logoColor=white)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)
 
-This chess application provides a complete multiplayer chess experience with real-time gameplay, intelligent matchmaking, and modern web technologies. Built with scalability and performance in mind, it supports thousands of concurrent players with sub-second move latency.
+This chess application provides a complete multiplayer experience, designed from the ground up for performance and scalability. The responsive frontend built with React and the robust Node.js backend support thousands of concurrent players with sub-second move latency.
 
 ## ✨ Key Features
 
-- 🔐 **Dual Authentication System** – Guest accounts & Google OAuth integration  
-- ⚡ **Real-time Gameplay** – WebSocket-powered instant move synchronization  
-- 🎮 **Smart Matchmaking** – Queue-based pairing with ELO rating support  
-- ♟️ **Complete Chess Engine** – Full rule validation including *en passant*, castling, and promotions  
-- 💬 **In-game Chat** – Real-time messaging with typing indicators  
-- 🏠 **Flexible Room System** – Public rooms and private rooms with invite codes  
-- 📊 **Live Statistics** – Real-time player counts and server metrics  
-- 🔄 **Reconnection Handling** – Seamless game continuity after disconnections  
-- 🛡️ **Anti-abuse Protection** – Rate limiting and illegal move detection  
+-   🔐 **Dual Authentication System** – Secure session-based access for guests & Google OAuth integration.
+-   ⚡ **Seamless Real-time Gameplay** – WebSocket-powered instant move synchronization for a fluid experience.
+-   🎨 **Responsive & Animated UI** – Modern interface built with Tailwind CSS and Framer Motion that works flawlessly on all devices.
+-   🧠 **Smart Matchmaking** – Queue-based pairing with ELO rating support to find the perfect opponent.
+-   ♟️ **Complete Chess Engine** – Full rule validation including *en passant*, castling, and promotions via Chess.js.
+-   💬 **In-Game Chat** – Real-time messaging between players with typing indicators.
+-   🏠 **Flexible Room System** – Public rooms for quick matches and private, invite-only rooms for friends.
+-   🔄 **Robust Reconnection Handling** – Seamless game continuity after network disconnections.
+-   🛡️ **Anti-abuse Protection** – Backend rate limiting and illegal move detection to ensure fair play.
 
-## 🏗️ Architecture
+## 🚀 Tech Stack
 
-### 🔧 Backend Stack
+### Frontend
 
-- **Runtime**: Node.js 18+ with TypeScript  
-- **Web Framework**: Express.js with comprehensive middleware  
-- **Database**: PostgreSQL with Prisma ORM  
-- **Caching**: Redis for sessions and game state  
-- **Real-time**: WebSocket (`ws` library) for live communication  
-- **Authentication**: JWT with Passport.js for Google OAuth  
-- **Validation**: Chess.js for move validation and game logic  
+-   **Core Framework**: **React.js 18+** with Vite
+-   **Styling**: **Tailwind CSS** with Radix UI for accessible components
+-   **State Management**: **Zustand** for simple, centralized global state
+-   **Data Fetching & Caching**: **TanStack Query (React Query)** for server state management
+-   **Animations**: **Framer Motion** for fluid UI transitions and animations
+-   **Real-time Client**: Native WebSocket API for live communication
 
-## UML DIAGRAMS
+### Backend
 
-### 📘 Entity Relationship Diagram
+-   **Core**: **Node.js 18+** with TypeScript
+-   **API Framework**: **Express.js** with comprehensive middleware
+-   **Database**: **PostgreSQL** with **Prisma ORM** for type-safe database access
+-   **Caching & Game State**: **Redis** for managing active games, queues, and sessions
+-   **Real-time Server**: **`ws` library** for a high-performance WebSocket server
+-   **Authentication**: **JWT** with **Passport.js** for Google OAuth strategy
+-   **Game Logic**: **Chess.js** for robust move validation
+
+## 📊 System Design Diagrams
+
+### Entity Relationship Diagram
+
+
 
 ```mermaid
 erDiagram
