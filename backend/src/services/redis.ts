@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { createClient, RedisClientType } from "redis";
 import { logger } from "./logger";
 
@@ -301,11 +302,7 @@ class RedisService {
     }
   }
 
-  async setSession(
-    sessionId: string,
-    data: any,
-    ttl = 3600
-  ): Promise<void> {
+  async setSession(sessionId: string, data: any, ttl = 3600): Promise<void> {
     await this.setJSON(`session:${sessionId}`, data, ttl);
   }
 
@@ -329,7 +326,7 @@ class RedisService {
     try {
       const result = await this.ping();
       return result === "PONG";
-    } catch (error) {
+    } catch {
       return false;
     }
   }
