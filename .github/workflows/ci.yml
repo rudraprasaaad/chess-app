@@ -19,9 +19,12 @@ jobs:
   build-and-test:
     name: Build and Test
     runs-on: ubuntu-latest
+    outputs:
+      backend_changed: ${{ steps.backend-changes.outputs.any_changed }}
+      frontend_changed: ${{ steps.frontend-changes.outputs.any_changed }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Detect backend changes
         id: backend-changes
@@ -36,14 +39,15 @@ jobs:
           files: frontend/**
 
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "24"
+          cache: "pnpm"
 
       - name: Install pnpm
         uses: pnpm/action-setup@v4
         with:
-          version: 8
+          version: 10.14.0
 
       - name: Install dependencies (from workspace root)
         run: pnpm install
@@ -63,3 +67,26 @@ jobs:
         run: |
           pnpm --filter frontend lint
           pnpm --filter frontend build
+
+  build-and-push-docker:
+    name: Build and Push Docker Image
+    runs-on: ubuntu-latest
+    needs: build-and-test
+    if: needs.build-and-test.outputs.backend_changed == 'true' && github.event_name == 'push' && github.ref == 'refs/heads/master'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Build and Push Docker image
+        run: |
+          docker build -t ${{ secrets.DOCKER_USERNAME}}/chess-app-backend:latest -f backend/Dockerfile .
+          docker push ${{ secrets.DOCKER_USERNAME }}/chess-app-backend:latest

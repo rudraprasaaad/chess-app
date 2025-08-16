@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import winston from "winston";
 
 export class LoggerService {
