@@ -114,7 +114,6 @@ router.get("/refresh", async (req: Request, res: Response) => {
 
     const user = req.user;
 
-    // Determine token type based on user provider
     const isGuest = user.provider === AuthProvider.GUEST;
     const cookieName = isGuest ? "guest" : "google";
 
@@ -124,7 +123,6 @@ router.get("/refresh", async (req: Request, res: Response) => {
       { expiresIn: "24h" }
     );
 
-    // Set the appropriate cookie
     res.cookie(cookieName, token, {
       httpOnly: true,
       maxAge: COOKIE_MAX_AGE,
