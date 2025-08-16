@@ -46,7 +46,14 @@ const App = () => (
             path="/auth/google/callback"
             element={<AuthCallbackHandler />}
           />
-          <Route path="/game/:gameId" element={<GameRoom />} />
+          <Route
+            path="/game/:gameId"
+            element={
+              <ProtectedRoute>
+                <GameRoom />
+              </ProtectedRoute>
+            }
+          />
           <Route
             path="/lobby"
             element={

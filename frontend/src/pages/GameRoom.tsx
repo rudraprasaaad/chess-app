@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { useNavigate, useParams } from "react-router-dom";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRoomStore } from "../store/room";
 import { useAuthStore } from "../store/auth";
 import PlayerTime from "../components/game/PlayerTimer";
@@ -116,6 +116,17 @@ const GameRoom = () => {
       setEndReasonMessage(undefined);
     }
   }, [currentGame, gameId, user?.id]);
+
+  const handleSelectPromotion = useCallback(
+    (piece: "q" | "r" | "b" | "n") => {
+      submitPromotion(piece);
+    },
+    [submitPromotion]
+  );
+
+  const handleCancelPromotion = useCallback(() => {
+    cancelPromotion();
+  }, [cancelPromotion]);
 
   const handleEndModalClose = () => {
     setModalOpen(false);
@@ -314,8 +325,8 @@ const GameRoom = () => {
 
       <PromotionModal
         isOpen={isPromotionOpen}
-        onSelectPromotion={submitPromotion}
-        onCancel={cancelPromotion}
+        onSelectPromotion={handleSelectPromotion}
+        onCancel={handleCancelPromotion}
       />
       <GameEndModal
         isOpen={endModalOpen}

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { memo, useCallback, useState } from "react";
 import { toast } from "sonner";
 import {
   AlertTriangle,
@@ -29,17 +29,17 @@ const GameControls = () => {
 
   const isGameActive = currentGame?.status === "ACTIVE";
 
-  const handleResign = () => {
+  const handleResign = useCallback(() => {
     resignGame();
     setShowConfirmResign(false);
-  };
+  }, [resignGame]);
 
-  const handleOfferDraw = () => {
+  const handleOfferDraw = useCallback(() => {
     offerDraw();
     setShowConfirmDraw(false);
-  };
+  }, [offerDraw]);
 
-  const handleLeaveGame = () => {
+  const handleLeaveGame = useCallback(() => {
     if (isGameActive) {
       if (
         window.confirm(
@@ -51,8 +51,10 @@ const GameControls = () => {
       } else {
         toast.info("Cool!! You decided to stay in game.");
       }
+    } else {
+      navigate("/lobby");
     }
-  };
+  }, [isGameActive, resignGame, navigate]);
 
   return (
     <Card className="glass border-white/10">
@@ -243,4 +245,4 @@ const GameControls = () => {
   );
 };
 
-export default GameControls;
+export default memo(GameControls);

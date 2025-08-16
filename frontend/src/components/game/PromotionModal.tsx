@@ -2,6 +2,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Button } from "../ui/button";
 import { Crown } from "lucide-react";
+import { memo } from "react";
 
 const PROMOTION_PIECES = ["q", "r", "b", "n"] as const;
 
@@ -161,4 +162,4 @@ const PromotionModal = ({
   );
 };
 
-export default PromotionModal;
+export default memo(PromotionModal);

@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { memo, useEffect, useMemo, useRef } from "react";
 import { motion } from "framer-motion";
 import { ScrollText, ChevronRight } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
@@ -23,23 +23,25 @@ const MoveHistory = ({ moves = [] }: MoveHistoryProps) => {
     }
   }, [moves]);
 
-  const pairedMoves = moves.reduce((acc: DisplayMove[], move, index) => {
-    const moveNumber = Math.floor(index / 2) + 1;
-    const isWhiteMove = index % 2 === 0;
+  const pairedMoves = useMemo(() => {
+    return moves.reduce((acc: DisplayMove[], move, index) => {
+      const moveNumber = Math.floor(index / 2) + 1;
+      const isWhiteMove = index % 2 === 0;
 
-    if (isWhiteMove) {
-      acc.push({
-        moveNumber,
-        white: move.san,
-      });
-    } else {
-      const lastDisplayMove = acc[acc.length - 1];
-      if (lastDisplayMove && lastDisplayMove.moveNumber === moveNumber) {
-        lastDisplayMove.black = move.san;
+      if (isWhiteMove) {
+        acc.push({
+          moveNumber,
+          white: move.san,
+        });
+      } else {
+        const lastDisplayMove = acc[acc.length - 1];
+        if (lastDisplayMove && lastDisplayMove.moveNumber === moveNumber) {
+          lastDisplayMove.black = move.san;
+        }
       }
-    }
-    return acc;
-  }, []);
+      return acc;
+    }, []);
+  }, [moves]);
 
   return (
     <Card className="glass border-white/10 h-full flex flex-col overflow-hidden">
@@ -131,4 +133,4 @@ const MoveHistory = ({ moves = [] }: MoveHistoryProps) => {
   );
 };
 
-export default MoveHistory;
+export default memo(MoveHistory);

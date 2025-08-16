@@ -23,6 +23,7 @@ import bN from "../../assets/chess/knight_black.svg";
 import bNrot from "../../assets/chess/knight_rotated_black.svg";
 import bP from "../../assets/chess/pawn_black.svg";
 import bProt from "../../assets/chess/pawn_black_rotated.svg";
+import { memo } from "react";
 
 interface PieceIconProps {
   notation: string;
@@ -70,4 +71,4 @@ const PieceIcon = ({
   );
 };
 
-export default PieceIcon;
+export default memo(PieceIcon);

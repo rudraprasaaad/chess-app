@@ -1,8 +1,8 @@
-import { useEffect } from "react";
+import { memo, useCallback, useEffect } from "react";
 import { useAuthStore } from "../../store/auth";
 import { useWebSocketStore } from "../../store/websocket";
 
-export const WebSocketManager = () => {
+export const WebSocketManagerComponent = () => {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const isLoading = useAuthStore((state) => state.isLoading);
   const wsStatus = useWebSocketStore((state) => state.status);
@@ -18,21 +18,23 @@ export const WebSocketManager = () => {
     }
   }, [isAuthenticated, isLoading, wsStatus, connect]);
 
-  useEffect(() => {
-    const handleVisibilityChanges = () => {
-      if (
-        document.visibilityState === "visible" &&
-        isAuthenticated &&
-        wsStatus === "disconnected"
-      ) {
-        connect();
-      }
-    };
+  const handleVisibilityChanges = useCallback(() => {
+    if (
+      document.visibilityState === "visible" &&
+      isAuthenticated &&
+      wsStatus === "disconnected"
+    ) {
+      connect();
+    }
+  }, [isAuthenticated, wsStatus, connect]);
 
+  useEffect(() => {
     document.addEventListener("visibilitychange", handleVisibilityChanges);
     return () =>
       document.removeEventListener("visibilitychange", handleVisibilityChanges);
-  }, [isAuthenticated, wsStatus, connect]);
+  }, [handleVisibilityChanges]);
 
   return null;
 };
+
+export const WebSocketManager = memo(WebSocketManagerComponent);

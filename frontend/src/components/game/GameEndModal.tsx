@@ -2,6 +2,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Clock, Flag, Handshake, Trophy, Crown, Swords } from "lucide-react";
 import { Card, CardContent, CardHeader } from "../ui/card";
 import { Button } from "../ui/button";
+import { memo } from "react";
 
 type GameResultType = "win" | "loss" | "draw" | "timeout" | "resign";
 
@@ -81,7 +82,7 @@ const GameEndModal = ({
     }
   };
 
-  const config = getResultConfig();
+  const config = result ? getResultConfig() : null;
 
   return (
     <AnimatePresence>
@@ -113,10 +114,10 @@ const GameEndModal = ({
             aria-labelledby="gameEndModalTitle"
           >
             <Card
-              className={`glass max-w-md w-full border-white/10 ${config.borderColor} overflow-hidden`}
+              className={`glass max-w-md w-full border-white/10 ${config?.borderColor} overflow-hidden`}
             >
               <motion.div
-                className={`absolute inset-0 ${config.bgColor} opacity-50`}
+                className={`absolute inset-0 ${config?.bgColor} opacity-50`}
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
                 transition={{ delay: 0.2, duration: 0.6 }}
@@ -130,7 +131,7 @@ const GameEndModal = ({
               >
                 <CardHeader className="text-center space-y-4 pb-6">
                   <motion.div
-                    className={`flex justify-center ${config.color}`}
+                    className={`flex justify-center ${config?.color}`}
                     initial={{ scale: 0, rotate: -180 }}
                     animate={{ scale: 1, rotate: 0 }}
                     transition={{
@@ -140,7 +141,7 @@ const GameEndModal = ({
                       damping: 15,
                     }}
                   >
-                    {config.icon}
+                    {config?.icon}
                   </motion.div>
 
                   <motion.div
@@ -150,11 +151,11 @@ const GameEndModal = ({
                   >
                     <h2
                       id="gameEndModalTitle"
-                      className={`text-4xl font-bold ${config.color}`}
+                      className={`text-4xl font-bold ${config?.color}`}
                     >
-                      {config.title}
+                      {config?.title}
                     </h2>
-                    {config.subtitle && (
+                    {config?.subtitle && (
                       <p className="text-muted-foreground mt-2 text-lg">
                         {config.subtitle}
                       </p>
@@ -206,4 +207,4 @@ const GameEndModal = ({
   );
 };
 
-export default GameEndModal;
+export default memo(GameEndModal);

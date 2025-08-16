@@ -3,30 +3,33 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "../ui/button";
 import { Crown, LogOut, ChevronRight, Home } from "lucide-react";
 import { useLogout } from "../../hooks/api/useAuth";
+import { memo, useCallback, useMemo } from "react";
 
-export const Navbar = () => {
+const NavbarComponent = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
   const logoutMutation = useLogout();
 
-  const handleLogout = () => {
+  const handleLogout = useCallback(() => {
     logoutMutation.mutate();
-  };
+  }, [logoutMutation]);
 
-  const isGameRoom = location.pathname.startsWith("/game/");
-  const isLobby = location.pathname === "/lobby";
+  const breadcrumbs = useMemo(() => {
+    const isGameRoom = location.pathname.startsWith("/game/");
+    const isLobby = location.pathname === "/lobby";
 
-  const breadcrumbs = [
-    { label: "Chess", path: "/", icon: Crown },
-    ...(isLobby ? [{ label: "Lobby", path: "/lobby", icon: Home }] : []),
-    ...(isGameRoom
-      ? [
-          { label: "Lobby", path: "/lobby", icon: Home },
-          { label: "Game Room", path: location.pathname, icon: Crown },
-        ]
-      : []),
-  ];
+    return [
+      { label: "Chess", path: "/", icon: Crown },
+      ...(isLobby ? [{ label: "Lobby", path: "/lobby", icon: Home }] : []),
+      ...(isGameRoom
+        ? [
+            { label: "Lobby", path: "/lobby", icon: Home },
+            { label: "Game Room", path: location.pathname, icon: Crown },
+          ]
+        : []),
+    ];
+  }, [location.pathname]);
 
   return (
     <motion.nav
@@ -82,7 +85,7 @@ export const Navbar = () => {
             )}
           </div>
 
-          {isGameRoom && (
+          {location.pathname.startsWith("/game/") && (
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -119,3 +122,5 @@ export const Navbar = () => {
     </motion.nav>
   );
 };
+
+export const Navbar = memo(NavbarComponent);

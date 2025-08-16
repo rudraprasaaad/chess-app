@@ -6,7 +6,7 @@ import {
   useState,
 } from "react";
 import { motion, useMotionValue, useSpring } from "framer-motion";
-import { Clock, User, Crown, Zap } from "lucide-react";
+import { Clock, Crown, Zap } from "lucide-react";
 import { cn } from "../../lib/utils";
 import { Card, CardContent } from "../ui/card";
 import { useGameStore } from "../../store/game";
@@ -66,7 +66,7 @@ const PlayerTimer = ({
       color === "white" ? (
         <Crown className="h-6 w-6" />
       ) : (
-        <User className="h-6 w-6" />
+        <Crown className="h-6 w-6" />
       ),
     [color]
   );
