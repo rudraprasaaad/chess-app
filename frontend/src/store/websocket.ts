@@ -8,6 +8,8 @@ import { handleRoomMessage } from "./room";
 import { handleGameMessage } from "./game";
 import { useMemo } from "react";
 
+const isProduction = import.meta.env.NODE_ENV === "production";
+
 export type ConnectionStatus =
   | "disconnected"
   | "connecting"
@@ -70,7 +72,9 @@ export const useWebSocketStore = create<WebSocketState>((set, get) => ({
     set({ status: "connecting", error: null });
 
     try {
-      const wsHost = import.meta.env.VITE_WS_URL_DEV;
+      const wsHost = isProduction
+        ? import.meta.env.VITE_WS_URL
+        : import.meta.env.VITE_WS_URL_DEV;
       const wsUrl = `${wsHost}`;
 
       const ws = new WebSocket(wsUrl);

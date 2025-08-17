@@ -10,8 +10,12 @@ import type {
 import { useAuthStore } from "../store/auth";
 import { AuthProvider } from "../types/common";
 
+const isProduction = import.meta.env.NODE_ENV === "production";
+
 export const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL_DEV,
+  baseURL: isProduction
+    ? import.meta.env.VITE_API_URL
+    : import.meta.env.VITE_API_URL_DEV,
   withCredentials: true,
   headers: {
     "Content-Type": "application/json",
