@@ -7,13 +7,10 @@ const Index = () => {
 
   if (isAuthenticated) return <Navigate to="/lobby" />;
 
-  const isProduction = import.meta.env.NODE_ENV === "production";
-  console.log(
-    "Using API URL:",
-    isProduction
-      ? import.meta.env.VITE_API_URL
-      : import.meta.env.VITE_API_URL_DEV
-  );
+  const apiUrl = import.meta.env.PROD
+    ? import.meta.env.VITE_API_URL
+    : import.meta.env.VITE_API_URL_DEV;
+  console.log("Using API URL:", apiUrl);
 
   return (
     <div className="h-screen bg-background">
