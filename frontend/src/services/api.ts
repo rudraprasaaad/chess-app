@@ -82,6 +82,12 @@ export const authAPI = {
   },
 
   googleLogin: (): void => {
+    console.log(
+      "Using API URL:",
+      isProduction
+        ? import.meta.env.VITE_API_URL
+        : import.meta.env.VITE_API_URL_DEV
+    );
     const googleAuthUrl = `${api.defaults.baseURL}/auth/google`;
     window.location.href = googleAuthUrl;
   },
