@@ -19,7 +19,6 @@ import PromotionModal from "../components/game/PromotionModal";
 import { GameStatus } from "../types/common";
 import GameEndModal from "../components/game/GameEndModal";
 import GameChat from "../components/game/GameChat";
-import { Navbar } from "../components/shared/Navbar";
 import { useWebSocketConnection, useWebSocketSender } from "../store/websocket";
 
 const GameRoom = () => {
@@ -199,9 +198,7 @@ const GameRoom = () => {
         <div className="absolute inset-0 chess-pattern opacity-[0.02]" />
       </div>
 
-      <div className="flex-shrink-0">
-        <Navbar />
-      </div>
+      <div className="flex-shrink-0"></div>
 
       <div className="relative z-10 flex-1 min-h-0 flex justify-center">
         <div className="w-[90%] max-w-7xl h-full px-3 py-2">
