@@ -205,7 +205,7 @@ class Application {
 
       logger.info(`🚀 Server running on port ${port}`);
       logger.info(`📊 Environment: ${process.env.NODE_ENV}`);
-      logger.info(`🔗 API URL: ${baseUrl}/`);
+      logger.info(`🔗 API URL: ${baseUrl}`);
       logger.info(`🏥 Health Check: ${baseUrl}/api/health`);
 
       if (isProduction) {
