@@ -8,7 +8,7 @@ COPY pnpm-workspace.yaml .
 COPY pnpm-lock.yaml .
 COPY backend/package.json ./backend/package.json
 
-RUN pnpm install --frozen-lockfile
+RUN pnpm install --frozen-lockfile --shamefully-hoist
 
 COPY backend/ /app/backend/
 
@@ -22,8 +22,7 @@ WORKDIR /app/backend
 
 COPY --from=builder /app/backend/dist ./dist
 COPY --from=builder /app/backend/package.json .
-
-COPY --from=builder /app/backend/node_modules/ ./node_modules/
+COPY --from=builder /app/node_modules ./node_modules
 
 EXPOSE 4000
 

@@ -1,4 +1,3 @@
-text
 # Chess Game - Real-time Multiplayer Chess Application
 
 A modern, full-stack, real-time multiplayer chess application built with a powerful combination of Node.js, React, PostgreSQL, and WebSocket technology. It features a comprehensive authentication system, intelligent matchmaking, and a seamless, responsive gameplay experience.
