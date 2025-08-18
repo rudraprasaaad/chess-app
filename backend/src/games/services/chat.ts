@@ -26,7 +26,7 @@ export class ChatService {
 
     if (limit.count >= 50) {
       throw new Error(
-        "Rate limit exceeded. Please wait before sending more messages."
+        "Rate limit exceeded. Please wait before sending more messages keep it slow."
       );
     }
 
