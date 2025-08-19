@@ -38,8 +38,10 @@ export class GameService {
 
       for (const gameId of this.activeGames) {
         try {
+          await redis.watch(`game:${gameId}`);
           const gameData = await redis.get(`game:${gameId}`);
           if (!gameData) {
+            await redis.unwatch();
             this.activeGames.delete(gameId);
             continue;
           }
@@ -47,6 +49,7 @@ export class GameService {
           const game = JSON.parse(gameData) as Game;
 
           if (game.status !== GameStatus.ACTIVE) {
+            await redis.unwatch();
             this.activeGames.delete(gameId);
             continue;
           }
@@ -55,19 +58,36 @@ export class GameService {
           const colorMap = { w: "white", b: "black" } as const;
           const currentColor = colorMap[currentTurn];
 
-          game.timers[currentColor] -= 1;
+          const newTimers = { ...game.timers };
+          newTimers[currentColor] = Math.max(0, newTimers[currentColor] - 1);
 
-          await redis.setJSON(`game:${gameId}`, game);
+          const updatedGame = { ...game, timers: newTimers };
+          const updatedGameData = JSON.stringify(updatedGame);
+
+          const multi = await redis.multi();
+          multi.set(`game:${gameId}`, updatedGameData);
+
+          const result = await redis.exec(multi);
+
+          await redis.unwatch();
+
+          if (result === null) {
+            logger.warn(
+              `Race detected in timer for game ${gameId} skipping tick.`
+            );
+            continue;
+          }
 
           this.ws.broadcastToGame(game, "TIMER_UPDATE", {
-            white: game.timers.white,
-            black: game.timers.black,
+            white: newTimers.white,
+            black: newTimers.black,
             game: gameId,
           });
 
-          if (game.timers[currentColor] <= 0)
+          if (newTimers[currentColor] <= 0)
             await this.handleTimeout(gameId, currentColor);
         } catch (err) {
+          await redis.unwatch();
           logger.error(`Error in master timer loop for game ${gameId}:`, err);
           this.activeGames.delete(gameId);
         }
@@ -331,10 +351,15 @@ export class GameService {
       }
     }
 
-    const movedPlayerColor = player.color as "white" | "black";
-    game.timers[movedPlayerColor] += game.timeControl.increment;
+    const updatedFen = chess.fen();
+    const newTurn = updatedFen.split(" ")[1] as "w" | "b";
+    const colorMap = { w: "white", b: "black" } as const;
+    const nextPlayerColor = colorMap[newTurn];
 
-    game.fen = chess.fen();
+    if (game.timeControl.increment > 0)
+      game.timers[nextPlayerColor] += game.timeControl.increment;
+
+    game.fen = updatedFen;
     game.moveHistory.push({
       from: move.from,
       to: move.to,

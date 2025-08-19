@@ -282,7 +282,7 @@ const GameRoom = () => {
                       <PlayerTime
                         color="black"
                         playerName={blackPlayer?.name || "Black Player"}
-                        isCurrentPlayer={currentTurn === "b"}
+                        // isCurrentPlayer={currentTurn === "b"}
                       />
                     </div>
                     <div className="flex-1 flex items-center justify-center min-h-0">
@@ -294,7 +294,7 @@ const GameRoom = () => {
                       <PlayerTime
                         color="white"
                         playerName={whitePlayer?.name || "White Player"}
-                        isCurrentPlayer={currentTurn === "w"}
+                        // isCurrentPlayer={currentTurn === "w"}
                       />
                     </div>
                   </div>

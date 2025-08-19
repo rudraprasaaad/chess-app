@@ -14,19 +14,23 @@ import { useGameStore } from "../../store/game";
 interface PlayerTimerProps {
   color: "white" | "black";
   playerName: string;
-  isCurrentPlayer: boolean;
+  // isCurrentPlayer: boolean;
 }
 
 const PlayerTimer = ({
   color,
   playerName,
-  isCurrentPlayer,
-}: PlayerTimerProps) => {
+}: // isCurrentPlayer,
+PlayerTimerProps) => {
+  const currentGame = useGameStore((s) => s.currentGame);
   const whiteTimeLeft = useGameStore((s) => s.whiteTimeLeft);
   const blackTimeLeft = useGameStore((s) => s.blackTimeLeft);
   const initialTime = useGameStore(
     (s) => s.currentGame?.timeControl?.initial || 600
   );
+
+  const currentTurn = currentGame?.fen.split(" ")[1];
+  const isCurrentPlayer = currentTurn === (color === "white" ? "w" : "b");
 
   const displayTime = color === "white" ? whiteTimeLeft : blackTimeLeft;
   const isLowTime = displayTime < 60;

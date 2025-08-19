@@ -83,7 +83,6 @@ const ChessBoard = () => {
             move: { from: selectedSquare as Square, to: square as Square },
           },
         });
-        clearSelection();
         return;
       }
 
