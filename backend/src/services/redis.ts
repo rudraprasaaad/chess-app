@@ -302,6 +302,42 @@ class RedisService {
     }
   }
 
+  async watch(key: string): Promise<void> {
+    await this.ensureConnection();
+    try {
+      await this.client.watch(key);
+    } catch (err) {
+      logger.error("Redis WATCH error:", err);
+      throw err;
+    }
+  }
+
+  async unwatch(): Promise<void> {
+    await this.ensureConnection();
+    try {
+      await this.client.unwatch();
+    } catch (err) {
+      logger.error("Redis UNWATCH error:", err);
+    }
+  }
+
+  async multi(): Promise<ReturnType<RedisClientType["multi"]>> {
+    await this.ensureConnection();
+    return this.client.multi();
+  }
+
+  async exec(
+    multi: ReturnType<RedisClientType["multi"]>
+  ): Promise<any[] | null> {
+    await this.ensureConnection();
+    try {
+      return await multi.exec();
+    } catch (err) {
+      logger.error("Redis EXEC error:", err);
+      return null;
+    }
+  }
+
   async setSession(sessionId: string, data: any, ttl = 3600): Promise<void> {
     await this.setJSON(`session:${sessionId}`, data, ttl);
   }

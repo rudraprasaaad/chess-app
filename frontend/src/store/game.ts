@@ -130,7 +130,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       const playerColor = (player?.color as "white" | "black") || null;
 
       const currentTurn = game.fen.split(" ")[1]; // Extract turn from FEN
-      const isPlayerTurn = playerColor === currentTurn;
+      const isPlayerTurn = !!playerColor && playerColor[0] === currentTurn;
 
       set({
         currentGame: game,
@@ -177,7 +177,7 @@ export const useGameStore = create<GameState>((set, get) => ({
 
         if (user && playerColor) {
           const currentTurn = gameUpdate.fen.split(" ")[1];
-          const isPlayerTurn = playerColor === currentTurn;
+          const isPlayerTurn = !!playerColor && playerColor[0] === currentTurn;
           set({ isPlayerTurn });
         }
       }
@@ -560,7 +560,6 @@ export const handleGameMessage = (message: any) => {
     setError,
     setDrawOffer,
     setLegalMoves,
-    clearSelection,
     setGameLoading,
     updateTimers,
   } = useGameStore.getState();
@@ -571,20 +570,11 @@ export const handleGameMessage = (message: any) => {
       break;
 
     case "GAME_UPDATED":
-      setCurrentGame(message.payload);
-      setMakingMove(false);
-      break;
-
-    case "REJOIN_GAME": {
-      setCurrentGame(message.payload);
-      setGameLoading(false);
-      setMakingMove(false);
-      break;
-    }
-
+    case "REJOIN_GAME":
     case "GAME_LOADED":
       setCurrentGame(message.payload);
       setGameLoading(false);
+      setMakingMove(false);
       break;
 
     case "GAME_NOT_FOUND":
@@ -605,12 +595,6 @@ export const handleGameMessage = (message: any) => {
     case "LOAD_GAME_ERROR":
       setError(message.payload.message);
       setGameLoading(false);
-      break;
-
-    case "MOVE_MADE":
-      updateGame(message.payload);
-      setMakingMove(false);
-      clearSelection();
       break;
 
     case "LEGAL_MOVES_UPDATE":
