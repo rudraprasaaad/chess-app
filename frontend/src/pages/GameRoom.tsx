@@ -155,6 +155,15 @@ const GameRoom = () => {
     return currentGame?.players.find((p) => p.userId === user?.id)?.color;
   }, [currentGame?.players, user?.id]);
 
+  const boardOrientation = useMemo(() => {
+    return currentPlayerColor === "black" ? "black" : "white";
+  }, [currentPlayerColor]);
+
+  const TopPlayer = boardOrientation === "white" ? blackPlayer : whitePlayer;
+  const BottomPlayer = boardOrientation === "white" ? whitePlayer : blackPlayer;
+  const TopPlayerColor = boardOrientation === "white" ? "black" : "white";
+  const BottomPlayerColor = boardOrientation === "white" ? "white" : "black";
+
   if (!currentGame || currentGame.id !== gameId) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-background">
@@ -201,119 +210,171 @@ const GameRoom = () => {
       <div className="flex-shrink-0"></div>
 
       <div className="relative z-10 flex-1 min-h-0 flex justify-center">
-        <div className="w-[90%] max-w-7xl h-full px-3 py-2">
+        <div className="w-full max-w-7xl h-full px-4 py-4">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, ease: "easeOut" }}
             className="h-full"
           >
-            <div className="hidden xl:block h-full">
-              <div className="grid grid-cols-12 gap-6 h-full">
-                {/* Left Panel - Game Info & Controls */}
-                <motion.div
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.2, duration: 0.6 }}
-                  className="col-span-3 flex flex-col min-h-0"
-                >
-                  <div className="flex-shrink-0 mb-4">
-                    <Card className="glass border-white/10">
-                      <CardHeader className="pb-2">
-                        <CardTitle className="flex items-center text-base">
-                          <Crown className="w-4 h-4 mr-2 text-chess-gold" />
-                          Game Info
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-2">
-                        <div className="flex items-center justify-between p-2 bg-muted/50 rounded-lg border border-white/5">
-                          <span className="text-xs font-medium text-muted-foreground">
-                            Status
-                          </span>
-                          <span className="text-xs font-bold capitalize text-chess-gold px-2 py-1 bg-chess-gold/10 rounded">
-                            {currentGame.status}
-                          </span>
-                        </div>
-                        <div className="flex items-center justify-between p-2 bg-muted/50 rounded-lg border border-white/5">
-                          <span className="text-xs font-medium text-muted-foreground">
-                            Turn
-                          </span>
-                          <span className="text-xs font-semibold flex items-center">
-                            <div
-                              className={`w-3 h-3 rounded-full mr-1.5 border ${
-                                currentTurn === "w"
-                                  ? "bg-white border-gray-400"
-                                  : "bg-gray-900 border-gray-600"
-                              }`}
-                            />
-                            {currentTurn === "w" ? "White" : "Black"}
-                          </span>
-                        </div>
-                        {currentPlayerColor && (
-                          <div className="p-2 bg-primary/15 rounded-lg border border-primary/30">
-                            <div className="flex items-center justify-between">
-                              <span className="text-xs font-medium text-muted-foreground">
-                                You are
-                              </span>
-                              <span className="text-xs font-bold text-primary capitalize px-2 py-1 bg-primary/20 rounded">
-                                {currentPlayerColor}
-                              </span>
-                            </div>
-                          </div>
-                        )}
-                      </CardContent>
-                    </Card>
-                  </div>
-
-                  <div className="flex-1 min-h-0">
-                    <GameControls />
-                  </div>
-                </motion.div>
-
-                {/* Center Panel - Chess Board */}
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.3, duration: 0.6 }}
-                  className="col-span-6 flex flex-col h-full py-4"
-                >
-                  <div className="flex flex-col h-full max-w-[500px] mx-auto w-full">
-                    <div className="mb-3 flex-shrink-0 scale-90 origin-center">
-                      <PlayerTime
-                        color="black"
-                        playerName={blackPlayer?.name || "Black Player"}
-                        // isCurrentPlayer={currentTurn === "b"}
-                      />
+            <div className="flex flex-col xl:flex-row gap-6 h-full">
+              <motion.div
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.2, duration: 0.6 }}
+                className="hidden xl:flex w-full max-w-xs flex-col min-h-0 space-y-4"
+              >
+                <Card className="glass border-white/10">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="flex items-center text-base">
+                      <Crown className="w-4 h-4 mr-2 text-chess-gold" />
+                      Game Info
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    <div className="flex items-center justify-between p-2 bg-muted/50 rounded-lg border border-white/5">
+                      <span className="text-xs font-medium text-muted-foreground">
+                        Status
+                      </span>
+                      <span className="text-xs font-bold capitalize text-chess-gold px-2 py-1 bg-chess-gold/10 rounded">
+                        {currentGame.status}
+                      </span>
                     </div>
-                    <div className="flex-1 flex items-center justify-center min-h-0">
-                      <div className="aspect-square w-full max-w-[450px] max-h-[450px]">
-                        <ChessBoard />
+                    <div className="flex items-center justify-between p-2 bg-muted/50 rounded-lg border border-white/5">
+                      <span className="text-xs font-medium text-muted-foreground">
+                        Turn
+                      </span>
+                      <span className="text-xs font-semibold flex items-center">
+                        <div
+                          className={`w-3 h-3 rounded-full mr-1.5 border ${
+                            currentTurn === "w"
+                              ? "bg-white border-gray-400"
+                              : "bg-gray-900 border-gray-600"
+                          }`}
+                        />
+                        {currentTurn === "w" ? "White" : "Black"}
+                      </span>
+                    </div>
+                    {currentPlayerColor && (
+                      <div className="p-2 bg-primary/15 rounded-lg border border-primary/30">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-medium text-muted-foreground">
+                            You are
+                          </span>
+                          <span className="text-xs font-bold text-primary capitalize px-2 py-1 bg-primary/20 rounded">
+                            {currentPlayerColor}
+                          </span>
+                        </div>
                       </div>
-                    </div>
-                    <div className="mt-3 flex-shrink-0 scale-90 origin-center">
-                      <PlayerTime
-                        color="white"
-                        playerName={whitePlayer?.name || "White Player"}
-                        // isCurrentPlayer={currentTurn === "w"}
-                      />
-                    </div>
-                  </div>
-                </motion.div>
+                    )}
+                  </CardContent>
+                </Card>
 
-                <motion.div
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.4, duration: 0.6 }}
-                  className="col-span-3 flex flex-col h-full space-y-4"
-                >
-                  <div className="h-[400px] min-h-[200px]">
-                    <MoveHistory moves={currentGame.moveHistory} />
-                  </div>
+                <div className="flex-1 min-h-0">
+                  <GameControls />
+                </div>
+              </motion.div>
 
-                  <div className="h-[400px] min-h-[200px]">
-                    <GameChat />
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3, duration: 0.6 }}
+                className="flex-1 flex flex-col h-full items-center"
+              >
+                <div className="flex flex-col h-full max-w-[600px] mx-auto w-full">
+                  <div className="mb-3 flex-shrink-0 scale-90 origin-center">
+                    <PlayerTime
+                      color={TopPlayerColor}
+                      playerName={
+                        TopPlayer?.name ||
+                        (TopPlayerColor === "white"
+                          ? "White Player"
+                          : "Black Player")
+                      }
+                    />
                   </div>
-                </motion.div>
+                  <div className="flex-1 flex items-center justify-center min-h-0">
+                    <div className="aspect-square w-full max-w-[500px] max-h-[500px]">
+                      <ChessBoard boardOrientation={boardOrientation} />
+                    </div>
+                  </div>
+                  <div className="mt-3 flex-shrink-0 scale-90 origin-center">
+                    <PlayerTime
+                      color={BottomPlayerColor}
+                      playerName={
+                        BottomPlayer?.name ||
+                        (BottomPlayerColor === "white"
+                          ? "White Player"
+                          : "Black Player")
+                      }
+                    />
+                  </div>
+                </div>
+              </motion.div>
+
+              <motion.div
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.4, duration: 0.6 }}
+                className="hidden xl:flex w-full max-w-xs flex-col h-full space-y-4"
+              >
+                <div className="h-[400px] min-h-[200px]">
+                  <MoveHistory moves={currentGame.moveHistory} />
+                </div>
+                <div className="h-[400px] min-h-[200px]">
+                  <GameChat />
+                </div>
+              </motion.div>
+
+              <div className="xl:hidden flex flex-col space-y-4">
+                <Card className="glass border-white/10">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="flex items-center text-base">
+                      <Crown className="w-4 h-4 mr-2 text-chess-gold" />
+                      Game Info
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    <div className="flex items-center justify-between p-2 bg-muted/50 rounded-lg border border-white/5">
+                      <span className="text-xs font-medium text-muted-foreground">
+                        Status
+                      </span>
+                      <span className="text-xs font-bold capitalize text-chess-gold px-2 py-1 bg-chess-gold/10 rounded">
+                        {currentGame.status}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between p-2 bg-muted/50 rounded-lg border border-white/5">
+                      <span className="text-xs font-medium text-muted-foreground">
+                        Turn
+                      </span>
+                      <span className="text-xs font-semibold flex items-center">
+                        <div
+                          className={`w-3 h-3 rounded-full mr-1.5 border ${
+                            currentTurn === "w"
+                              ? "bg-white border-gray-400"
+                              : "bg-gray-900 border-gray-600"
+                          }`}
+                        />
+                        {currentTurn === "w" ? "White" : "Black"}
+                      </span>
+                    </div>
+                    {currentPlayerColor && (
+                      <div className="p-2 bg-primary/15 rounded-lg border border-primary/30">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-medium text-muted-foreground">
+                            You are
+                          </span>
+                          <span className="text-xs font-bold text-primary capitalize px-2 py-1 bg-primary/20 rounded">
+                            {currentPlayerColor}
+                          </span>
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+                <GameControls />
+                <MoveHistory moves={currentGame.moveHistory} />
+                <GameChat />
               </div>
             </div>
           </motion.div>

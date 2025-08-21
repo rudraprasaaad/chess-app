@@ -118,20 +118,6 @@ export const HeroSection = () => {
               Quick Match
             </Button>
           </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 2, duration: 1 }}
-            className="mt-24 text-xs text-muted-foreground/40 font-light tracking-widest uppercase"
-          >
-            <motion.div
-              animate={{ y: [0, -8, 0] }}
-              transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-            >
-              Scroll to explore
-            </motion.div>
-          </motion.div>
         </motion.div>
 
         <div className="absolute top-1/3 left-1/4 w-96 h-96 bg-primary/5 rounded-full blur-3xl animate-pulse-slow" />

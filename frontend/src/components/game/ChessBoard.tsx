@@ -6,42 +6,30 @@ import { cn } from "../../lib/utils";
 import PieceIcon from "./PieceIcon";
 import { Square } from "chess.js";
 
-const files = ["a", "b", "c", "d", "e", "f", "g", "h"];
-const ranks = [8, 7, 6, 5, 4, 3, 2, 1];
+const defaultFiles = ["a", "b", "c", "d", "e", "f", "g", "h"];
+const defaultRanks = [8, 7, 6, 5, 4, 3, 2, 1];
 
 function fenToBoard(fen: string): Record<string, string | null> {
   const fenBoard = fen.split(" ")[0];
-  if (!fenBoard) {
-    console.warn("Empty or invalid FEN:", fen);
-    return {};
-  }
+  if (!fenBoard) return {};
 
   const rows = fenBoard.split("/");
-  if (rows.length !== 8) {
-    console.warn("Invalid FEN rows count:", rows.length, fen);
-    return {};
-  }
-
   const board: Record<string, string | null> = {};
 
   for (let r = 0; r < 8; r++) {
     let fileIndex = 0;
     const currentRow = rows[r];
-
-    if (!currentRow) {
-      console.warn(`Missing row ${r} in FEN:`, fen);
-      continue;
-    }
+    if (!currentRow) continue;
 
     for (const char of currentRow) {
       if (isNaN(Number(char))) {
-        const square = files[fileIndex] + (8 - r);
+        const square = defaultFiles[fileIndex] + (8 - r);
         board[square] = char;
         fileIndex++;
       } else {
         const emptyCount = parseInt(char, 10);
         for (let i = 0; i < emptyCount; i++) {
-          const square = files[fileIndex] + (8 - r);
+          const square = defaultFiles[fileIndex] + (8 - r);
           board[square] = null;
           fileIndex++;
         }
@@ -53,9 +41,13 @@ function fenToBoard(fen: string): Record<string, string | null> {
 }
 
 const isLightSquare = (file: string, rank: number) =>
-  (files.indexOf(file) + rank) % 2 === 1;
+  (defaultFiles.indexOf(file) + rank) % 2 === 1;
 
-const ChessBoard = () => {
+interface ChessBoardProps {
+  boardOrientation?: "white" | "black";
+}
+
+const ChessBoard = ({ boardOrientation = "white" }: ChessBoardProps) => {
   const fen = useGameStore((state) => state.currentGame?.fen || "");
   const selectedSquare = useGameStore((state) => state.selectedSquare);
   const legalMoves = useGameStore((state) => state.legalMoves);
@@ -65,6 +57,17 @@ const ChessBoard = () => {
   const sendMessage = useWebSocketSender().sendMessage;
 
   const board = useMemo(() => fenToBoard(fen), [fen]);
+
+  const ranks = useMemo(
+    () =>
+      boardOrientation === "white" ? defaultRanks : [...defaultRanks].reverse(),
+    [boardOrientation]
+  );
+  const files = useMemo(
+    () =>
+      boardOrientation === "white" ? defaultFiles : [...defaultFiles].reverse(),
+    [boardOrientation]
+  );
 
   const onSquareClick = useCallback(
     (square: string) => {
@@ -119,15 +122,15 @@ const ChessBoard = () => {
   }
 
   return (
-    <div className="flex items-center justify-center p-6">
+    <div className="flex items-center justify-center w-full h-full">
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.5, ease: "easeOut" }}
-        className="relative"
+        className="relative w-full h-full max-w-[500px] max-h-[500px] aspect-square"
       >
         <div
-          className="grid grid-cols-8 gap-0 w-96 h-96 border border-white/10 rounded-xl overflow-hidden shadow-2xl bg-card select-none"
+          className="grid grid-cols-8 grid-rows-8 w-full h-full border border-white/10 rounded-xl overflow-hidden shadow-2xl bg-card select-none"
           role="grid"
           aria-label="Chessboard"
         >
@@ -143,7 +146,7 @@ const ChessBoard = () => {
                 <motion.div
                   key={square}
                   className={cn(
-                    "w-12 h-12 flex items-center justify-center cursor-pointer relative transition-all duration-300",
+                    "w-full h-full flex items-center justify-center cursor-pointer relative transition-all duration-300",
                     isLight
                       ? "bg-amber-50 hover:bg-amber-100"
                       : "bg-amber-700 hover:bg-amber-600",
@@ -166,8 +169,8 @@ const ChessBoard = () => {
                   }}
                   whileHover={{ scale: 1.05, transition: { duration: 0.2 } }}
                   whileTap={{ scale: 0.95, transition: { duration: 0.1 } }}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
                   transition={{
                     delay: (rankIndex * 8 + fileIndex) * 0.01,
                     duration: 0.3,
@@ -186,9 +189,9 @@ const ChessBoard = () => {
                           damping: 25,
                           duration: 0.4,
                         }}
-                        className="relative z-10"
+                        className="relative z-10 w-[75%] h-[75%]"
                       >
-                        <PieceIcon notation={piece} size={32} />
+                        <PieceIcon notation={piece} />
                       </motion.div>
                     )}
                   </AnimatePresence>
@@ -204,7 +207,7 @@ const ChessBoard = () => {
                           stiffness: 400,
                           damping: 20,
                         }}
-                        className="w-3 h-3 bg-primary rounded-full absolute"
+                        className="w-[30%] h-[30%] bg-primary rounded-full absolute"
                       />
                     )}
                   </AnimatePresence>
@@ -230,26 +233,30 @@ const ChessBoard = () => {
           )}
         </div>
 
-        <div className="absolute -bottom-6 left-0 right-0 flex justify-between px-3">
-          {files.map((file) => (
-            <span
-              key={file}
-              className="text-xs text-muted-foreground font-medium w-12 text-center"
-            >
-              {file}
-            </span>
-          ))}
-        </div>
-        <div className="absolute -left-6 top-0 bottom-0 flex flex-col justify-between py-3">
-          {ranks.map((rank) => (
-            <span
-              key={rank}
-              className="text-xs text-muted-foreground font-medium h-12 flex items-center"
-            >
-              {rank}
-            </span>
-          ))}
-        </div>
+        {files.map((file, index) => (
+          <span
+            key={file}
+            className="text-xs text-muted-foreground font-medium absolute -bottom-5"
+            style={{
+              left: `${(index + 0.5) * 12.5}%`,
+              transform: "translateX(-50%)",
+            }}
+          >
+            {file}
+          </span>
+        ))}
+        {ranks.map((rank, index) => (
+          <span
+            key={rank}
+            className="text-xs text-muted-foreground font-medium absolute -left-5"
+            style={{
+              top: `${(index + 0.5) * 12.5}%`,
+              transform: "translateY(-50%)",
+            }}
+          >
+            {rank}
+          </span>
+        ))}
       </motion.div>
     </div>
   );
