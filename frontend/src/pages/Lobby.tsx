@@ -8,16 +8,7 @@ import { RoomStatus, RoomType } from "../types/common";
 import { useRoomByInviteCode } from "../hooks/api/useRoom";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
-import {
-  Crown,
-  Users,
-  Zap,
-  Plus,
-  Coffee,
-  Trophy,
-  Key,
-  Sparkles,
-} from "lucide-react";
+import { Crown, Zap, Plus, Coffee, Trophy, Key, Sparkles } from "lucide-react";
 import { Navbar } from "../components/shared/Navbar";
 import FloatingChessPiece from "../components/game/FloatingChessPiece";
 
@@ -56,9 +47,6 @@ const Lobby = () => {
     isInQueue,
   } = useRoomStore();
 
-  const [roomType, setRoomType] = useState<RoomType.PUBLIC | RoomType.PRIVATE>(
-    RoomType.PUBLIC
-  );
   const [createInviteCode, setCreateInviteCode] = useState("");
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [joinInviteCode, setJoinInviteCode] = useState("");
@@ -86,19 +74,19 @@ const Lobby = () => {
   }, [currentRoom, navigate]);
 
   const handleCreateRoom = useCallback(() => {
-    if (roomType === RoomType.PRIVATE && !createInviteCode.trim()) {
-      toast.error("Please enter a valid invite code for private room.");
+    if (!createInviteCode.trim()) {
+      toast.error("Please enter a valid invite code for the private room.");
       return;
     }
 
     createRoom({
-      type: roomType,
-      inviteCode: roomType === RoomType.PRIVATE ? createInviteCode.trim() : "",
+      type: RoomType.PRIVATE,
+      inviteCode: createInviteCode.trim(),
     });
 
     setShowCreateModal(false);
     setCreateInviteCode("");
-  }, [roomType, createInviteCode, createRoom]);
+  }, [createInviteCode, createRoom]);
 
   const handleJoinRoom = useCallback(async () => {
     if (!joinInviteCode.trim()) {
@@ -169,7 +157,6 @@ const Lobby = () => {
           className="absolute top-2/3 right-1/6 w-4 h-4 text-muted-foreground/10"
           delay={5}
         />
-
         <motion.div
           className="absolute inset-0 opacity-[0.02]"
           animate={{
@@ -196,7 +183,6 @@ const Lobby = () => {
             ))}
           </div>
         </motion.div>
-
         {Array.from({ length: 8 }).map((_, i) => (
           <motion.div
             key={i}
@@ -215,7 +201,6 @@ const Lobby = () => {
             <Sparkles className="w-2 h-2 text-muted-foreground/10" />
           </motion.div>
         ))}
-
         <motion.div
           className="absolute top-1/4 right-1/4 w-32 h-32 rounded-full bg-gradient-to-br from-primary/5 to-transparent blur-xl"
           animate={{
@@ -243,7 +228,6 @@ const Lobby = () => {
         />
       </div>
 
-      {/* Main content */}
       <div className="flex-1 flex items-center justify-center p-6">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -251,7 +235,6 @@ const Lobby = () => {
           transition={{ duration: 0.6 }}
           className="w-full max-w-md space-y-6"
         >
-          {/* Header */}
           <div className="text-center space-y-3">
             <motion.div
               initial={{ scale: 0.8 }}
@@ -271,7 +254,6 @@ const Lobby = () => {
             </div>
           </div>
 
-          {/* Controls */}
           <div className="space-y-3">
             <motion.div
               initial={{ opacity: 0, y: 10 }}
@@ -285,7 +267,7 @@ const Lobby = () => {
               >
                 <div className="flex items-center">
                   <Plus className="w-4 h-4 mr-3" />
-                  Create Room
+                  Create Private Room
                 </div>
               </Button>
             </motion.div>
@@ -311,7 +293,7 @@ const Lobby = () => {
               >
                 <div className="flex items-center">
                   <Key className="w-4 h-4 mr-3" />
-                  {isLookinUp ? "Finding room..." : "Join Private Room"}
+                  {isLookinUp ? "Finding room..." : "Join with Code"}
                 </div>
                 {isLookinUp && (
                   <div className="w-4 h-4 border-2 border-foreground border-t-transparent rounded-full animate-spin" />
@@ -387,7 +369,6 @@ const Lobby = () => {
         </motion.div>
       </div>
 
-      {/* Create Room Modal */}
       <AnimatePresence>
         {showCreateModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -407,70 +388,30 @@ const Lobby = () => {
             >
               <div className="text-center mb-6">
                 <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-secondary mb-3">
-                  <Plus className="w-6 h-6 text-secondary-foreground" />
+                  <Key className="w-6 h-6 text-secondary-foreground" />
                 </div>
                 <h2 className="text-xl font-heading font-semibold text-foreground">
-                  Create Room
+                  Create Private Room
                 </h2>
                 <p className="text-sm text-muted-foreground mt-1">
-                  Set up your chess match
+                  Set a secret code for your opponent to join.
                 </p>
               </div>
 
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-foreground mb-3">
-                    Room Type
+                  <label className="block text-sm font-medium text-foreground mb-2">
+                    Invite Code
                   </label>
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      onClick={() => setRoomType(RoomType.PUBLIC)}
-                      className={`p-4 rounded-lg border text-center transition-colors ${
-                        roomType === RoomType.PUBLIC
-                          ? "border-primary bg-primary text-primary-foreground"
-                          : "border-border hover:border-foreground/20"
-                      }`}
-                      disabled={isCreatingRoom}
-                    >
-                      <Users className="w-5 h-5 mx-auto mb-2" />
-                      <span className="text-sm font-medium">Public</span>
-                    </button>
-                    <button
-                      onClick={() => setRoomType(RoomType.PRIVATE)}
-                      className={`p-4 rounded-lg border text-center transition-colors ${
-                        roomType === RoomType.PRIVATE
-                          ? "border-primary bg-primary text-primary-foreground"
-                          : "border-border hover:border-foreground/20"
-                      }`}
-                      disabled={isCreatingRoom}
-                    >
-                      <Key className="w-5 h-5 mx-auto mb-2" />
-                      <span className="text-sm font-medium">Private</span>
-                    </button>
-                  </div>
+                  <Input
+                    placeholder="Enter custom invite code"
+                    value={createInviteCode}
+                    onChange={(e) => setCreateInviteCode(e.target.value)}
+                    disabled={isCreatingRoom}
+                    maxLength={20}
+                    autoFocus
+                  />
                 </div>
-
-                <AnimatePresence>
-                  {roomType === RoomType.PRIVATE && (
-                    <motion.div
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: "auto" }}
-                      exit={{ opacity: 0, height: 0 }}
-                    >
-                      <label className="block text-sm font-medium text-foreground mb-2">
-                        Invite Code
-                      </label>
-                      <Input
-                        placeholder="Enter custom invite code"
-                        value={createInviteCode}
-                        onChange={(e) => setCreateInviteCode(e.target.value)}
-                        disabled={isCreatingRoom}
-                        maxLength={20}
-                        autoFocus
-                      />
-                    </motion.div>
-                  )}
-                </AnimatePresence>
 
                 <div className="flex gap-2 pt-2">
                   <Button
