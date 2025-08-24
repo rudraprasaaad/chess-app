@@ -80,7 +80,6 @@ export const jwtAuth = async (
         email: true,
         provider: true,
         providerId: true,
-        password: true,
         elo: true,
         wins: true,
         losses: true,

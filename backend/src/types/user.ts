@@ -7,7 +7,6 @@ export interface AppUser {
   email: string;
   provider: AuthProvider;
   providerId: string | null;
-  password: string | null;
   elo: number;
   wins: number;
   losses: number;
