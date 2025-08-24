@@ -18,8 +18,7 @@ export const requestLogger = (
     timestamp: new Date().toISOString(),
   });
 
-  // implementation of method interception or monkey patching
-  // as our middleware needs to log information after the response
+  // implementation of method interception or monkey patching as our middleware needs to log information after the response
   // is complete, but there's no direct response event.
   // saving the original method
   // replacing with our own method
