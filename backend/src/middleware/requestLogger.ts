@@ -23,6 +23,7 @@ export const requestLogger = (
   // is complete, but there's no direct response event.
   // saving the original method
   // replacing with our own method
+
   const originalEnd = res.end as (...args: any[]) => Response;
   res.end = function (this: Response, ...args: any[]): Response {
     const duration = Date.now() - startTime;
