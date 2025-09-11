@@ -279,6 +279,7 @@ const handleServerMessage = (message: ServerMessage) => {
     "DRAW_ACCEPTED",
     "DRAW_DECLINED",
     "DRAW_OFFER_SENT",
+    "FORCE_DISCONNECT",
     "TIME_OUT",
     "ILLEGAL_MOVE",
     "CHAT_MESSAGE",

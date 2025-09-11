@@ -581,7 +581,10 @@ export const handleGameMessage = (message: any) => {
     setLegalMoves,
     setGameLoading,
     updateTimers,
+    clearGame,
   } = useGameStore.getState();
+
+  const { clearAuth } = useAuthStore.getState();
 
   switch (message.type) {
     case "TIMER_UPDATE":
@@ -633,6 +636,15 @@ export const handleGameMessage = (message: any) => {
         winnerId: message.payload.winnerId,
       });
       toast.info(`${message.payload.playerName} resigned`);
+      break;
+
+    case "FORCE_DISCONNECT":
+      toast.warning(
+        message.payload.message || "Signed in from another location."
+      );
+
+      clearGame();
+      clearAuth();
       break;
 
     case "DRAW_OFFERED":
