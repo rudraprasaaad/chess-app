@@ -43,6 +43,11 @@ export interface LeaveQueueMessage {
   payload: object;
 }
 
+export interface StartBotGameMessage {
+  type: "START_BOT_GAME";
+  payload: object;
+}
+
 export interface MakeMoveMessage {
   type: "MAKE_MOVE";
   payload: {
@@ -127,6 +132,7 @@ export type ClientMessage =
   | LeaveQueueMessage
   | MakeMoveMessage
   | LoadGameMessage
+  | StartBotGameMessage
   | ResignGameMessage
   | RequestRejoinMessage
   | GetLegalMoveMessage

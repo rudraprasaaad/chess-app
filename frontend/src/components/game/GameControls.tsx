@@ -15,7 +15,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { useNavigate } from "react-router-dom";
 import { useGameStore } from "../../store/game";
 
-const GameControls = () => {
+interface GameControlsProps {
+  isBotGame: boolean;
+}
+
+const GameControls = ({ isBotGame }: GameControlsProps) => {
   const [showConfirmResign, setShowConfirmResign] = useState(false);
   const [showConfirmDraw, setShowConfirmDraw] = useState(false);
   const navigate = useNavigate();
@@ -125,27 +129,67 @@ const GameControls = () => {
             </motion.div>
           )}
         </AnimatePresence>
-
-        <AnimatePresence mode="wait">
-          {!drawOffer ? (
-            !showConfirmDraw ? (
-              <motion.div
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ duration: 0.2, delay: 0.05 }}
-              >
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full justify-start group hover:bg-primary/10 hover:border-primary/30 hover:text-primary transition-all duration-300"
-                  onClick={() => setShowConfirmDraw(true)}
-                  disabled={!isGameActive}
+        {!isBotGame && (
+          <AnimatePresence mode="wait">
+            {!drawOffer ? (
+              !showConfirmDraw ? (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.2, delay: 0.05 }}
                 >
-                  <Handshake className="w-4 h-4 mr-2 group-hover:animate-bounce" />
-                  Offer Draw
-                </Button>
-              </motion.div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full justify-start group hover:bg-primary/10 hover:border-primary/30 hover:text-primary transition-all duration-300"
+                    onClick={() => setShowConfirmDraw(true)}
+                    disabled={!isGameActive}
+                  >
+                    <Handshake className="w-4 h-4 mr-2 group-hover:animate-bounce" />
+                    Offer Draw
+                  </Button>
+                </motion.div>
+              ) : (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  transition={{ duration: 0.2 }}
+                  className="bg-primary/10 border border-primary/30 rounded-lg p-4 space-y-3"
+                >
+                  <div className="flex items-center text-primary">
+                    <Handshake className="w-4 h-4 mr-2" />
+                    <span className="text-sm font-heading font-semibold">
+                      Offer Draw
+                    </span>
+                  </div>
+
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    Send a draw offer to your opponent? The game will end in a
+                    draw if they accept.
+                  </p>
+
+                  <div className="flex gap-2">
+                    <Button
+                      variant="default"
+                      size="sm"
+                      onClick={handleOfferDraw}
+                      className="flex-1 hover:shadow-lg transition-all duration-300"
+                    >
+                      Send Offer
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowConfirmDraw(false)}
+                      className="flex-1 hover:bg-muted/50"
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </motion.div>
+              )
             ) : (
               <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
@@ -157,72 +201,33 @@ const GameControls = () => {
                 <div className="flex items-center text-primary">
                   <Handshake className="w-4 h-4 mr-2" />
                   <span className="text-sm font-heading font-semibold">
-                    Offer Draw
+                    {drawOffer.playerName} offered a draw
                   </span>
                 </div>
 
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  Send a draw offer to your opponent? The game will end in a
-                  draw if they accept.
-                </p>
-
                 <div className="flex gap-2">
                   <Button
-                    variant="default"
                     size="sm"
-                    onClick={handleOfferDraw}
-                    className="flex-1 hover:shadow-lg transition-all duration-300"
+                    onClick={acceptDraw}
+                    className="flex-1 bg-green-600 hover:bg-green-700 text-white"
                   >
-                    Send Offer
+                    <Check className="w-4 h-4 mr-2" />
+                    Accept
                   </Button>
                   <Button
-                    variant="outline"
+                    variant="destructive"
                     size="sm"
-                    onClick={() => setShowConfirmDraw(false)}
-                    className="flex-1 hover:bg-muted/50"
+                    onClick={declineDraw}
+                    className="flex-1"
                   >
-                    Cancel
+                    <XCircle className="w-4 h-4 mr-2" />
+                    Decline
                   </Button>
                 </div>
               </motion.div>
-            )
-          ) : (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              transition={{ duration: 0.2 }}
-              className="bg-primary/10 border border-primary/30 rounded-lg p-4 space-y-3"
-            >
-              <div className="flex items-center text-primary">
-                <Handshake className="w-4 h-4 mr-2" />
-                <span className="text-sm font-heading font-semibold">
-                  {drawOffer.playerName} offered a draw
-                </span>
-              </div>
-
-              <div className="flex gap-2">
-                <Button
-                  size="sm"
-                  onClick={acceptDraw}
-                  className="flex-1 bg-green-600 hover:bg-green-700 text-white"
-                >
-                  <Check className="w-4 h-4 mr-2" />
-                  Accept
-                </Button>
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  onClick={declineDraw}
-                  className="flex-1"
-                >
-                  <XCircle className="w-4 h-4 mr-2" />
-                  Decline
-                </Button>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+            )}
+          </AnimatePresence>
+        )}
 
         <motion.div
           initial={{ opacity: 0 }}

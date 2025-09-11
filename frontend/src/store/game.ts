@@ -40,6 +40,7 @@ interface GameState {
 
   setCurrentGame: (game: Game | null) => void;
   updateGame: (gameUpdate: Partial<Game>) => void;
+  startBotGame: () => void;
   loadGame: (gameId: string) => void;
   resignGame: () => void;
   makeMove: (move: { from: Square; to: Square; promotion?: string }) => void;
@@ -120,6 +121,24 @@ export const useGameStore = create<GameState>((set, get) => ({
       });
       toast.info("You have resigned the game.");
     }
+  },
+
+  startBotGame: () => {
+    const { sendMessage } = useWebSocketStore.getState();
+    const { isAuthenticated, user } = useAuthStore.getState();
+
+    if (!isAuthenticated || !user) {
+      toast.error("You must be logged in to play against the computer.");
+      return;
+    }
+
+    set({ isGameLoading: true, error: null });
+    toast.info("Starting a new game against the computer...");
+
+    sendMessage({
+      type: "START_BOT_GAME",
+      payload: {},
+    });
   },
 
   setCurrentGame: (game) => {

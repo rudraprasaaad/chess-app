@@ -155,6 +155,13 @@ const GameRoom = () => {
     return currentGame?.players.find((p) => p.userId === user?.id)?.color;
   }, [currentGame?.players, user?.id]);
 
+  const isBotGame = useMemo(() => {
+    return (
+      currentGame?.players.some((p) => p.name?.toLowerCase() === "computer") ??
+      false
+    );
+  }, [currentGame?.players]);
+
   const boardOrientation = useMemo(() => {
     return currentPlayerColor === "black" ? "black" : "white";
   }, [currentPlayerColor]);
@@ -271,7 +278,7 @@ const GameRoom = () => {
                 </Card>
 
                 <div className="flex-1 min-h-0">
-                  <GameControls />
+                  <GameControls isBotGame={isBotGame} />
                 </div>
               </motion.div>
 
@@ -321,9 +328,11 @@ const GameRoom = () => {
                 <div className="h-[400px] min-h-[200px]">
                   <MoveHistory moves={currentGame.moveHistory} />
                 </div>
-                <div className="h-[400px] min-h-[200px]">
-                  <GameChat />
-                </div>
+                {!isBotGame && (
+                  <div className="h-[400px] min-h-[200px]">
+                    <GameChat />
+                  </div>
+                )}
               </motion.div>
 
               <div className="xl:hidden flex flex-col space-y-4">
@@ -372,9 +381,9 @@ const GameRoom = () => {
                     )}
                   </CardContent>
                 </Card>
-                <GameControls />
+                <GameControls isBotGame={isBotGame} />
                 <MoveHistory moves={currentGame.moveHistory} />
-                <GameChat />
+                {!isBotGame && <GameChat />}
               </div>
             </div>
           </motion.div>

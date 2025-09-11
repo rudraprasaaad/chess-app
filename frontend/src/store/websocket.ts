@@ -269,6 +269,7 @@ const handleServerMessage = (message: ServerMessage) => {
     "UNAUTHORIZED",
     "INVAILD_GAME_ID",
     "LOAD_GAME_ERROR",
+    "START_BOT_GAME",
     "REJOIN_GAME",
     "MOVE_MADE",
     "LEGAL_MOVES_UPDATE",
