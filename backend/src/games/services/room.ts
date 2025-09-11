@@ -452,7 +452,7 @@ export class RoomService {
             players: dbGame.players.map((p) => ({
               userId: p.userId,
               color: p.color,
-              name: p.user.name,
+              name: p.user.name!,
             })),
             chat: dbGame.chat as unknown as ChatMessage[],
             winnerId: dbGame.winnerId || undefined,

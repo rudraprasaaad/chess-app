@@ -74,7 +74,7 @@ export interface Game {
   timers: { white: number; black: number };
   timeControl: TimeControl;
   status: GameStatus;
-  players: { userId: string; color: string }[];
+  players: { userId: string; color: string; name?: string }[];
   chat: ChatMessage[];
   winnerId?: string;
   createdAt: Date;

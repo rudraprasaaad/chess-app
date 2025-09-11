@@ -3,6 +3,7 @@ import { Chess, Square } from "chess.js";
 import { InputJsonValue } from "@prisma/client/runtime/library";
 
 import {
+  AuthProvider,
   ChatMessage,
   Game,
   GameStatus,
@@ -18,6 +19,7 @@ import { WebSocketService } from "../../services/websocket";
 import { redis } from "../../services/redis";
 import { UserStatus } from "@prisma/client";
 import { logger } from "../../services/logger";
+import { findBestMove } from "./bot/chess-bot";
 
 export class GameService {
   private ws: WebSocketService;
@@ -97,6 +99,47 @@ export class GameService {
     logger.info("Master game timer has started");
   }
 
+  private async _persistGameEnd(game: Game): Promise<void> {
+    this.removeGameFromTimer(game.id);
+
+    try {
+      await prisma.$transaction(
+        async (tx) => {
+          await tx.game.update({
+            where: { id: game.id },
+            data: {
+              status: game.status,
+              winnerId: game.winnerId,
+              fen: game.fen,
+              moveHistory: game.moveHistory as unknown as InputJsonValue[],
+              timers: game.timers as unknown as InputJsonValue,
+            },
+          });
+
+          await tx.room.update({
+            where: { id: game.roomId },
+            data: { status: RoomStatus.CLOSED },
+          });
+
+          await tx.user.updateMany({
+            where: { id: { in: game.players.map((p) => p.userId) } },
+            data: { status: UserStatus.ONLINE },
+          });
+        },
+        {
+          maxWait: 10000,
+          timeout: 20000,
+        }
+      );
+
+      logger.info(
+        `Game ${game.id} ended and has been persisted to the database.`
+      );
+    } catch (error) {
+      logger.error(`Failed to persist game end for ${game.id}:`, error);
+    }
+  }
+
   public addGameToTimer(gameId: string) {
     this.activeGames.add(gameId);
     logger.info(`Game ${gameId} added to master timer.`);
@@ -153,7 +196,7 @@ export class GameService {
           players: dbGame.players.map((p) => ({
             userId: p.userId,
             color: p.color,
-            name: p.user.name,
+            name: p.user.name!,
           })),
           chat: dbGame.chat as unknown as ChatMessage[],
           winnerId: dbGame.winnerId || undefined,
@@ -306,6 +349,89 @@ export class GameService {
     return gameData;
   }
 
+  async startBotGame(playerId: string): Promise<Game> {
+    const humanPlayer = await prisma.user.findUnique({
+      where: {
+        id: playerId,
+      },
+    });
+
+    if (!humanPlayer) throw new Error("Player not found");
+
+    let botUser = await prisma.user.findUnique({
+      where: {
+        username: "ChessBot",
+      },
+    });
+    if (!botUser) {
+      botUser = await prisma.user.create({
+        data: {
+          username: "ChessBot",
+          name: "Computer",
+          email: `bot@${Date.now()}.chess`,
+          provider: AuthProvider.GUEST,
+          elo: 1400,
+        },
+      });
+    }
+
+    const room = await prisma.room.create({
+      data: {
+        type: RoomType.PRIVATE,
+        status: RoomStatus.ACTIVE,
+        players: [
+          { id: humanPlayer.id, color: "white" },
+          { id: botUser.id, color: "black" },
+        ],
+      },
+    });
+
+    const chess = new Chess();
+    const timeControl: TimeControl = { initial: 600, increment: 0 };
+
+    const game = await prisma.game.create({
+      data: {
+        roomId: room.id,
+        fen: chess.fen(),
+        status: GameStatus.ACTIVE,
+        timers: { white: timeControl.initial, black: timeControl.initial },
+        timeControl: timeControl as unknown as InputJsonValue,
+        players: {
+          create: [
+            { userId: humanPlayer.id, color: "white" },
+            { userId: botUser.id, color: "black" },
+          ],
+        },
+      },
+    });
+
+    const gameData: Game = {
+      id: game.id,
+      roomId: game.roomId,
+      fen: game.fen,
+      moveHistory: [],
+      timers: game.timers as { white: number; black: number },
+      timeControl: game.timeControl as unknown as TimeControl,
+      status: game.status as GameStatus,
+      players: [
+        {
+          userId: humanPlayer.id,
+          color: "white",
+          name: humanPlayer.name || "Player",
+        },
+        { userId: botUser.id, color: "black", name: "Computer" },
+      ],
+      chat: [],
+      winnerId: undefined,
+      createdAt: game.createdAt,
+    };
+
+    await redis.setJSON(`game:${game.id}`, gameData);
+    this.addGameToTimer(game.id);
+
+    return gameData;
+  }
+
   async makeMove(
     gameId: string,
     playerId: string,
@@ -377,36 +503,68 @@ export class GameService {
     }
 
     if (game.status !== GameStatus.ACTIVE) {
-      await prisma.$transaction(async (tx) => {
-        await tx.game.update({
-          where: {
-            id: gameId,
-          },
-          data: {
-            fen: game.fen,
-            moveHistory: game.moveHistory as unknown as InputJsonValue[],
-            status: game.status,
-            winnerId: game.winnerId,
-            chat: game.chat as unknown as InputJsonValue[],
-            timers: game.timers as unknown as InputJsonValue,
-            timeControl: game.timeControl as unknown as InputJsonValue,
-          },
-        });
-
-        await tx.room.update({
-          where: { id: game.roomId },
-          data: { status: RoomStatus.CLOSED },
-        });
-      }),
-        {
-          maxWait: 10000,
-          timeout: 20000,
-        };
+      await this._persistGameEnd(game);
     }
 
     await redis.setJSON(`game:${gameId}`, game);
 
     this.ws.broadcastToGame(game);
+
+    const botPlayer = game.players.find((p) => p.name === "Computer");
+    if (
+      botPlayer &&
+      game.status === GameStatus.ACTIVE &&
+      chess.turn() === botPlayer.color[0]
+    ) {
+      const thinkingTime = Math.floor(Math.random() * 8000) + 2000;
+      setTimeout(() => {
+        this.makeBotMove(gameId);
+      }, thinkingTime);
+    }
+  }
+
+  async makeBotMove(gameId: string): Promise<void> {
+    const gameData = await redis.get(`game:${gameId}`);
+    if (!gameData) return;
+
+    const game = JSON.parse(gameData) as Game;
+    if (game.status !== GameStatus.ACTIVE) return;
+
+    const chess = new Chess(game.fen);
+    const botPlayer = game.players.find((p) => p.name === "Computer");
+
+    if (!botPlayer || chess.turn() !== botPlayer.color[0]) {
+      return;
+    }
+
+    const botMove = findBestMove(chess, 1);
+
+    if (botMove) {
+      const botMoveResult = chess.move(botMove.san);
+
+      if (botMoveResult) {
+        game.fen = chess.fen();
+        game.moveHistory.push({
+          from: botMove.from,
+          to: botMove.to,
+          san: botMove.san,
+        });
+
+        if (game.timeControl.increment > 0) {
+          const botColor = botPlayer.color as "white" | "black";
+          game.timers[botColor] += game.timeControl.increment;
+        }
+
+        if (chess.isCheckmate() || chess.isDraw()) {
+          game.status = chess.isDraw() ? GameStatus.DRAW : GameStatus.COMPLETED;
+          if (chess.isCheckmate()) game.winnerId = botPlayer.userId;
+          await this._persistGameEnd(game);
+        }
+
+        await redis.setJSON(`game:${gameId}`, game);
+        this.ws.broadcastToGame(game);
+      }
+    }
   }
 
   async getLegalMoves(
