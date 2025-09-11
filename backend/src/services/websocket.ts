@@ -87,8 +87,31 @@ export class WebSocketService {
 
         const user = await this.verifyToken(token);
         ws.playerId = user.id;
-        this.connections.set(user.id, ws);
 
+        if (this.connections.has(ws.playerId)) {
+          const oldSocket = this.connections.get(ws.playerId);
+
+          if (oldSocket && oldSocket.readyState === WebSocket.OPEN) {
+            oldSocket.send(
+              JSON.stringify({
+                type: "FORCE_DISCONNECT",
+                payload: {
+                  message: "You have signed in from another location.",
+                },
+              })
+            );
+
+            oldSocket.close(
+              4000,
+              "New connection established from another location"
+            );
+            logger.info(
+              `Closed old connection for player ${ws.playerId} due to new login.`
+            );
+          }
+        }
+
+        this.connections.set(user.id, ws);
         logger.info(`Client Connected: ${user.id}`);
 
         ws.on("error", (err) => {
