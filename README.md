@@ -11,17 +11,18 @@ A modern, full-stack, real-time multiplayer chess application built with a power
 
 This chess application provides a complete multiplayer experience, designed from the ground up for performance and scalability. The responsive frontend built with React and the robust Node.js backend support thousands of concurrent players with sub-second move latency.
 
-## ✨ Key Features
+## ✨ Key Features  
 
--   🔐 **Dual Authentication System** – Secure session-based access for guests & Google OAuth integration.
--   ⚡ **Seamless Real-time Gameplay** – WebSocket-powered instant move synchronization for a fluid experience.
--   🎨 **Responsive & Animated UI** – Modern interface built with Tailwind CSS and Framer Motion that works flawlessly on all devices.
--   🧠 **Smart Matchmaking** – **Redis-powered queues** for pairing players based on ELO rating.
--   ♟️ **Complete Chess Engine** – Full rule validation including *en passant*, castling, and promotions via Chess.js.
--   💬 **In-Game Chat** – Real-time messaging between players with typing indicators.
--   🏠 **Flexible Room System** – Public rooms for quick matches and private, invite-only rooms for friends.
--   🔄 **Robust Reconnection Handling** – Seamless game continuity after network disconnections.
--   🛡️ **Anti-abuse Protection** – Backend rate limiting and illegal move detection to ensure fair play.
+- 🔐 **Login Like a Pro** – Guests get instant session access, power users get Google OAuth. No fuss, just in.  
+- ⚡ **Moves in Milliseconds** – WebSocket magic keeps the board in sync. You move, they see. Instantly.  
+- 🎨 **UI That *Feels* Alive** – Tailwind + Framer Motion. Crisp, smooth, animated. Works everywhere.  
+- 🧠 **Matchmaking on Steroids** – Redis queues + ELO logic = you play people at your level. Always.  
+- 🤖 **Play vs Bot** – Don’t want to wait? Test your skills against the built-in computer. Warm up before you crush real players.  
+- ♟️ **Full-Fledged Chess Brain** – En passant, castling, promotions—powered by Chess.js. No shortcuts, just real chess.  
+- 💬 **Trash Talk Ready** – In-game chat with typing indicators. Say “gg” or drop the heat.  
+- 🏠 **Rooms That Work for You** – Hop into a public lobby or spin up a private invite-only room for friends.  
+- 🔄 **Disconnect-Proof** – WiFi died? No panic. Reconnect and your game picks up where you left off.  
+- 🛡️ **Fair Play Only** – Rate limits, move validation, and anti-spam. No cheaters, no nonsense.  
 
 ## 🚀 Tech Stack
 
