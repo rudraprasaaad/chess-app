@@ -183,6 +183,11 @@ export interface TypingBroadcastMessage {
   };
 }
 
+export interface ForceDisconnectMessage {
+  type: "FORCE_DISCONNECT";
+  payload: { message: string };
+}
+
 export type ServerMessage =
   | RoomCreatedMessage
   | RoomUpdatedMessage
@@ -191,7 +196,8 @@ export type ServerMessage =
   | QueueTimeoutMessage
   | QueueLeftMessage
   | ErrorMessage
-  | TypingBroadcastMessage;
+  | TypingBroadcastMessage
+  | ForceDisconnectMessage;
 
 export type AnyWebSocketMessage = ClientMessage | ServerMessage;
 
@@ -201,6 +207,7 @@ export const RATE_LIMIT = {
 } as const;
 
 export const WS_CLOSE_CODES = {
+  FORCE_DISCONNECT: 4000,
   AUTH_FAILED: 4001,
   RATE_LIMIT_EXCEEDED: 4001,
   INVALID_MESSAGE: 4002,

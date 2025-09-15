@@ -108,7 +108,13 @@ export const useWebSocketStore = create<WebSocketState>((set, get) => ({
 
         useAuthStore.getState().setStatus(UserStatus.OFFLINE);
 
-        if (event.code === WS_CLOSE_CODES.AUTH_FAILED) {
+        if (event.code === WS_CLOSE_CODES.FORCE_DISCONNECT) {
+          set({
+            error: "Signed in from anohter device",
+          });
+          useAuthStore.getState().clearAuth();
+          return;
+        } else if (event.code === WS_CLOSE_CODES.AUTH_FAILED) {
           set({ error: "Authentication failed" });
           toast.error("Authentication failed. Please log in again.");
           useAuthStore.getState().clearAuth();
@@ -291,6 +297,10 @@ const handleServerMessage = (message: ServerMessage) => {
       case "ERROR":
         handleGameMessage(message);
         handleRoomMessage(message);
+        break;
+
+      case "FORCE_DISCONNECT":
+        toast.info(message.payload.message);
         break;
 
       default:

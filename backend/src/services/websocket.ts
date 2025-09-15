@@ -36,7 +36,7 @@ export class WebSocketService {
   }
 
   private async verifyToken(
-    token: string,
+    token: string
   ): Promise<{ id: string; provider: AuthProvider }> {
     return new Promise((resolve, reject) => {
       jwt.verify(token, process.env.JWT_SECRET!, (err, decoded) => {
@@ -86,6 +86,29 @@ export class WebSocketService {
         if (!token) throw new Error("No token provided");
 
         const user = await this.verifyToken(token);
+
+        const existingConnection = this.connections.get(user.id);
+        if (
+          existingConnection &&
+          existingConnection.readyState === WebSocket.OPEN
+        ) {
+          logger.info(
+            `Existing connection for ${user.id} found. Closing the old one.`
+          );
+          existingConnection.send(
+            JSON.stringify({
+              type: "FORCE_DISCONNECT",
+              payload: {
+                message: "You have signed in from another device.",
+              },
+            })
+          );
+          existingConnection.close(
+            4000,
+            "New connection established by the same user."
+          );
+        }
+
         ws.playerId = user.id;
         this.connections.set(user.id, ws);
 
@@ -110,7 +133,7 @@ export class WebSocketService {
 
   private async handleMessage(
     ws: AuthenticatedWebSocket,
-    data: WebSocket.RawData,
+    data: WebSocket.RawData
   ): Promise<void> {
     try {
       const now = Date.now();
@@ -154,7 +177,7 @@ export class WebSocketService {
           await this.roomService.createRoom(
             payload.type,
             ws.playerId,
-            payload.inviteCode,
+            payload.inviteCode
           );
           break;
 
@@ -162,14 +185,14 @@ export class WebSocketService {
           await this.roomService.joinRoom(
             payload.roomId,
             ws.playerId,
-            payload.inviteCode,
+            payload.inviteCode
           );
           break;
 
         case "REQUEST_REJOIN":
           await this.roomService.handleRequestRejoin(
             ws.playerId,
-            payload.gameId,
+            payload.gameId
           );
           break;
 
@@ -193,7 +216,7 @@ export class WebSocketService {
           await this.gameService.makeMove(
             payload.gameId,
             ws.playerId,
-            payload.move,
+            payload.move
           );
           break;
 
@@ -201,7 +224,7 @@ export class WebSocketService {
           await this.gameService.getLegalMoves(
             payload.gameId,
             ws.playerId,
-            payload.square,
+            payload.square
           );
           break;
 
@@ -225,7 +248,7 @@ export class WebSocketService {
           await this.chatService.sendChatMessage(
             payload.gameId,
             ws.playerId,
-            payload.message,
+            payload.message
           );
           break;
 
@@ -268,7 +291,7 @@ export class WebSocketService {
   public broadcastToGame(
     game: Game,
     messageType?: string,
-    payload?: any,
+    payload?: any
   ): void {
     const typeToSend = messageType || "GAME_UPDATED";
 
