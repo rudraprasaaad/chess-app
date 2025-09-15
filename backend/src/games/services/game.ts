@@ -1,4 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+
+// game file
 import { Chess, Square } from "chess.js";
 import { InputJsonValue } from "@prisma/client/runtime/library";
 
