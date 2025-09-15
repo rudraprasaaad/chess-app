@@ -29,6 +29,7 @@ export enum RoomStatus {
 }
 
 export enum RoomType {
+  BOT = "BOT",
   PUBLIC = "PUBLIC",
   PRIVATE = "PRIVATE",
 }

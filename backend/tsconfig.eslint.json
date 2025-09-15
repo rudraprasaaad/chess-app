@@ -1,0 +1,8 @@
+{
+  "extends": "./tsconfig.json", // Inherit settings from your main config
+  "include": [
+    "src/**/*.ts",
+    "tests/**/*.ts", // Add other folders you want to lint
+    ".eslintrc.js" // You can even include config files if needed
+  ]
+}

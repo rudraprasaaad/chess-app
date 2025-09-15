@@ -27,7 +27,7 @@ export class WebSocketService {
   constructor(wss: WebSocketServer) {
     this.wss = wss;
     this.gameService = new GameService(this);
-    this.roomService = new RoomService(this);
+    this.roomService = new RoomService(this, this.gameService);
     this.chatService = new ChatService(this);
     this.rateLimit = new Map();
     this.connections = new Map();
@@ -187,6 +187,10 @@ export class WebSocketService {
             ws.playerId,
             payload.inviteCode
           );
+          break;
+
+        case "CREATE_BOT_GAME":
+          await this.roomService.createBotGame(ws.playerId);
           break;
 
         case "REQUEST_REJOIN":

@@ -108,6 +108,7 @@ enum RoomStatus {
 }
 
 enum RoomType {
+  BOT
   PUBLIC
   PRIVATE
 }

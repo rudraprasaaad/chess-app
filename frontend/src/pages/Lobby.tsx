@@ -4,11 +4,21 @@ import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { AnimatePresence, motion } from "framer-motion";
 import { useRoomStore } from "../store/room";
+import { useWebSocketStore } from "../store/websocket"; // --- IMPORT WebSocket store
 import { RoomStatus, RoomType } from "../types/common";
 import { useRoomByInviteCode } from "../hooks/api/useRoom";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
-import { Crown, Zap, Plus, Coffee, Trophy, Key, Sparkles } from "lucide-react";
+import {
+  Crown,
+  Zap,
+  Plus,
+  Coffee,
+  Trophy,
+  Key,
+  Sparkles,
+  Bot,
+} from "lucide-react";
 import { Navbar } from "../components/shared/Navbar";
 import FloatingChessPiece from "../components/game/FloatingChessPiece";
 
@@ -46,6 +56,8 @@ const Lobby = () => {
     error,
     isInQueue,
   } = useRoomStore();
+
+  const { sendMessage } = useWebSocketStore();
 
   const [createInviteCode, setCreateInviteCode] = useState("");
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -121,6 +133,11 @@ const Lobby = () => {
   const handleLeaveQueue = useCallback(() => {
     leaveQueue();
   }, [leaveQueue]);
+
+  const handlePlayWithBot = useCallback(() => {
+    toast.info("Starting a game against the computer...");
+    sendMessage({ type: "CREATE_BOT_GAME", payload: {} });
+  }, [sendMessage]);
 
   return (
     <div className="h-screen bg-background grain relative overflow-hidden flex flex-col">
@@ -258,12 +275,36 @@ const Lobby = () => {
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+            >
+              <Button
+                onClick={handlePlayWithBot}
+                className="w-full h-11 justify-between bg-primary/90 hover:bg-primary"
+                disabled={
+                  isCreatingRoom || isJoiningRoom || isLookinUp || isInQueue
+                }
+              >
+                <div className="flex items-center">
+                  <Bot className="w-4 h-4 mr-3" />
+                  Play vs. Computer
+                </div>
+                <span className="text-xs text-primary-foreground/80">
+                  Practice
+                </span>
+              </Button>
+            </motion.div>
+
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
             >
               <Button
                 onClick={() => setShowCreateModal(true)}
                 className="w-full h-11 justify-between"
-                disabled={isCreatingRoom || isJoiningRoom || isLookinUp}
+                disabled={
+                  isCreatingRoom || isJoiningRoom || isLookinUp || isInQueue
+                }
               >
                 <div className="flex items-center">
                   <Plus className="w-4 h-4 mr-3" />
@@ -282,14 +323,18 @@ const Lobby = () => {
                 placeholder="Enter invite code"
                 value={joinInviteCode}
                 onChange={(e) => setJoinInviteCode(e.target.value)}
-                disabled={isJoiningRoom || isCreatingRoom || isLookinUp}
+                disabled={
+                  isJoiningRoom || isCreatingRoom || isLookinUp || isInQueue
+                }
                 className="h-11"
               />
               <Button
                 onClick={handleJoinRoom}
                 variant="outline"
                 className="w-full h-11 justify-between"
-                disabled={isJoiningRoom || isCreatingRoom || isLookinUp}
+                disabled={
+                  isJoiningRoom || isCreatingRoom || isLookinUp || isInQueue
+                }
               >
                 <div className="flex items-center">
                   <Key className="w-4 h-4 mr-3" />

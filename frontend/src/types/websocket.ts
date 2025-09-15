@@ -119,6 +119,11 @@ export interface DeclineDrawMessage {
   };
 }
 
+export interface CreateBotGameMessage {
+  type: "CREATE_BOT_GAME";
+  payload: object;
+}
+
 export type ClientMessage =
   | CreateRoomMessage
   | JoinRoomMessage
@@ -132,6 +137,7 @@ export type ClientMessage =
   | GetLegalMoveMessage
   | ChatMessage
   | TypingMessage
+  | CreateBotGameMessage
   | OfferDrawMessage
   | AcceptDrawMessage
   | DeclineDrawMessage;

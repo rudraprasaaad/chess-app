@@ -8,6 +8,8 @@ import { useAuthStore } from "./auth";
 import { useMemo } from "react";
 import { Square } from "chess.js";
 
+export const BOT_PLAYER_ID = "bot-player-001";
+
 interface GameState {
   currentGame: Game | null;
   gameHistory: Game[];
@@ -25,6 +27,8 @@ interface GameState {
   chatMessages: ChatMessage[];
   isTyping: boolean;
   typingUsers: string[];
+
+  isBotGame: boolean;
 
   drawOffer: {
     isOpen: boolean;
@@ -80,6 +84,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   currentGame: null,
   gameHistory: [],
   selectedSquare: null,
+  isBotGame: false,
   legalMoves: [],
   lastMove: null,
   isPlayerTurn: false,
@@ -126,6 +131,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     const { user } = useAuthStore.getState();
 
     if (game && user) {
+      const isBotGame = game.players.some((p) => p.userId === BOT_PLAYER_ID);
       const player = game.players.find((p) => p.userId === user.id);
       const playerColor = (player?.color as "white" | "black") || null;
 
@@ -136,6 +142,7 @@ export const useGameStore = create<GameState>((set, get) => ({
         currentGame: game,
         playerColor,
         isPlayerTurn,
+        isBotGame,
         whiteTimeLeft: game ? game.timers.white : 600,
         blackTimeLeft: game ? game.timers.black : 600,
         chatMessages: game.chat || [],
@@ -146,16 +153,7 @@ export const useGameStore = create<GameState>((set, get) => ({
         drawOffer: null,
       });
     } else {
-      set({
-        currentGame: null,
-        playerColor: null,
-        isPlayerTurn: false,
-        selectedSquare: null,
-        legalMoves: [],
-        error: null,
-        isGameLoading: false,
-        drawOffer: null,
-      });
+      get().clearGame();
     }
   },
 
@@ -290,7 +288,12 @@ export const useGameStore = create<GameState>((set, get) => ({
   },
 
   sendChatMessage: (message) => {
-    const { currentGame } = get();
+    const { currentGame, isBotGame } = get();
+
+    if (isBotGame) {
+      toast.info("You can't chat with the bot.");
+      return;
+    }
     const { sendMessage } = useWebSocketStore.getState();
 
     if (!currentGame || !message.trim()) {
@@ -330,6 +333,8 @@ export const useGameStore = create<GameState>((set, get) => ({
   },
 
   stopTyping: () => {
+    const { isBotGame } = get();
+    if (isBotGame) return;
     set({ isTyping: false });
   },
 
@@ -340,7 +345,12 @@ export const useGameStore = create<GameState>((set, get) => ({
   },
 
   offerDraw: () => {
-    const { currentGame } = get();
+    const { currentGame, isBotGame } = get();
+
+    if (isBotGame) {
+      toast.info("The bot will not accept a draw offer.");
+      return;
+    }
     const { sendMessage } = useWebSocketStore.getState();
 
     if (currentGame && currentGame.status === "ACTIVE") {
@@ -414,6 +424,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       isMakingMove: false,
       isGameLoading: false,
       error: null,
+      isBotGame: false,
     });
   },
 
@@ -424,6 +435,7 @@ export const useGameStore = create<GameState>((set, get) => ({
 export const useCurrentGame = () => {
   const game = useGameStore((state) => state.currentGame);
   const isInGame = useGameStore((state) => state.currentGame !== null);
+  const isBotGame = useGameStore((state) => state.isBotGame);
   const gameStatus = useGameStore((state) => state.currentGame?.status || null);
   const playerColor = useGameStore((state) => state.playerColor);
   const isPlayerTurn = useGameStore((state) => state.isPlayerTurn);
@@ -436,13 +448,23 @@ export const useCurrentGame = () => {
     () => ({
       game,
       isInGame,
+      isBotGame,
       gameStatus,
       playerColor,
       isPlayerTurn,
       fen,
       moveHistory,
     }),
-    [game, isInGame, gameStatus, playerColor, isPlayerTurn, fen, moveHistory]
+    [
+      game,
+      isInGame,
+      isBotGame,
+      gameStatus,
+      playerColor,
+      isPlayerTurn,
+      fen,
+      moveHistory,
+    ]
   );
 };
 

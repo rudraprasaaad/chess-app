@@ -2,47 +2,193 @@
 import { prisma } from "../../lib/prisma";
 import {
   Room,
-  Game,
-  AuthenticatedWebSocket,
-  UserStatus,
-  RoomType,
   RoomStatus,
+  RoomType,
+  RoomWithGame,
+  UserStatus,
+  Game,
   GameStatus,
-  Move,
-  ChatMessage,
   TimeControl,
+  Player,
 } from "../../lib/types";
-
-import { GameService } from "./game";
-
-import { redis } from "../../services/redis";
 import { WebSocketService } from "../../services/websocket";
+import { GameService } from "./game";
+import { BOT_PLAYER_ID, BOT_NAME } from "./bot";
 import { logger } from "../../services/logger";
+import { redis } from "../../services/redis";
 
 export class RoomService {
   private ws: WebSocketService;
   private gameService: GameService;
+  private queue: Set<string> = new Set();
 
-  constructor(ws: WebSocketService) {
+  constructor(ws: WebSocketService, gameService: GameService) {
     this.ws = ws;
-    this.gameService = new GameService(ws);
+    this.gameService = gameService;
   }
 
-  private shuffle<T>(array: T[]): T[] {
-    let currentIndex = array.length;
-    let randomIndex;
+  async createBotGame(playerId: string): Promise<void> {
+    try {
+      logger.info(`Player ${playerId} is starting a game against the bot.`);
 
-    while (currentIndex != 0) {
-      randomIndex = Math.floor(Math.random() * currentIndex);
-      currentIndex--;
+      const playerIsWhite = Math.random() > 0.5;
+      const playerColor = playerIsWhite ? "white" : "black";
+      const botColor = playerIsWhite ? "black" : "white";
 
-      [array[currentIndex], array[randomIndex]] = [
-        array[randomIndex],
-        array[currentIndex],
-      ];
+      const chess = require("chess.js").Chess;
+      const chessInstance = new chess();
+      const initialFen = chessInstance.fen();
+
+      const timeControl: TimeControl = {
+        initial: 600,
+        increment: 0,
+      };
+
+      await prisma.user.upsert({
+        where: { id: BOT_PLAYER_ID },
+        update: {},
+        create: {
+          id: BOT_PLAYER_ID,
+          name: BOT_NAME,
+          email: `${BOT_PLAYER_ID}@bot.local`,
+          provider: "GUEST",
+          banned: false,
+          status: "ONLINE",
+        },
+      });
+
+      const result = await prisma.$transaction(
+        async (tx) => {
+          const room = await tx.room.create({
+            data: {
+              type: RoomType.BOT,
+              status: RoomStatus.OPEN,
+              players: [
+                { id: playerId, color: playerColor },
+                { id: BOT_PLAYER_ID, name: BOT_NAME, color: botColor },
+              ] as any,
+            },
+          });
+
+          logger.info(`Bot game room ${room.id} created with players.`);
+
+          const game = await tx.game.create({
+            data: {
+              roomId: room.id,
+              fen: initialFen,
+              moveHistory: [],
+              timers: {
+                white: timeControl.initial,
+                black: timeControl.initial,
+              },
+              timeControl: timeControl as any,
+              status: GameStatus.ACTIVE,
+              chat: [],
+              players: {
+                create: [
+                  { userId: playerId, color: playerColor },
+                  { userId: BOT_PLAYER_ID, color: botColor },
+                ],
+              },
+            },
+            include: {
+              players: true,
+              Room: true,
+            },
+          });
+
+          await tx.room.update({
+            where: { id: room.id },
+            data: { status: RoomStatus.ACTIVE },
+          });
+
+          return { room, game };
+        },
+        {
+          maxWait: 10000,
+          timeout: 15000,
+        }
+      );
+
+      const users = await prisma.user.findMany({
+        where: { id: { in: [playerId, BOT_PLAYER_ID] } },
+        select: { id: true, name: true },
+      });
+
+      const userNameMap = new Map(users.map((u) => [u.id, u.name]));
+
+      const formattedGame: Game = {
+        id: result.game.id,
+        roomId: result.game.roomId,
+        fen: result.game.fen,
+        moveHistory: result.game.moveHistory as any[],
+        timers: result.game.timers as { white: number; black: number },
+        timeControl: result.game.timeControl as unknown as TimeControl,
+        status: result.game.status as GameStatus,
+        players: result.game.players.map((p: any) => ({
+          userId: p.userId,
+          color: p.color,
+          name: userNameMap.get(p.userId) || "Unknown Player",
+        })),
+        chat: result.game.chat as any[],
+        winnerId: result.game.winnerId || undefined,
+        createdAt: result.game.createdAt,
+      };
+
+      await redis.setJSON(`game:${result.game.id}`, formattedGame);
+
+      await redis.del(`invalidMoves:${playerId}`);
+      await redis.set(`player:${playerId}:lastGame`, result.game.id, {
+        EX: 3600,
+      });
+
+      const roomWithGame: RoomWithGame = {
+        id: result.room.id,
+        type: result.room.type as RoomType,
+        status: RoomStatus.ACTIVE,
+        players: [
+          { id: playerId, color: playerColor },
+          { id: BOT_PLAYER_ID, color: botColor },
+        ],
+        inviteCode: result.room.inviteCode || undefined,
+        createdAt: result.room.createdAt,
+        game: formattedGame,
+      };
+
+      this.ws.broadcastToClient(playerId, {
+        type: "ROOM_UPDATED",
+        payload: roomWithGame,
+      });
+
+      this.gameService.addGameToTimer(result.game.id);
+
+      if (botColor === "white") {
+        setTimeout(async () => {
+          try {
+            await this.gameService.getBotService().onGameUpdate(formattedGame);
+          } catch (error) {
+            logger.error(
+              `Failed to trigger bot's first move in game ${result.game.id}:`,
+              error
+            );
+          }
+        }, 500);
+      }
+
+      logger.info(
+        `Bot game ${result.game.id} started successfully in room ${result.room.id}.`
+      );
+    } catch (error) {
+      logger.error(`Failed to create bot game for player ${playerId}:`, error);
+
+      // Send error message to client
+      this.ws.broadcastToClient(playerId, {
+        type: "ERROR",
+        payload: {
+          message: "Could not start a game against the bot. Please try again.",
+        },
+      });
     }
-
-    return array;
   }
 
   async createRoom(
@@ -51,53 +197,36 @@ export class RoomService {
     inviteCode?: string
   ): Promise<void> {
     try {
-      const user = await prisma.user.findUnique({ where: { id: playerId } });
-      if (!user) throw new Error("User not found");
-      if (user.banned) throw new Error("User is banned");
-
-      let code: string | undefined;
-      if (type === RoomType.PRIVATE) {
-        code =
-          inviteCode || Math.random().toString(36).slice(2, 8).toUpperCase();
-      }
-
       const room = await prisma.room.create({
         data: {
           type,
           status: RoomStatus.OPEN,
-          players: [{ id: playerId, color: null }],
-          inviteCode: code,
+          players: [{ id: playerId, color: null }] as any,
+          inviteCode,
         },
       });
 
-      const roomData = {
+      const roomData: Room = {
         id: room.id,
         type: room.type as RoomType,
         status: room.status as RoomStatus,
-        players: room.players as { id: string; color: string | null }[],
+        players: (room.players as { id: string; color: string | null }[]) || [],
         inviteCode: room.inviteCode || undefined,
         createdAt: room.createdAt,
       };
-
-      await redis.setJSON(`room:${room.id}`, roomData);
-      await prisma.user.update({
-        where: { id: playerId },
-        data: { status: UserStatus.WAITING },
-      });
-      await redis.set(`player:${playerId}:status`, UserStatus.WAITING);
 
       this.ws.broadcastToClient(playerId, {
         type: "ROOM_CREATED",
         payload: roomData,
       });
-      logger.info(`Room created: ${room.id} by player: ${playerId}`);
-    } catch (err) {
-      logger.error("Error creating room:", err);
+
+      logger.info(`Room ${room.id} created by player ${playerId}`);
+    } catch (error) {
+      logger.error("Error creating room:", error);
       this.ws.broadcastToClient(playerId, {
         type: "ERROR",
-        payload: { message: (err as Error).message },
+        payload: { message: "Failed to create room" },
       });
-      throw err;
     }
   }
 
@@ -107,613 +236,243 @@ export class RoomService {
     inviteCode?: string
   ): Promise<void> {
     try {
-      const room = await prisma.room.findUnique({ where: { id: roomId } });
-      if (!room) throw new Error("Room not found");
-
-      const user = await prisma.user.findUnique({ where: { id: playerId } });
-      if (!user) throw new Error("User not found");
-      if (user.banned) throw new Error("User is banned");
-
-      if (room.type === RoomType.PRIVATE && inviteCode !== room.inviteCode) {
-        throw new Error("Invalid invite code");
-      }
-      if (room.status !== RoomStatus.OPEN) {
-        throw new Error("Room is not open");
-      }
-      if (room.players.some((p: any) => p.id === playerId)) {
-        throw new Error("Player already in room");
-      }
-      if (room.players.length >= 2) {
-        throw new Error("Room is full");
-      }
-
-      const players = (
-        room.players as { id: string; color: string | null }[]
-      ).concat({ id: playerId, color: null });
-
-      const colors = this.shuffle(["white", "black"]);
-      players[0].color = colors[0];
-      players[1].color = colors[1];
-
-      const result = await prisma.$transaction(
-        async (tx) => {
-          const updatedRoom = await tx.room.update({
-            where: { id: roomId },
-            data: { players, status: RoomStatus.ACTIVE },
-          });
-
-          await tx.user.updateMany({
-            where: { id: { in: players.map((p) => p.id) } },
-            data: { status: UserStatus.IN_GAME },
-          });
-
-          return updatedRoom;
-        },
-        {
-          maxWait: 10000,
-          timeout: 20000,
-        }
-      );
-
-      const roomData = {
-        id: result.id,
-        type: result.type as RoomType,
-        status: result.status as RoomStatus,
-        players: result.players as { id: string; color: string | null }[],
-        inviteCode: result.inviteCode || undefined,
-        createdAt: result.createdAt,
-      };
-
-      await redis.setJSON(`room:${roomId}`, roomData);
-      await redis.set(`player:${playerId}:status`, UserStatus.IN_GAME);
-      await redis.set(`player:${players[0].id}:status`, UserStatus.IN_GAME);
-
-      this.ws.broadcastToRoom(roomData as Room);
-      logger.info(`Player ${playerId} joined room ${roomId}`);
-
-      await this.gameService.startGame(roomId);
-    } catch (err) {
-      logger.error("Error joining room:", err);
-      this.ws.broadcastToClient(playerId, {
-        type: "ERROR",
-        payload: { message: (err as Error).message },
+      const room = await prisma.room.findUnique({
+        where: { id: roomId },
       });
-      throw err;
-    }
-  }
 
-  async joinQueue(playerId: string, isGuest: boolean): Promise<void> {
-    try {
-      const user = await prisma.user.findUnique({ where: { id: playerId } });
-      if (!user) throw new Error("User not found");
-      if (user.banned) throw new Error("User is banned");
-
-      const queue = isGuest ? "guestQueue" : "ratedQueue";
-      const queueKey = `player:${playerId}:queue`;
-
-      await redis.lpush(queue, playerId);
-      await redis.set(queueKey, queue);
-      await prisma.user.update({
-        where: { id: playerId },
-        data: { status: UserStatus.WAITING },
-      });
-      await redis.set(`player:${playerId}:status`, UserStatus.WAITING);
-
-      logger.info(`Player ${playerId} joined ${queue}`);
-
-      const timeoutId = setTimeout(async () => {
-        const stillInQueue = await redis.get(queueKey);
-        if (stillInQueue) {
-          await redis.lrem(queue, 0, playerId);
-          await redis.del(queueKey);
-          await redis.del(`player:${playerId}:queueTimeoutId`);
-          await prisma.user.update({
-            where: { id: playerId },
-            data: { status: UserStatus.ONLINE },
-          });
-          await redis.set(`player:${playerId}:status`, UserStatus.ONLINE);
-          this.ws.broadcastToClient(playerId, {
-            type: "QUEUE_TIMEOUT",
-            payload: {
-              message: "No match found within 60 seconds, please try again",
-            },
-          });
-          logger.info(`Player ${playerId} timed out from queue`);
-        }
-      }, 60000);
-
-      await redis.set(
-        `player:${playerId}:queueTimeoutId`,
-        String(timeoutId[Symbol.toPrimitive]())
-      );
-
-      if (isGuest) {
-        await this.tryMatchGuests();
-      } else {
-        await this.tryMatchRated(playerId);
-      }
-    } catch (err) {
-      logger.error("Error joining queue:", err);
-      this.ws.broadcastToClient(playerId, {
-        type: "ERROR",
-        payload: { message: (err as Error).message },
-      });
-      throw err;
-    }
-  }
-
-  async tryMatchGuests(): Promise<void> {
-    try {
-      const queueLength = await redis.llen("guestQueue");
-      if (queueLength < 2) return;
-
-      const players = await redis.lpop("guestQueue", 2);
-      if (!players || !Array.isArray(players) || players.length < 2) return;
-
-      const [player1, player2] = players;
-
-      const timeoutId1 = await redis.get(`player:${player1}:queueTimeoutId`);
-      const timeoutId2 = await redis.get(`player:${player2}:queueTimeoutId`);
-
-      if (timeoutId1) clearTimeout(Number(timeoutId1));
-      if (timeoutId2) clearTimeout(Number(timeoutId2));
-
-      await redis.del(`player:${player1}:queueTimeoutId`);
-      await redis.del(`player:${player2}:queueTimeoutId`);
-
-      try {
-        const room = await prisma.$transaction(
-          async (tx) => {
-            const newRoom = await tx.room.create({
-              data: {
-                type: RoomType.PUBLIC,
-                status: RoomStatus.ACTIVE,
-                players: [
-                  { id: player1, color: "white" },
-                  { id: player2, color: "black" },
-                ],
-              },
-            });
-
-            await tx.user.updateMany({
-              where: { id: { in: [player1, player2] } },
-              data: { status: UserStatus.IN_GAME },
-            });
-
-            return newRoom;
-          },
-          {
-            maxWait: 10000,
-            timeout: 20000,
-          }
-        );
-
-        await redis.del(`player:${player1}:queue`);
-        await redis.del(`player:${player2}:queue`);
-
-        const roomData = {
-          id: room.id,
-          type: room.type as RoomType,
-          status: room.status as RoomStatus,
-          players: room.players as { id: string; color: string | null }[],
-          inviteCode: room.inviteCode || undefined,
-          createdAt: room.createdAt,
-        };
-
-        await redis.setJSON(`room:${room.id}`, roomData);
-        await redis.set(`player:${player1}:status`, UserStatus.IN_GAME);
-        await redis.set(`player:${player2}:status`, UserStatus.IN_GAME);
-
-        this.ws.broadcastToRoom(roomData as Room);
-        logger.info(
-          `Guest match created: ${room.id} (${player1} vs ${player2})`
-        );
-
-        await this.gameService.startGame(room.id);
-      } catch (err) {
-        await redis.lpush("guestQueue", player1);
-        await redis.lpush("guestQueue", player2);
-        logger.error("Error creating guest match:", err);
-        throw err;
-      }
-    } catch (err) {
-      logger.error("Error in tryMatchGuests:", err);
-    }
-  }
-
-  async tryMatchRated(playerId: string): Promise<void> {
-    try {
-      const user = await prisma.user.findUnique({ where: { id: playerId } });
-      if (!user) throw new Error("User not found");
-
-      const queue = await redis.lrange("ratedQueue", 0, -1);
-      let matchedPlayer: string | null = null;
-
-      for (const id of queue) {
-        if (id === playerId) continue;
-        const opponent = await prisma.user.findUnique({ where: { id } });
-        if (
-          opponent &&
-          Math.abs((opponent.elo || 1500) - (user.elo || 1500)) <= 100
-        ) {
-          matchedPlayer = id;
-          break;
-        }
-      }
-
-      if (!matchedPlayer) return;
-
-      const timeoutId1 = await redis.get(`player:${playerId}:queueTimeoutId`);
-      const timeoutId2 = await redis.get(
-        `player:${matchedPlayer}:queueTimeoutId`
-      );
-
-      if (timeoutId1) clearTimeout(Number(timeoutId1));
-      if (timeoutId2) clearTimeout(Number(timeoutId2));
-
-      await redis.del(`player:${playerId}:queueTimeoutId`);
-      await redis.del(`player:${matchedPlayer}:queueTimeoutId`);
-
-      try {
-        await redis.lrem("ratedQueue", 0, playerId);
-        await redis.lrem("ratedQueue", 0, matchedPlayer);
-
-        const colors = this.shuffle(["white", "black"]);
-
-        const room = await prisma.$transaction(
-          async (tx) => {
-            const newRoom = await tx.room.create({
-              data: {
-                type: RoomType.PUBLIC,
-                status: RoomStatus.ACTIVE,
-                players: [
-                  { id: playerId, color: colors[0] },
-                  { id: matchedPlayer, color: colors[1] },
-                ],
-              },
-            });
-
-            await tx.user.updateMany({
-              where: { id: { in: [playerId, matchedPlayer] } },
-              data: { status: UserStatus.IN_GAME },
-            });
-
-            return newRoom;
-          },
-          {
-            maxWait: 10000,
-            timeout: 20000,
-          }
-        );
-
-        await redis.del(`player:${playerId}:queue`);
-        await redis.del(`player:${matchedPlayer}:queue`);
-
-        const roomData = {
-          id: room.id,
-          type: room.type as RoomType,
-          status: room.status as RoomStatus,
-          players: room.players as { id: string; color: string | null }[],
-          inviteCode: room.inviteCode || undefined,
-          createdAt: room.createdAt,
-        };
-
-        await redis.setJSON(`room:${room.id}`, roomData);
-        await redis.set(`player:${playerId}:status`, UserStatus.IN_GAME);
-        await redis.set(`player:${matchedPlayer}:status`, UserStatus.IN_GAME);
-
-        this.ws.broadcastToRoom(roomData as Room);
-        logger.info(
-          `Rated match created: ${room.id} (${playerId} vs ${matchedPlayer})`
-        );
-
-        await this.gameService.startGame(room.id);
-      } catch (err) {
-        await redis.lpush("ratedQueue", playerId);
-        await redis.lpush("ratedQueue", matchedPlayer);
-        logger.error("Error creating rated match:", err);
-        throw err;
-      }
-    } catch (err) {
-      logger.error("Error in tryMatchRated:", err);
-    }
-  }
-
-  async handleRequestRejoin(playerId: string, gameId: string): Promise<void> {
-    try {
-      let game: Game | null = null;
-
-      const gameDataFromRedis = await redis.get(`game:${gameId}`);
-      if (gameDataFromRedis) {
-        game = JSON.parse(gameDataFromRedis) as Game;
-      } else {
-        const dbGame = await prisma.game.findUnique({
-          where: { id: gameId },
-          include: {
-            players: {
-              include: {
-                user: {
-                  select: { name: true },
-                },
-              },
-            },
-          },
+      if (!room) {
+        this.ws.broadcastToClient(playerId, {
+          type: "ERROR",
+          payload: { message: "Room not found" },
         });
-
-        if (dbGame) {
-          game = {
-            id: dbGame.id,
-            roomId: dbGame.roomId,
-            fen: dbGame.fen,
-            moveHistory: dbGame.moveHistory as unknown as Move[],
-            timers: dbGame.timers as { white: number; black: number },
-            timeControl: dbGame.timeControl as unknown as TimeControl,
-            status: dbGame.status as GameStatus,
-            players: dbGame.players.map((p) => ({
-              userId: p.userId,
-              color: p.color,
-              name: p.user.name,
-            })),
-            chat: dbGame.chat as unknown as ChatMessage[],
-            winnerId: dbGame.winnerId || undefined,
-            createdAt: dbGame.createdAt,
-          };
-          await redis.setJSON(`game:${gameId}`, game);
-        }
-      }
-
-      if (!game) {
-        throw new Error("Game not found.");
-      }
-
-      if (game.status !== GameStatus.ACTIVE) {
-        throw new Error("You can only rejoin active games.");
-      }
-
-      if (!game.players.some((p) => p.userId === playerId)) {
-        throw new Error("You are not a player in this game.");
-      }
-
-      const ws = this.ws.getClient(playerId);
-      if (ws) {
-        ws.gameId = game.id;
-        ws.roomId = game.roomId;
-      }
-
-      await prisma.user.update({
-        where: { id: playerId },
-        data: { status: UserStatus.IN_GAME },
-      });
-      await redis.set(`player:${playerId}:status`, UserStatus.IN_GAME);
-      await redis.set(`player:${playerId}:lastGame`, game.id);
-
-      this.gameService.addGameToTimer(game.id);
-
-      this.ws.broadcastToClient(playerId, {
-        type: "REJOIN_GAME",
-        payload: game,
-      });
-
-      logger.info(`Player ${playerId} successfully rejoined game ${game.id}`);
-    } catch (err) {
-      logger.error(`Error in handleRequestRejoin for player ${playerId}:`, err);
-      this.ws.broadcastToClient(playerId, {
-        type: "ERROR",
-        payload: {
-          message: (err as Error).message,
-        },
-      });
-    }
-  }
-
-  async handleDisconnect(ws: AuthenticatedWebSocket): Promise<void> {
-    try {
-      if (!ws.gameId || !ws.roomId) {
-        const guestQueue = await redis.lrange("guestQueue", 0, -1);
-        const ratedQueue = await redis.lrange("ratedQueue", 0, -1);
-
-        if (guestQueue.includes(ws.playerId)) {
-          await redis.lrem("guestQueue", 0, ws.playerId);
-          await redis.del(`player:${ws.playerId}:queue`);
-        }
-        if (ratedQueue.includes(ws.playerId)) {
-          await redis.lrem("ratedQueue", 0, ws.playerId);
-          await redis.del(`player:${ws.playerId}:queue`);
-        }
-
-        await prisma.user.update({
-          where: { id: ws.playerId },
-          data: { status: UserStatus.OFFLINE },
-        });
-        await redis.set(`player:${ws.playerId}:status`, UserStatus.OFFLINE);
-        logger.info(`Player ${ws.playerId} disconnected (not in game)`);
         return;
       }
 
-      await prisma.user.update({
-        where: { id: ws.playerId },
-        data: { status: UserStatus.DISCONNECTED },
-      });
-      await redis.set(`player:${ws.playerId}:status`, UserStatus.DISCONNECTED, {
-        EX: 30,
-      });
-      logger.info(`Player ${ws.playerId} disconnected from game ${ws.gameId}`);
+      const roomData: Room = {
+        id: room.id,
+        type: room.type as RoomType,
+        status: room.status as RoomStatus,
+        players: (room.players as { id: string; color: string | null }[]) || [],
+        inviteCode: room.inviteCode || undefined,
+        createdAt: room.createdAt,
+      };
 
-      setTimeout(async () => {
-        try {
-          const status = await redis.get(`player:${ws.playerId}:status`);
-          if (status !== UserStatus.DISCONNECTED) return;
-
-          const game = await prisma.game.findUnique({
-            where: { id: ws.gameId },
-            include: { players: true },
-          });
-          if (!game) return;
-
-          const opponent = game.players.find((p) => p.userId !== ws.playerId);
-          if (!opponent) return;
-
-          await prisma.$transaction(
-            async (tx) => {
-              await tx.game.update({
-                where: { id: ws.gameId },
-                data: {
-                  status: GameStatus.ABANDONED,
-                  winnerId: opponent.userId,
-                },
-              });
-
-              await tx.room.update({
-                where: { id: ws.roomId },
-                data: { status: RoomStatus.CLOSED },
-              });
-
-              await tx.user.updateMany({
-                where: { id: { in: [ws.playerId, opponent.userId] } },
-                data: { status: UserStatus.ONLINE },
-              });
-            },
-            {
-              maxWait: 10000,
-              timeout: 20000,
-            }
-          );
-
-          await redis.del(`game:${ws.gameId}`);
-          await redis.del(`room:${ws.roomId}`);
-          await redis.del(`player:${ws.playerId}:lastGame`);
-          await redis.del(`player:${opponent.userId}:lastGame`);
-          await redis.set(`player:${ws.playerId}:status`, UserStatus.OFFLINE);
-          await redis.set(
-            `player:${opponent.userId}:status`,
-            UserStatus.ONLINE
-          );
-
-          const updatedGame: Game = {
-            id: game.id,
-            roomId: game.roomId,
-            fen: game.fen,
-            moveHistory: game.moveHistory as unknown as Move[],
-            timers: game.timers as { white: number; black: number },
-            timeControl: game.timeControl as unknown as TimeControl,
-            status: GameStatus.ABANDONED,
-            players: game.players.map((p) => ({
-              userId: p.userId,
-              color: p.color,
-            })),
-            chat: game.chat as unknown as ChatMessage[],
-            winnerId: opponent.userId,
-            createdAt: game.createdAt,
-          };
-
-          this.ws.broadcastToGame(updatedGame);
-          logger.info(
-            `Game ${ws.gameId} abandoned due to player ${ws.playerId} disconnect`
-          );
-        } catch (err) {
-          logger.error("Error in disconnect timeout:", err);
-        }
-      }, 30000);
-    } catch (err) {
-      logger.error("Error in handleDisconnect:", err);
-    }
-  }
-
-  async leaveQueue(playerId: string): Promise<void> {
-    try {
-      const guestQueue = await redis.lrange("guestQueue", 0, -1);
-      const ratedQueue = await redis.lrange("ratedQueue", 0, -1);
-
-      if (guestQueue.includes(playerId)) {
-        await redis.lrem("guestQueue", 0, playerId);
-      }
-      if (ratedQueue.includes(playerId)) {
-        await redis.lrem("ratedQueue", 0, playerId);
+      if (roomData.inviteCode && roomData.inviteCode !== inviteCode) {
+        this.ws.broadcastToClient(playerId, {
+          type: "ERROR",
+          payload: { message: "Invalid invite code" },
+        });
+        return;
       }
 
-      await redis.del(`player:${playerId}:queue`);
-      await prisma.user.update({
-        where: { id: playerId },
-        data: { status: UserStatus.ONLINE },
-      });
-      await redis.set(`player:${playerId}:status`, UserStatus.ONLINE);
+      if (roomData.players.length >= 2) {
+        this.ws.broadcastToClient(playerId, {
+          type: "ERROR",
+          payload: { message: "Room is full" },
+        });
+        return;
+      }
 
+      if (roomData.players.some((p) => p.id === playerId)) {
+        this.ws.broadcastToClient(playerId, {
+          type: "ERROR",
+          payload: { message: "Already in this room" },
+        });
+        return;
+      }
+
+      roomData.players.push({ id: playerId, color: null });
+
+      if (roomData.players.length === 2) {
+        const colors = ["white", "black"];
+        const shuffledColors = colors.sort(() => Math.random() - 0.5);
+        roomData.players[0].color = shuffledColors[0];
+        roomData.players[1].color = shuffledColors[1];
+      }
+
+      await prisma.room.update({
+        where: { id: roomId },
+        data: { players: roomData.players as any },
+      });
+
+      if (roomData.players.length === 2) {
+        const game = await this.gameService.startGame(roomId);
+        const roomWithGame: RoomWithGame = { ...roomData, game };
+        this.ws.broadcastToRoom(roomWithGame);
+      } else {
+        this.ws.broadcastToRoom(roomData);
+      }
+
+      logger.info(`Player ${playerId} joined room ${roomId}`);
+    } catch (error) {
+      logger.error("Error joining room:", error);
       this.ws.broadcastToClient(playerId, {
-        type: "QUEUE_LEFT",
-        payload: {},
+        type: "ERROR",
+        payload: { message: "Failed to join room" },
       });
-      logger.info(`Player ${playerId} left queue`);
-    } catch (err) {
-      logger.error("Error leaving queue:", err);
     }
   }
 
   async leaveRoom(playerId: string, roomId: string): Promise<void> {
     try {
       const room = await prisma.room.findUnique({
-        where: {
-          id: roomId,
-        },
+        where: { id: roomId },
       });
 
-      if (!room) throw new Error("Room not found");
+      if (!room) return;
 
-      const players = room.players as { id: string; color: string | null }[];
-      if (!players.some((p) => p.id === playerId))
-        throw new Error("Player not found");
+      const roomData: Room = {
+        id: room.id,
+        type: room.type as RoomType,
+        status: room.status as RoomStatus,
+        players: (room.players as { id: string; color: string | null }[]) || [],
+        inviteCode: room.inviteCode || undefined,
+        createdAt: room.createdAt,
+      };
 
-      const updatedPlayers = players.filter((p) => p.id !== playerId);
+      roomData.players = roomData.players.filter((p) => p.id !== playerId);
 
-      const status =
-        updatedPlayers.length === 0 ? RoomStatus.CLOSED : room.status;
+      if (roomData.players.length === 0) {
+        await prisma.room.delete({
+          where: { id: roomId },
+        });
+      } else {
+        await prisma.room.update({
+          where: { id: roomId },
+          data: { players: roomData.players as any },
+        });
+        this.ws.broadcastToRoom(roomData);
+      }
 
-      const updatedRoom = await prisma.room.update({
-        where: {
-          id: roomId,
-        },
-        data: {
-          players: updatedPlayers,
-          status,
-        },
+      logger.info(`Player ${playerId} left room ${roomId}`);
+    } catch (error) {
+      logger.error("Error leaving room:", error);
+    }
+  }
+
+  async joinQueue(playerId: string, isGuest: boolean): Promise<void> {
+    try {
+      this.queue.add(playerId);
+
+      await prisma.user.update({
+        where: { id: playerId },
+        data: { status: UserStatus.WAITING },
       });
+
+      this.ws.broadcastToClient(playerId, {
+        type: "QUEUE_JOINED",
+        payload: { isGuest, queueSize: this.queue.size },
+      });
+
+      if (this.queue.size >= 2) {
+        const players = Array.from(this.queue).slice(0, 2);
+        players.forEach((pId) => this.queue.delete(pId));
+
+        const room = await prisma.room.create({
+          data: {
+            type: RoomType.PUBLIC,
+            status: RoomStatus.OPEN,
+            players: [
+              { id: players[0], color: "white" },
+              { id: players[1], color: "black" },
+            ] as any,
+          },
+        });
+
+        const game = await this.gameService.startGame(room.id);
+
+        const roomData: RoomWithGame = {
+          id: room.id,
+          type: RoomType.PUBLIC,
+          status: RoomStatus.ACTIVE,
+          players: [
+            { id: players[0], color: "white" },
+            { id: players[1], color: "black" },
+          ],
+          createdAt: room.createdAt,
+          game,
+        };
+
+        this.ws.broadcastToRoom(roomData);
+      }
+
+      logger.info(`Player ${playerId} joined queue (guest: ${isGuest})`);
+    } catch (error) {
+      logger.error("Error joining queue:", error);
+      this.ws.broadcastToClient(playerId, {
+        type: "ERROR",
+        payload: { message: "Failed to join queue" },
+      });
+    }
+  }
+
+  async leaveQueue(playerId: string): Promise<void> {
+    try {
+      this.queue.delete(playerId);
 
       await prisma.user.update({
         where: { id: playerId },
         data: { status: UserStatus.ONLINE },
       });
 
-      await redis.set(`player:${playerId}:status`, UserStatus.ONLINE);
-
-      const roomData = {
-        id: updatedRoom.id,
-        type: updatedRoom.type as RoomType,
-        status: updatedRoom.status as RoomStatus,
-        players: updatedPlayers,
-        inviteCode: updatedRoom.inviteCode ?? undefined,
-        createdAt: updatedRoom.createdAt,
-      };
-
-      if (status === RoomStatus.CLOSED) {
-        await redis.del(`room:${roomId}`);
-      } else {
-        await redis.setJSON(`room:${roomId}`, roomData);
-      }
-
-      this.ws.broadcastToRoom(roomData as Room);
-
       this.ws.broadcastToClient(playerId, {
-        type: "LEAVE_ROOM",
+        type: "QUEUE_LEFT",
         payload: {},
       });
 
-      logger.info(`Player ${playerId} left room ${roomId}`);
-    } catch (err) {
-      logger.error("Error leaving room:", err);
+      logger.info(`Player ${playerId} left queue`);
+    } catch (error) {
+      logger.error("Error leaving queue:", error);
+    }
+  }
+
+  handleDisconnect(ws: any): void {
+    if (ws.playerId) {
+      this.queue.delete(ws.playerId);
+      logger.info(`Player ${ws.playerId} disconnected and removed from queue`);
+    }
+  }
+
+  async handleRequestRejoin(playerId: string, gameId: string): Promise<void> {
+    try {
+      const gameData = await redis.get(`game:${gameId}`);
+
+      if (!gameData) {
+        this.ws.broadcastToClient(playerId, {
+          type: "GAME_NOT_FOUND",
+          payload: { message: "Game not found" },
+        });
+        return;
+      }
+
+      const game = JSON.parse(gameData);
+      const isPlayerInGame = game.players.some(
+        (p: any) => p.userId === playerId
+      );
+
+      if (!isPlayerInGame) {
+        this.ws.broadcastToClient(playerId, {
+          type: "UNAUTHORIZED",
+          payload: { message: "Not authorized to rejoin this game" },
+        });
+        return;
+      }
+
+      this.ws.broadcastToClient(playerId, {
+        type: "REJOIN_GAME",
+        payload: game,
+      });
+
+      logger.info(`Player ${playerId} rejoined game ${gameId}`);
+    } catch (error) {
+      logger.error(
+        `Error handling rejoin request for player ${playerId}, game ${gameId}:`,
+        error
+      );
       this.ws.broadcastToClient(playerId, {
         type: "ERROR",
-        payload: { message: (err as Error).message },
+        payload: { message: "Failed to rejoin game" },
       });
-      throw err;
     }
   }
 }

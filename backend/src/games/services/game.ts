@@ -1,6 +1,4 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-
-// game file
 import { Chess, Square } from "chess.js";
 import { InputJsonValue } from "@prisma/client/runtime/library";
 
@@ -20,16 +18,23 @@ import { WebSocketService } from "../../services/websocket";
 import { redis } from "../../services/redis";
 import { UserStatus } from "@prisma/client";
 import { logger } from "../../services/logger";
+import { BOT_PLAYER_ID, BotService } from "./bot";
 
 export class GameService {
   private ws: WebSocketService;
+  private botService: BotService;
 
   private activeGames: Set<string> = new Set();
   private masterTimer: NodeJS.Timeout | null = null;
 
   constructor(ws: WebSocketService) {
     this.ws = ws;
+    this.botService = new BotService(this);
     this.startMasterTimer();
+  }
+
+  public getBotService(): BotService {
+    return this.botService;
   }
 
   private startMasterTimer(): void {
@@ -320,7 +325,9 @@ export class GameService {
     const player = game.players.find((p) => p.userId === playerId);
 
     if (!player || chess.turn() !== player.color[0]) {
-      throw new Error("Not your turn");
+      if (playerId !== BOT_PLAYER_ID) {
+        throw new Error("Not your turn");
+      }
     }
 
     const result = chess.move({
@@ -372,7 +379,7 @@ export class GameService {
     if (chess.isCheckmate()) {
       this.removeGameFromTimer(gameId);
       game.status = GameStatus.COMPLETED;
-      game.winnerId = player.userId;
+      game.winnerId = player?.userId;
     } else if (chess.isDraw()) {
       this.removeGameFromTimer(gameId);
       game.status = GameStatus.DRAW;
@@ -409,6 +416,8 @@ export class GameService {
     await redis.setJSON(`game:${gameId}`, game);
 
     this.ws.broadcastToGame(game);
+
+    await this.botService.onGameUpdate(game);
   }
 
   async getLegalMoves(
