@@ -9,7 +9,6 @@ import {
   Game,
   GameStatus,
   TimeControl,
-  Player,
 } from "../../lib/types";
 import { WebSocketService } from "../../services/websocket";
 import { GameService } from "./game";

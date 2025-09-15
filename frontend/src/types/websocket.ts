@@ -208,7 +208,7 @@ export type ServerMessage =
 export type AnyWebSocketMessage = ClientMessage | ServerMessage;
 
 export const RATE_LIMIT = {
-  MAX_MESSAGES_PER_MINUTE: 50,
+  MAX_MESSAGES_PER_MINUTE: 500,
   WINDOW_MS: 60000,
 } as const;
 

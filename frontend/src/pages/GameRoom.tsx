@@ -138,8 +138,19 @@ const GameRoom = () => {
     setModalOpen(false);
     clearGame();
     clearRoom();
-    navigate("/lobby");
-    joinQueue(true);
+    const isBotGame = currentGame?.players.some(
+      (player) => player.userId === "bot-player-001"
+    );
+
+    if (isBotGame) {
+      sendMessage({
+        type: "CREATE_BOT_GAME",
+        payload: {},
+      });
+    } else {
+      navigate("/lobby");
+      joinQueue(true);
+    }
   };
 
   const { whitePlayer, blackPlayer } = useMemo(() => {

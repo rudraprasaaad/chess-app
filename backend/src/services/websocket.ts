@@ -149,7 +149,7 @@ export class WebSocketService {
         limit.lastReset = now;
       }
 
-      if (limit.count >= 50) {
+      if (limit.count >= 500) {
         ws.close(4001, "Rate limit exceeded");
         return;
       }
