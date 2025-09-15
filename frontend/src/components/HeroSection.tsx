@@ -106,16 +106,7 @@ export const HeroSection = () => {
               className="bg-foreground text-background hover:bg-foreground/90 px-12 py-8 text-base font-light rounded-full shadow-2xl border-0 min-w-[240px] transition-all duration-500 hover:scale-[1.02] active:scale-[0.98] tracking-wide"
               onClick={() => setIsLoginModalOpen(true)}
             >
-              Start Playing
-            </Button>
-
-            <Button
-              variant="outline"
-              size="lg"
-              className="glass border-border/30 hover:bg-muted/10 hover:border-border/50 px-12 py-8 text-base font-light rounded-full min-w-[240px] transition-all duration-500 hover:scale-[1.02] active:scale-[0.98] tracking-wide"
-              onClick={() => setIsLoginModalOpen(true)}
-            >
-              Quick Match
+              Get started
             </Button>
           </motion.div>
         </motion.div>
