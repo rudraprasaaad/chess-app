@@ -52,6 +52,14 @@ const GameRoom = () => {
 
   const modalOpenedRef = useRef(false);
 
+  const isBotGame = useMemo(() => {
+    return (
+      currentGame?.players.some(
+        (player) => player.userId === "bot-player-001"
+      ) || false
+    );
+  }, [currentGame?.players]);
+
   useEffect(() => {
     if (!gameId) {
       navigate("/lobby");
@@ -138,19 +146,8 @@ const GameRoom = () => {
     setModalOpen(false);
     clearGame();
     clearRoom();
-    const isBotGame = currentGame?.players.some(
-      (player) => player.userId === "bot-player-001"
-    );
-
-    if (isBotGame) {
-      sendMessage({
-        type: "CREATE_BOT_GAME",
-        payload: {},
-      });
-    } else {
-      navigate("/lobby");
-      joinQueue(true);
-    }
+    navigate("/lobby");
+    joinQueue(true);
   };
 
   const { whitePlayer, blackPlayer } = useMemo(() => {
@@ -403,6 +400,7 @@ const GameRoom = () => {
         reasonMessage={endReasonMessage}
         onClose={handleEndModalClose}
         onPlayAgain={handlePlayAgain}
+        isBotGame={isBotGame}
       />
     </div>
   );

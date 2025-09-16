@@ -12,6 +12,7 @@ interface GameEndModalProps {
   reasonMessage?: string;
   onClose: () => void;
   onPlayAgain: () => void;
+  isBotGame?: boolean;
 }
 
 const GameEndModal = ({
@@ -20,6 +21,7 @@ const GameEndModal = ({
   reasonMessage,
   onClose,
   onPlayAgain,
+  isBotGame = false,
 }: GameEndModalProps) => {
   if (!result) return null;
 
@@ -178,7 +180,9 @@ const GameEndModal = ({
 
                 <CardContent className="pt-0">
                   <motion.div
-                    className="flex gap-3 justify-center"
+                    className={`flex gap-3 ${
+                      isBotGame ? "justify-center" : "justify-center"
+                    }`}
                     initial={{ y: 20, opacity: 0 }}
                     animate={{ y: 0, opacity: 1 }}
                     transition={{ delay: 0.7, duration: 0.4 }}
@@ -186,16 +190,20 @@ const GameEndModal = ({
                     <Button
                       variant="outline"
                       onClick={onClose}
-                      className="flex-1 hover:scale-105 transition-all duration-200"
+                      className={`${
+                        isBotGame ? "px-8" : "flex-1"
+                      } hover:scale-105 transition-all duration-200`}
                     >
                       Back to Lobby
                     </Button>
-                    <Button
-                      onClick={onPlayAgain}
-                      className="flex-1 hover:scale-105 transition-all duration-200"
-                    >
-                      Play Again
-                    </Button>
+                    {!isBotGame && (
+                      <Button
+                        onClick={onPlayAgain}
+                        className="flex-1 hover:scale-105 transition-all duration-200"
+                      >
+                        Play Again
+                      </Button>
+                    )}
                   </motion.div>
                 </CardContent>
               </motion.div>
