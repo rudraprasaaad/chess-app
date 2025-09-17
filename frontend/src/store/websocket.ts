@@ -263,7 +263,7 @@ const handleServerMessage = (message: ServerMessage) => {
   const roomMessages = [
     "ROOM_CREATED",
     "ROOM_UPDATED",
-    "QUEUE_TIMEOUT",
+    "QUEUE_TIMED_OUT",
     "QUEUE_LEFT",
   ];
 

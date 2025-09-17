@@ -3,8 +3,8 @@ import { memo, useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { AnimatePresence, motion } from "framer-motion";
-import { useRoomStore } from "../store/room";
-import { useWebSocketStore } from "../store/websocket"; // --- IMPORT WebSocket store
+import { useRoomStore, useQueueCountdown } from "../store/room";
+import { useWebSocketStore } from "../store/websocket";
 import { RoomStatus, RoomType } from "../types/common";
 import { useRoomByInviteCode } from "../hooks/api/useRoom";
 import { Button } from "../components/ui/button";
@@ -44,7 +44,7 @@ function isRoomWithGame(room: any): room is { game: { id: string } } {
 
 const Lobby = () => {
   const navigate = useNavigate();
-
+  const { sendMessage } = useWebSocketStore();
   const {
     currentRoom,
     isJoiningRoom,
@@ -57,7 +57,7 @@ const Lobby = () => {
     isInQueue,
   } = useRoomStore();
 
-  const { sendMessage } = useWebSocketStore();
+  const timeLeft = useQueueCountdown();
 
   const [createInviteCode, setCreateInviteCode] = useState("");
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -80,7 +80,6 @@ const Lobby = () => {
     ) {
       const currentPath = window.location.pathname;
       const targetPath = `/game/${currentRoom.game.id}`;
-
       if (currentPath !== targetPath) navigate(targetPath);
     }
   }, [currentRoom, navigate]);
@@ -90,12 +89,10 @@ const Lobby = () => {
       toast.error("Please enter a valid invite code for the private room.");
       return;
     }
-
     createRoom({
       type: RoomType.PRIVATE,
       inviteCode: createInviteCode.trim(),
     });
-
     setShowCreateModal(false);
     setCreateInviteCode("");
   }, [createInviteCode, createRoom]);
@@ -105,15 +102,12 @@ const Lobby = () => {
       toast.error("Please enter the invite code to join the room.");
       return;
     }
-
     try {
       const result = await refetch();
-
       if (!result.data.id) {
         toast.error("Room not found or invite code invalid");
         return;
       }
-
       joinRoom({
         roomId: result.data.id,
         inviteCode: joinInviteCode.trim(),
@@ -176,9 +170,7 @@ const Lobby = () => {
         />
         <motion.div
           className="absolute inset-0 opacity-[0.02]"
-          animate={{
-            opacity: [0.01, 0.03, 0.01],
-          }}
+          animate={{ opacity: [0.01, 0.03, 0.01] }}
           transition={{
             duration: 8,
             repeat: Infinity,
@@ -209,21 +201,14 @@ const Lobby = () => {
               top: `${Math.random() * 100}%`,
             }}
             animate={sparkleAnimation}
-            transition={{
-              delay: i * 0.8,
-              duration: 4,
-              repeat: Infinity,
-            }}
+            transition={{ delay: i * 0.8, duration: 4, repeat: Infinity }}
           >
             <Sparkles className="w-2 h-2 text-muted-foreground/10" />
           </motion.div>
         ))}
         <motion.div
           className="absolute top-1/4 right-1/4 w-32 h-32 rounded-full bg-gradient-to-br from-primary/5 to-transparent blur-xl"
-          animate={{
-            scale: [1, 1.2, 1],
-            opacity: [0.3, 0.6, 0.3],
-          }}
+          animate={{ scale: [1, 1.2, 1], opacity: [0.3, 0.6, 0.3] }}
           transition={{
             duration: 8,
             repeat: Infinity,
@@ -232,10 +217,7 @@ const Lobby = () => {
         />
         <motion.div
           className="absolute bottom-1/3 left-1/3 w-24 h-24 rounded-full bg-gradient-to-br from-accent/5 to-transparent blur-xl"
-          animate={{
-            scale: [1.2, 1, 1.2],
-            opacity: [0.2, 0.5, 0.2],
-          }}
+          animate={{ scale: [1.2, 1, 1.2], opacity: [0.2, 0.5, 0.2] }}
           transition={{
             duration: 10,
             repeat: Infinity,
@@ -395,14 +377,17 @@ const Lobby = () => {
                 className="text-center py-6 space-y-3"
               >
                 <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-primary text-primary-foreground">
-                  <Zap className="w-6 h-6" />
+                  <Zap className="w-6 h-6 animate-pulse" />
                 </div>
                 <div>
                   <h3 className="font-medium text-foreground mb-1">
-                    Finding opponent
+                    Finding opponent...
                   </h3>
                   <p className="text-sm text-muted-foreground">
-                    Please wait while we match you with a player
+                    Please wait while we match you with a player. Time left:{" "}
+                    <span className="font-semibold text-foreground">
+                      {timeLeft}s
+                    </span>
                   </p>
                 </div>
                 <Button onClick={handleLeaveQueue} variant="outline" size="sm">
@@ -442,7 +427,6 @@ const Lobby = () => {
                   Set a secret code for your opponent to join.
                 </p>
               </div>
-
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-foreground mb-2">
@@ -457,7 +441,6 @@ const Lobby = () => {
                     autoFocus
                   />
                 </div>
-
                 <div className="flex gap-2 pt-2">
                   <Button
                     variant="outline"

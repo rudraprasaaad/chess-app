@@ -285,19 +285,44 @@ class RedisService {
     }
   }
 
-  async zadd(key: string, score: number, member: string): Promise<void> {
+  async zadd(key: string, score: number, member: string): Promise<number> {
     await this.ensureConnection();
     try {
-      await this.client.zAdd(key, { score, value: member });
+      return await this.client.zAdd(key, [{ score, value: member }]);
     } catch (error) {
       logger.error("Redis ZADD error:", error);
+      return 0;
+    }
+  }
+
+  async zrem(key: string, ...members: string[]): Promise<number> {
+    await this.ensureConnection();
+    try {
+      return await this.client.zRem(key, members);
+    } catch (error) {
+      logger.error("Redis ZREM error:", error);
+      return 0;
+    }
+  }
+
+  async zrange(
+    key: string,
+    start: number | string,
+    stop: number | string
+  ): Promise<string[]> {
+    await this.ensureConnection();
+    try {
+      return await this.client.zRange(key, start, stop);
+    } catch (error) {
+      logger.error("Redis ZRANGE error:", error);
+      return [];
     }
   }
 
   async zrangebyscore(
     key: string,
-    min: number,
-    max: number,
+    min: number | string,
+    max: number | string,
     options?: { LIMIT?: { offset: number; count: number } }
   ): Promise<string[]> {
     await this.ensureConnection();
@@ -309,12 +334,13 @@ class RedisService {
     }
   }
 
-  async zrem(key: string, member: string): Promise<void> {
+  async zcard(key: string): Promise<number> {
     await this.ensureConnection();
     try {
-      await this.client.zRem(key, member);
+      return await this.client.zCard(key);
     } catch (error) {
-      logger.error("Redis ZREM error:", error);
+      logger.error("Redis ZCARD error:", error);
+      return 0;
     }
   }
 

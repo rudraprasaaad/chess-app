@@ -11,16 +11,15 @@ import { UserStatus } from "../types/common";
 import { useWebSocketStore } from "./websocket";
 import { useAuthStore } from "./auth";
 import { toast } from "sonner";
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useGameStore } from "./game";
 
 interface RoomState {
   currentRoom: Room | RoomWithGame | null;
   availableRooms: Room[];
-
   isInQueue: boolean;
   queueType: "guest" | "rated" | null;
-
+  queueTimeoutEnd: number | null; // Timestamp for when the queue timeout ends
   isJoiningRoom: boolean;
   isCreatingRoom: boolean;
   error: string | null;
@@ -28,10 +27,8 @@ interface RoomState {
   createRoom: (payload: CreateRoomPayload) => void;
   joinRoom: (payload: JoinRoomPayload) => void;
   leaveRoom: () => void;
-
   joinQueue: (isGuest: boolean) => void;
   leaveQueue: () => void;
-
   setCurrentRoom: (room: Room | null) => void;
   updateRoom: (roomUpdate: Partial<Room>) => void;
   setAvailableRooms: (rooms: Room[]) => void;
@@ -39,7 +36,6 @@ interface RoomState {
   removePlayer: (playerId: string) => void;
   setError: (error: string | null) => void;
   clearRoom: () => void;
-
   setJoiningRoom: (joining: boolean) => void;
   setCreatingRoom: (creating: boolean) => void;
 }
@@ -49,6 +45,7 @@ export const useRoomStore = create<RoomState>((set, get) => ({
   availableRooms: [],
   isInQueue: false,
   queueType: null,
+  queueTimeoutEnd: null,
   isJoiningRoom: false,
   isCreatingRoom: false,
   error: null,
@@ -56,22 +53,15 @@ export const useRoomStore = create<RoomState>((set, get) => ({
   createRoom: (payload) => {
     const { sendMessage } = useWebSocketStore.getState();
     const { isAuthenticated } = useAuthStore.getState();
-
     if (!isAuthenticated) {
       set({ error: "Must be authenticated to create room" });
       return;
     }
-
     set({ isCreatingRoom: true, error: null });
-
     sendMessage({
       type: "CREATE_ROOM",
-      payload: {
-        type: payload.type,
-        inviteCode: payload.inviteCode,
-      },
+      payload: { type: payload.type, inviteCode: payload.inviteCode },
     });
-
     useAuthStore.getState().setStatus(UserStatus.WAITING);
     toast.info("Creating room...");
   },
@@ -79,37 +69,27 @@ export const useRoomStore = create<RoomState>((set, get) => ({
   joinRoom: (payload) => {
     const { sendMessage } = useWebSocketStore.getState();
     const { isAuthenticated } = useAuthStore.getState();
-
     if (!isAuthenticated) {
       set({ error: "Must be authenticated to join room" });
       return;
     }
-
     set({ isJoiningRoom: true, error: null });
-
     sendMessage({
       type: "JOIN_ROOM",
-      payload: {
-        roomId: payload.roomId,
-        inviteCode: payload.inviteCode,
-      },
+      payload: { roomId: payload.roomId, inviteCode: payload.inviteCode },
     });
-
     useAuthStore.getState().setStatus(UserStatus.WAITING);
     toast.info("Joining room...");
   },
 
   leaveRoom: () => {
     const { currentRoom } = get();
-    const { sendMessage } = useWebSocketStore.getState();
-
     if (!currentRoom) return;
-
+    const { sendMessage } = useWebSocketStore.getState();
     sendMessage({
       type: "LEAVE_ROOM",
       payload: { roomId: currentRoom.id },
     });
-
     set({
       currentRoom: null,
       isJoiningRoom: false,
@@ -123,43 +103,32 @@ export const useRoomStore = create<RoomState>((set, get) => ({
   joinQueue: (isGuest) => {
     const { sendMessage } = useWebSocketStore.getState();
     const { isAuthenticated } = useAuthStore.getState();
-
     if (!isAuthenticated) {
       set({ error: "Must be authenticated to join queue" });
       return;
     }
-
     const queueType = isGuest ? "guest" : "rated";
-
+    // Set a 30-second timeout when joining the queue
     set({
       isInQueue: true,
       queueType,
       error: null,
+      queueTimeoutEnd: Date.now() + 30000,
     });
-
-    sendMessage({
-      type: "JOIN_QUEUE",
-      payload: { isGuest },
-    });
-
+    sendMessage({ type: "JOIN_QUEUE", payload: { isGuest } });
     useAuthStore.getState().setStatus(UserStatus.WAITING);
-    toast.info(`Searching for a ${isGuest ? "guest" : "rated"} match...`);
+    toast.info(`Searching for a ${queueType} match...`);
   },
 
   leaveQueue: () => {
     const { sendMessage } = useWebSocketStore.getState();
-
-    sendMessage({
-      type: "LEAVE_QUEUE",
-      payload: {},
-    });
-
+    sendMessage({ type: "LEAVE_QUEUE", payload: {} });
     set({
       isInQueue: false,
       queueType: null,
+      queueTimeoutEnd: null,
       error: null,
     });
-
     useAuthStore.getState().setStatus(UserStatus.ONLINE);
     toast.info("Left matchmaking queue.");
   },
@@ -171,46 +140,36 @@ export const useRoomStore = create<RoomState>((set, get) => ({
       isCreatingRoom: false,
       error: null,
     });
-    if (room) {
-      toast.success("Joined room!");
-    }
+    if (room) toast.success("Joined room!");
   },
 
   updateRoom: (roomUpdate) => {
     const { currentRoom } = get();
-    if (currentRoom) {
-      set({ currentRoom: { ...currentRoom, ...roomUpdate } });
-    }
+    if (currentRoom) set({ currentRoom: { ...currentRoom, ...roomUpdate } });
   },
 
   setAvailableRooms: (rooms) => set({ availableRooms: rooms }),
 
   addPlayer: (player) => {
     const { currentRoom } = get();
-    if (currentRoom) {
-      const updatedPlayers = [...currentRoom.players, player];
+    if (currentRoom)
       set({
         currentRoom: {
           ...currentRoom,
-          players: updatedPlayers,
+          players: [...currentRoom.players, player],
         },
       });
-    }
   },
 
   removePlayer: (playerId) => {
     const { currentRoom } = get();
-    if (currentRoom) {
-      const updatedPlayers = currentRoom.players.filter(
-        (p) => p.id !== playerId
-      );
+    if (currentRoom)
       set({
         currentRoom: {
           ...currentRoom,
-          players: updatedPlayers,
+          players: currentRoom.players.filter((p) => p.id !== playerId),
         },
       });
-    }
   },
 
   setError: (error) => {
@@ -223,6 +182,7 @@ export const useRoomStore = create<RoomState>((set, get) => ({
       currentRoom: null,
       isInQueue: false,
       queueType: null,
+      queueTimeoutEnd: null,
       isJoiningRoom: false,
       isCreatingRoom: false,
       error: null,
@@ -247,21 +207,38 @@ export const useQueueStatus = () =>
     queueType: state.queueType,
   }));
 
-export const useRoomActions = () => {
-  const createRoom = useRoomStore((state) => state.createRoom);
-  const joinRoom = useRoomStore((state) => state.joinRoom);
-  const leaveRoom = useRoomStore((state) => state.leaveRoom);
-  const joinQueue = useRoomStore((state) => state.joinQueue);
-  const leaveQueue = useRoomStore((state) => state.leaveQueue);
+export const useQueueCountdown = (): number => {
+  const queueTimeoutEnd = useRoomStore((state) => state.queueTimeoutEnd);
+  const [timeLeft, setTimeLeft] = useState(0);
 
+  useEffect(() => {
+    if (!queueTimeoutEnd) {
+      setTimeLeft(0);
+      return;
+    }
+
+    const calculateTimeLeft = () => {
+      const now = Date.now();
+      const difference = queueTimeoutEnd - now;
+      return Math.max(0, Math.ceil(difference / 1000));
+    };
+
+    setTimeLeft(calculateTimeLeft());
+    const interval = setInterval(() => {
+      setTimeLeft(calculateTimeLeft());
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [queueTimeoutEnd]);
+
+  return timeLeft;
+};
+
+export const useRoomActions = () => {
+  const { createRoom, joinRoom, leaveRoom, joinQueue, leaveQueue } =
+    useRoomStore();
   return useMemo(
-    () => ({
-      createRoom,
-      joinRoom,
-      leaveRoom,
-      joinQueue,
-      leaveQueue,
-    }),
+    () => ({ createRoom, joinRoom, leaveRoom, joinQueue, leaveQueue }),
     [createRoom, joinRoom, leaveRoom, joinQueue, leaveQueue]
   );
 };
@@ -286,18 +263,34 @@ export const handleRoomMessage = (message: any) => {
       useAuthStore.getState().setStatus(UserStatus.WAITING);
       break;
 
-    case "ROOM_UPDATED":
-      useRoomStore.setState({ isInQueue: false, queueType: null });
-      setCurrentRoom(message.payload);
-      setCurrentGame(message.payload.game);
-      setJoiningRoom(false);
-      if (message.payload.game) {
-        useAuthStore.getState().setStatus(UserStatus.IN_GAME);
-      }
+    case "QUEUE_JOINED":
+      // Set the timeout when joining. Assumes a 30s timeout from backend.
+      useRoomStore.setState({
+        isInQueue: true,
+        queueTimeoutEnd: Date.now() + 30 * 1000,
+      });
       break;
 
-    case "QUEUE_TIMEOUT":
-      useRoomStore.setState({ isInQueue: false, queueType: null });
+    case "ROOM_UPDATED":
+      useRoomStore.setState({
+        isInQueue: false,
+        queueType: null,
+        queueTimeoutEnd: null,
+      });
+      setCurrentRoom(message.payload);
+      if ("game" in message.payload && message.payload.game) {
+        setCurrentGame(message.payload.game);
+        useAuthStore.getState().setStatus(UserStatus.IN_GAME);
+      }
+      setJoiningRoom(false);
+      break;
+
+    case "QUEUE_TIMED_OUT":
+      useRoomStore.setState({
+        isInQueue: false,
+        queueType: null,
+        queueTimeoutEnd: null,
+      });
       useAuthStore.getState().setStatus(UserStatus.ONLINE);
       toast.error("No match found. Please try again.");
       break;
@@ -306,6 +299,7 @@ export const handleRoomMessage = (message: any) => {
       useRoomStore.setState({
         isInQueue: false,
         queueType: null,
+        queueTimeoutEnd: null,
       });
       useAuthStore.getState().setStatus(UserStatus.ONLINE);
       break;
@@ -314,6 +308,11 @@ export const handleRoomMessage = (message: any) => {
       setError(message.payload.message);
       setJoiningRoom(false);
       setCreatingRoom(false);
+      useRoomStore.setState({
+        isInQueue: false,
+        queueType: null,
+        queueTimeoutEnd: null,
+      });
       useAuthStore.getState().setStatus(UserStatus.ONLINE);
       break;
   }

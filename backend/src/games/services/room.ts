@@ -19,11 +19,62 @@ import { redis } from "../../services/redis";
 export class RoomService {
   private ws: WebSocketService;
   private gameService: GameService;
-  private queue: Set<string> = new Set();
+
+  QUEUE_KEY = "matchmaking_queue";
+  QUEUE_TIMEOUT = 30000;
 
   constructor(ws: WebSocketService, gameService: GameService) {
     this.ws = ws;
     this.gameService = gameService;
+  }
+
+  public async cleanupExpiredQueuePlayers(): Promise<void> {
+    try {
+      const now = Date.now();
+      const expiredTimestamp = now - this.QUEUE_TIMEOUT;
+
+      const expiredPlayers = await redis.zrangebyscore(
+        this.QUEUE_KEY,
+        0,
+        expiredTimestamp
+      );
+
+      if (expiredPlayers.length > 0) {
+        const removedCount = await redis.zrem(
+          this.QUEUE_KEY,
+          ...expiredPlayers
+        );
+
+        if (removedCount > 0) {
+          logger.info(
+            `Timed out and removed ${removedCount} players from matchmaking queue.`
+          );
+
+          for (const playerId of expiredPlayers) {
+            await prisma.user
+              .update({
+                where: { id: playerId },
+                data: { status: UserStatus.ONLINE },
+              })
+              .catch((err) =>
+                logger.error(
+                  `Failed to update status for expired player ${playerId}:`,
+                  err
+                )
+              );
+
+            this.ws.broadcastToClient(playerId, {
+              type: "QUEUE_TIMED_OUT",
+              payload: {
+                message: "Matchmaking timed out. No opponent was found.",
+              },
+            });
+          }
+        }
+      }
+    } catch (error) {
+      logger.error("Error during periodic queue cleanup:", error);
+    }
   }
 
   async createBotGame(playerId: string): Promise<void> {
@@ -351,75 +402,95 @@ export class RoomService {
 
   async joinQueue(playerId: string, isGuest: boolean): Promise<void> {
     try {
-      this.queue.add(playerId);
+      const opponentCandidates = await redis.zrange(this.QUEUE_KEY, 0, 0);
 
+      if (opponentCandidates.length > 0) {
+        const opponentId = opponentCandidates[0];
+
+        const removedCount = await redis.zrem(this.QUEUE_KEY, opponentId);
+
+        if (removedCount > 0) {
+          logger.info(`Match found between ${playerId} and ${opponentId}.`);
+          await this.createMatch(playerId, opponentId);
+          return;
+        }
+      }
+
+      const now = Date.now();
       await prisma.user.update({
         where: { id: playerId },
         data: { status: UserStatus.WAITING },
       });
+      await redis.zadd(this.QUEUE_KEY, now, playerId);
 
+      const queueSize = await redis.zcard(this.QUEUE_KEY);
       this.ws.broadcastToClient(playerId, {
         type: "QUEUE_JOINED",
-        payload: { isGuest, queueSize: this.queue.size },
+        payload: { isGuest, queueSize },
       });
 
-      if (this.queue.size >= 2) {
-        const players = Array.from(this.queue).slice(0, 2);
-        players.forEach((pId) => this.queue.delete(pId));
-
-        const room = await prisma.room.create({
-          data: {
-            type: RoomType.PUBLIC,
-            status: RoomStatus.OPEN,
-            players: [
-              { id: players[0], color: "white" },
-              { id: players[1], color: "black" },
-            ] as any,
-          },
-        });
-
-        const game = await this.gameService.startGame(room.id);
-
-        const roomData: RoomWithGame = {
-          id: room.id,
-          type: RoomType.PUBLIC,
-          status: RoomStatus.ACTIVE,
-          players: [
-            { id: players[0], color: "white" },
-            { id: players[1], color: "black" },
-          ],
-          createdAt: room.createdAt,
-          game,
-        };
-
-        this.ws.broadcastToRoom(roomData);
-      }
-
-      logger.info(`Player ${playerId} joined queue (guest: ${isGuest})`);
+      logger.info(
+        `Player ${playerId} joined queue. Current size: ${queueSize}`
+      );
     } catch (error) {
-      logger.error("Error joining queue:", error);
+      logger.error("Error in joinQueue:", error);
       this.ws.broadcastToClient(playerId, {
         type: "ERROR",
-        payload: { message: "Failed to join queue" },
+        payload: { message: "Failed to join matchmaking." },
       });
     }
   }
 
+  private async createMatch(
+    playerOneId: string,
+    playerTwoId: string
+  ): Promise<void> {
+    const players = [playerOneId, playerTwoId];
+    const colors = ["white", "black"].sort(() => Math.random() - 0.5);
+
+    await prisma.user.updateMany({
+      where: { id: { in: players } },
+      data: { status: UserStatus.IN_GAME },
+    });
+
+    const room = await prisma.room.create({
+      data: {
+        type: RoomType.PUBLIC,
+        status: RoomStatus.OPEN,
+        players: [
+          { id: players[0], color: colors[0] },
+          { id: players[1], color: colors[1] },
+        ] as any,
+      },
+    });
+
+    const game = await this.gameService.startGame(room.id);
+    const roomWithGame: RoomWithGame = {
+      id: room.id,
+      type: room.type as RoomType,
+      status: RoomStatus.ACTIVE,
+      players: room.players as any,
+      createdAt: room.createdAt,
+      game,
+    };
+
+    this.ws.broadcastToRoom(roomWithGame);
+  }
+
   async leaveQueue(playerId: string): Promise<void> {
     try {
-      this.queue.delete(playerId);
-
-      await prisma.user.update({
-        where: { id: playerId },
-        data: { status: UserStatus.ONLINE },
-      });
-
-      this.ws.broadcastToClient(playerId, {
-        type: "QUEUE_LEFT",
-        payload: {},
-      });
-
-      logger.info(`Player ${playerId} left queue`);
+      const removed = await redis.zrem(this.QUEUE_KEY, playerId);
+      if (removed > 0) {
+        await prisma.user.update({
+          where: { id: playerId },
+          data: { status: UserStatus.ONLINE },
+        });
+        this.ws.broadcastToClient(playerId, {
+          type: "QUEUE_LEFT",
+          payload: {},
+        });
+        logger.info(`Player ${playerId} left queue manually.`);
+      }
     } catch (error) {
       logger.error("Error leaving queue:", error);
     }
@@ -427,8 +498,10 @@ export class RoomService {
 
   handleDisconnect(ws: any): void {
     if (ws.playerId) {
-      this.queue.delete(ws.playerId);
-      logger.info(`Player ${ws.playerId} disconnected and removed from queue`);
+      redis.zrem(this.QUEUE_KEY, ws.playerId);
+      logger.info(
+        `Player ${ws.playerId} disconnected, removing from queue if present.`
+      );
     }
   }
 

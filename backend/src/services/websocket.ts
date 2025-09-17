@@ -23,6 +23,7 @@ export class WebSocketService {
   private chatService: ChatService;
   private rateLimit: Map<string, { count: number; lastReset: number }>;
   private connections: Map<string, AuthenticatedWebSocket>;
+  private queueCleanupInterval!: NodeJS.Timeout;
 
   constructor(wss: WebSocketServer) {
     this.wss = wss;
@@ -33,6 +34,27 @@ export class WebSocketService {
     this.connections = new Map();
     this.setupEventHandlers();
     this.setupHeartbeat();
+    this.startQueueCleanup();
+  }
+
+  private startQueueCleanup(): void {
+    const cleanupIntervalMs = 10000;
+
+    this.queueCleanupInterval = setInterval(() => {
+      logger.info("Running periodic matchmaking queue cleanup...");
+      this.roomService.cleanupExpiredQueuePlayers();
+    }, cleanupIntervalMs);
+
+    logger.info(
+      `Matchmaking queue cleanup scheduled to run every ${
+        cleanupIntervalMs / 1000
+      } seconds.`
+    );
+  }
+
+  public stopServices(): void {
+    clearInterval(this.queueCleanupInterval);
+    logger.info("Stopped matchmaking queue cleanup.");
   }
 
   private async verifyToken(
