@@ -85,6 +85,20 @@ class RedisService {
     }
   }
 
+  duplicate(): RedisClientType {
+    return this.client.duplicate();
+  }
+
+  async configSet(params: string, value: string): Promise<void> {
+    await this.ensureConnection();
+
+    try {
+      await this.client.configSet(params, value);
+    } catch (error) {
+      logger.error(`Redis CONFIG SET ${params} error:`, error);
+    }
+  }
+
   async set(
     key: string,
     value: string,
@@ -150,12 +164,13 @@ class RedisService {
     }
   }
 
-  async lpush(key: string, value: string): Promise<void> {
+  async lpush(key: string, value: string | string[]): Promise<number> {
     await this.ensureConnection();
     try {
-      await this.client.lPush(key, value);
+      return await this.client.lPush(key, value);
     } catch (error) {
       logger.error("Redis LPUSH error:", error);
+      return 0;
     }
   }
 
@@ -219,6 +234,57 @@ class RedisService {
     }
   }
 
+  async sAdd(key: string, members: string | string[]): Promise<number> {
+    await this.ensureConnection();
+    try {
+      return await this.client.sAdd(key, members);
+    } catch (error) {
+      logger.error("Redis SADD error:", error);
+      return 0;
+    }
+  }
+
+  async sRem(key: string, members: string | string[]): Promise<number> {
+    await this.ensureConnection();
+    try {
+      return await this.client.sRem(key, members);
+    } catch (error) {
+      logger.error("Redis SREM error:", error);
+      return 0;
+    }
+  }
+
+  async sCard(key: string): Promise<number> {
+    await this.ensureConnection();
+    try {
+      return await this.client.sCard(key);
+    } catch (error) {
+      logger.error("Redis SCARD error:", error);
+      return 0;
+    }
+  }
+
+  async sPop(key: string, count?: number): Promise<string[] | null> {
+    await this.ensureConnection();
+    try {
+      if (count && count > 1) {
+        const results: string[] = [];
+        for (let i = 0; i < count; i++) {
+          const item = await this.client.sPop(key);
+          if (!item) break;
+          results.push(item);
+        }
+        return results.length > 0 ? results : null;
+      }
+
+      const result = await this.client.sPop(key);
+      return result ? [result] : null;
+    } catch (error) {
+      logger.error("Redis SPOP error:", error);
+      return null;
+    }
+  }
+
   async zadd(key: string, score: number, member: string): Promise<void> {
     await this.ensureConnection();
     try {
@@ -279,6 +345,27 @@ class RedisService {
       await this.client.unsubscribe(channel);
     } catch (error) {
       logger.error("Redis UNSUBSCRIBE error:", error);
+    }
+  }
+
+  async pSubscribe(
+    pattern: string,
+    callback: (message: string, channel: string) => void
+  ): Promise<void> {
+    await this.ensureConnection();
+    try {
+      await this.client.pSubscribe(pattern, callback);
+    } catch (error) {
+      logger.error("Redis PSUBSCRIBE error:", error);
+    }
+  }
+
+  async pUnsubscribe(pattern: string): Promise<void> {
+    await this.ensureConnection();
+    try {
+      await this.client.pUnsubscribe(pattern);
+    } catch (error) {
+      logger.error("Redis PUNSUBSCRIBE error:", error);
     }
   }
 
