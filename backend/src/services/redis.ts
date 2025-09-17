@@ -6,6 +6,7 @@ class RedisService {
   private static _instance: RedisService;
   private client: RedisClientType;
   private isConnected = false;
+  // @ts-ignore
   private reconnectAttempts = 0;
   private maxReconnectAttempts = 5;
 

@@ -2,7 +2,7 @@ import { Request, Response, Router } from "express";
 import { prisma } from "../lib/prisma";
 import { RoomStatus } from "../lib/types";
 
-const router = Router();
+const router: Router = Router();
 
 router.get(`/lookup`, async (req: Request, res: Response) => {
   try {
@@ -42,11 +42,13 @@ router.get(`/lookup`, async (req: Request, res: Response) => {
       message: "Room found successfully",
       data: room,
     });
+    return;
   } catch {
     res.status(401).json({
       success: false,
       message: "Unauthorized",
     });
+    return;
   }
 });
 

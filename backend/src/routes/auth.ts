@@ -8,7 +8,7 @@ import { logger } from "../services/logger";
 import { AuthProvider } from "../lib/types";
 import "../types/user";
 
-const router = Router();
+const router: Router = Router();
 
 interface UserDetails {
   id: string;
@@ -45,12 +45,14 @@ router.get("/me", (req: Request, res: Response) => {
         provider: user.provider,
       },
     });
+    return;
   } catch (err) {
     logger.error("Error in /auth/me:", err);
     res.status(401).json({
       success: false,
       message: "Unauthenticated",
     });
+    return;
   }
 });
 
@@ -139,12 +141,14 @@ router.get("/refresh", async (req: Request, res: Response) => {
         isGuest,
       },
     });
+    return;
   } catch (error) {
     logger.error("Error refreshing token:", error);
     res.status(500).json({
       success: false,
       message: "Failed to refresh token",
     });
+    return;
   }
 });
 
