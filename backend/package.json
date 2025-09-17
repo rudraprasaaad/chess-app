@@ -8,9 +8,9 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "postdeploy": "prisma migrate deploy",
-    "lint": "eslint src/",
-    "lint:check": "eslint src/",
-    "lint:fix": "eslint src/ --fix",
+    "lint": "eslint 'src/**/*.{ts,js}' 'backend/src/**/*.{ts,js}'",
+    "lint:check": "eslint 'src/**/*.{ts,js}' 'backend/src/**/*.{ts,js}'",
+    "lint:fix": "eslint 'src/**/*.{ts,js}' 'backend/src/**/*.{ts,js}' --fix",
     "type-check": "tsc --noEmit"
   },
   "keywords": [],
