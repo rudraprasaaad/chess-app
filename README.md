@@ -22,6 +22,7 @@ This chess application provides a complete multiplayer experience, designed from
 -   🏠 **Flexible Room System** – Public rooms for quick matches and private, invite-only rooms for friends.
 -   🔄 **Robust Reconnection Handling** – Seamless game continuity after network disconnections.
 -   🛡️ **Anti-abuse Protection** – Backend rate limiting and illegal move detection to ensure fair play.
+-   🤖 Play with Computer – Hone your skills by playing against the Bot.
 
 ## 🚀 Tech Stack
 
