@@ -2,7 +2,7 @@ import { Chess, Square } from "chess.js";
 import { Game, GameStatus } from "../../lib/types";
 import { GameService } from "./game";
 import { logger } from "../../services/logger";
-import { LightweightEngine } from "./engine"; // Changed import
+import { LightweightEngine } from "./engine";
 
 export const BOT_PLAYER_ID = "bot-player-001";
 export const BOT_NAME = "ChessMaster AI";
@@ -127,7 +127,7 @@ export class BotService {
 
   public shutdown(): void {
     logger.info("Shutting down BotService and all lightweight engines.");
-    this.gameEngines.forEach((engine, gameId) => {
+    this.gameEngines.forEach((engine) => {
       engine.quit();
     });
     this.gameEngines.clear();

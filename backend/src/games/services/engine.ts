@@ -4,7 +4,7 @@ import { logger } from "../../services/logger";
 export class LightweightEngine {
   private difficulty: number;
 
-  constructor(difficulty: number = 2) {
+  constructor(difficulty = 2) {
     this.difficulty = Math.max(1, Math.min(4, difficulty));
     logger.info(
       `Lightweight chess engine initialized with difficulty ${this.difficulty}`
